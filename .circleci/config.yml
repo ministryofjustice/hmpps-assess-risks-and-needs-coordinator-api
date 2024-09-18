@@ -6,10 +6,10 @@ orbs:
 parameters:
   alerts-slack-channel:
     type: string
-    default: PIPELINE_SECURITY_SLACK_CHANNEL
+    default: hmpps-assessments-notifications
   releases-slack-channel:
     type: string
-    default: SLACK_RELEASES_CHANNEL
+    default: hmpps-assessments-notifications
 
 jobs:
   validate:
