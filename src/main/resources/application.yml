@@ -8,6 +8,15 @@ spring:
   codec:
     max-in-memory-size: 10MB
 
+  datasource:
+    url: jdbc:postgresql://${db.endpoint}/${db.name}?currentSchema=${database.schema.name}&user=${db.username}&password=${db.password}&stringtype=unspecified
+
+  flyway:
+    schemas: ${db.schema.name}
+    locations: classpath:/db/migration
+    enabled: true
+    validate-on-migrate: true
+
   jackson:
     date-format: "yyyy-MM-dd HH:mm:ss"
     serialization:
@@ -18,12 +27,12 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${hmpps-auth.url}/.well-known/jwks.json
+          jwk-set-uri: ${hmpps-auth.base-url}/.well-known/jwks.json
 
       client:
         provider:
           hmpps-auth:
-            token-uri: ${hmpps-auth.url}/oauth/token
+            token-uri: ${hmpps-auth.base-url}/oauth/token
 
         registration:
           # example client registration for calling out to other services
@@ -34,6 +43,13 @@ spring:
             client-secret: ${example-api.client.secret}
             authorization-grant-type: client_credentials
             scope: read
+
+db:
+  name: arns-coordinator
+  endpoint: localhost:5432
+  schema.name: coordinator
+  username: postgres
+  password: postgres
 
 server:
   port: 8080
