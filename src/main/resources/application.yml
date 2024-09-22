@@ -9,10 +9,10 @@ spring:
     max-in-memory-size: 10MB
 
   datasource:
-    url: jdbc:postgresql://${db.endpoint}/${db.name}?currentSchema=${database.schema.name}&user=${db.username}&password=${db.password}&stringtype=unspecified
+    url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&user=${app.db.username}&password=${app.db.password}&stringtype=unspecified
 
   flyway:
-    schemas: ${db.schema.name}
+    schemas: ${app.db.schema.name}
     locations: classpath:/db/migration
     enabled: true
     validate-on-migrate: true
@@ -22,17 +22,16 @@ spring:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
 
-  # TODO: This security section can be removed if your service doesn't call out to other services
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${hmpps-auth.base-url}/.well-known/jwks.json
+          jwk-set-uri: ${app.services.hmpps-auth.base-url}/.well-known/jwks.json
 
       client:
         provider:
           hmpps-auth:
-            token-uri: ${hmpps-auth.base-url}/oauth/token
+            token-uri: ${app.services.hmpps-auth.base-url}/oauth/token
 
         registration:
           # example client registration for calling out to other services
@@ -44,12 +43,13 @@ spring:
             authorization-grant-type: client_credentials
             scope: read
 
-db:
-  name: arns-coordinator
-  endpoint: localhost:5432
-  schema.name: coordinator
-  username: postgres
-  password: postgres
+  db:
+    name: arns-coordinator
+    endpoint: localhost:5432
+    schema:
+      name: coordinator
+    username: postgres
+    password: postgres
 
 server:
   port: 8080
