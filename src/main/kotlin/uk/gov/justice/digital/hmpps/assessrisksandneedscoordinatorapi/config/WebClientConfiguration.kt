@@ -11,7 +11,7 @@ import java.time.Duration
 
 @Configuration
 class WebClientConfiguration(
-  @Value("\${hmpps-auth.base-url}") val hmppsAuthBaseUri: String,
+  @Value("\${app.services.hmpps-auth.base-url}") val hmppsAuthBaseUri: String,
   @Value("\${api.health-timeout:2s}") val healthTimeout: Duration,
   @Value("\${api.timeout:20s}") val timeout: Duration,
 ) {
