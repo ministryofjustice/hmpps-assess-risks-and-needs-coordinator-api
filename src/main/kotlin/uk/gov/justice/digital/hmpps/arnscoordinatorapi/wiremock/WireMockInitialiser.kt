@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Profile
 @Configuration
 @Profile("wiremock")
 class WireMockInitialiser(
-  private val wireMockProperties: WireMockProperties
+  private val wireMockProperties: WireMockProperties,
 ) {
 
   companion object {
@@ -23,7 +23,7 @@ class WireMockInitialiser(
     val wireMockServer = WireMockServer(
       WireMockConfiguration()
         .port(wireMockProperties.port)
-        .globalTemplating(true)
+        .globalTemplating(true),
     )
 
     wireMockServer.start()

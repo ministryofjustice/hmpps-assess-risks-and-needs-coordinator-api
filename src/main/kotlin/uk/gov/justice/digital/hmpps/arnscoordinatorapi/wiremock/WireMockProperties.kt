@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Profile
 @ConfigurationProperties(prefix = "wiremock")
 data class WireMockProperties(
   var port: Int = 0,
-  var paths: Paths = Paths()
+  var paths: Paths = Paths(),
 ) {
   data class Paths(
-    var strengthAndNeeds: String = ""
+    var strengthAndNeeds: String = "",
   )
 }
