@@ -7,10 +7,9 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 enum class SignType {
   SELF,
   COUNTERSIGN,
-  ;
 }
 
-data class OasysSignRequest (
+data class OasysSignRequest(
   @Schema(description = "Indicates what type of case this is")
   val signType: SignType,
 

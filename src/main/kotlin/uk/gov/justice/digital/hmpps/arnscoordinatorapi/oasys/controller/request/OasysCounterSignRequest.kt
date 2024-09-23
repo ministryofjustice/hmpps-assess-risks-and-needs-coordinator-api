@@ -15,10 +15,9 @@ enum class Tag {
   DOUBLE_COUNTERSIGNED,
   REJECTED,
   ROLLED_BACK,
-  ;
 }
 
-data class OasysCounterSignRequest (
+data class OasysCounterSignRequest(
   @Schema(description = "The SAN Assessment version number that was returned from the Sign Assessment API call.", example = "2")
   @PositiveOrZero
   val sanVersionNumber: Int,

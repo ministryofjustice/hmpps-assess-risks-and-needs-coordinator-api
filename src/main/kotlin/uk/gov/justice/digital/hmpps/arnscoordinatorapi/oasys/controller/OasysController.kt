@@ -15,15 +15,15 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysCreateResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.*
 
@@ -51,7 +51,9 @@ class OasysController {
   )
   fun get(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
-    @PathVariable @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH) @Valid oasysAssessmentPK: String,
+    @PathVariable
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
   ): OasysVersionedEntityResponse {
     /**
      * TODO: Implement logic to return version numbers and UUIDs for each entity
@@ -170,7 +172,8 @@ class OasysController {
   fun sign(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
-    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH) @Valid oasysAssessmentPK: String,
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysSignRequest,
   ): OasysVersionedEntityResponse {
     /**
@@ -299,7 +302,10 @@ class OasysController {
   )
   fun rollback(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
-    @PathVariable @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH) @Valid oasysAssessmentPK: String, @RequestBody @Valid
+    @PathVariable
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
+    @RequestBody @Valid
     request: OasysRollbackRequest,
   ): OasysVersionedEntityResponse {
     /**
@@ -343,14 +349,16 @@ class OasysController {
   fun softDelete(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
-    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH) @Valid oasysAssessmentPK: String, @RequestBody @Valid request: OasysGenericRequest,
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
+    @RequestBody @Valid request: OasysGenericRequest,
   ): OasysMessageResponse {
     /**
      * TODO: Implement logic for soft-deleting an association
      *  1. Find all associations for a PK in the DB
      *  2. Mark each association as deleted
      */
-      return OasysMessageResponse("Successfully soft-deleted associations for OASys assessment PK $oasysAssessmentPK")
+    return OasysMessageResponse("Successfully soft-deleted associations for OASys assessment PK $oasysAssessmentPK")
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/undelete"], method = [RequestMethod.POST])
@@ -377,7 +385,9 @@ class OasysController {
   )
   fun undelete(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
-    @PathVariable @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH) @Valid oasysAssessmentPK: String,
+    @PathVariable
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
   ): OasysVersionedEntityResponse {
     /**

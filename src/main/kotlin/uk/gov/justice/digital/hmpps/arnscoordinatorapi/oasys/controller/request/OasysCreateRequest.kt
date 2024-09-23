@@ -10,7 +10,7 @@ data class OasysCreateRequest(
   @Schema(
     required = true,
     description = "OASys Assessment PK to create an association for",
-    example = "CY/12ZX56"
+    example = "CY/12ZX56",
   )
   @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
   val oasysAssessmentPk: String,

@@ -5,7 +5,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.PositiveOrZero
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 
-data class OasysRollbackRequest (
+data class OasysRollbackRequest(
   @Schema(description = "The SAN Assessment version number that was returned from the Sign Assessment API call.", example = "2")
   @PositiveOrZero
   val sanVersionNumber: Int?,
