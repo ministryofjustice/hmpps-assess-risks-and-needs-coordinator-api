@@ -39,7 +39,7 @@ class OasysController {
       ApiResponse(responseCode = "200", description = "Entities found"),
       ApiResponse(
         responseCode = "404",
-        description = "No associated entities was found",
+        description = "No associated entities were found",
         content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
       ),
       ApiResponse(
@@ -191,7 +191,7 @@ class OasysController {
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/counter-sign"], method = [RequestMethod.POST])
-  @Operation(description = "Marks the latest entity version's as counter-signed.")
+  @Operation(description = "Marks the entity version's as counter-signed.")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entity versions counter-signed successfully"),
