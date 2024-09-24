@@ -46,7 +46,7 @@ spring:
 app:
   services:
     hmpps-auth:
-      base-url: ${hmpps-auth.base-url}
+      base-url: ${hmpps-auth.base-url}/auth
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
