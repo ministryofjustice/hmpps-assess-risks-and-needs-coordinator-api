@@ -43,6 +43,10 @@ spring:
             authorization-grant-type: client_credentials
             scope: read
 
+app:
+  services:
+    hmpps-auth:
+      base-url: ${hmpps-auth.base-url}/auth
   db:
     name: arns-coordinator
     endpoint: localhost:5432
