@@ -1,0 +1,9 @@
+wiremock:
+  port: 8089
+  paths:
+    strength-and-needs: '/strength-and-needs'
+
+app:
+  services:
+    strengths-and-needs-api:
+      base-url: ${san-api.base-url:http://localhost:${wiremock.port}${wiremock.paths.strength-and-needs}}
