@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 
 data class OasysUserDetails(
-  @Schema(description = "OASys User ID", example = "RB12XYZ")
+  @Schema(description = "User ID", example = "RB123XYZ")
   @Size(max = Constraints.OASYS_USER_ID_MAX_LENGTH)
   val id: String = "",
 

@@ -60,6 +60,10 @@ app:
   services:
     hmpps-auth:
       base-url: ${hmpps-auth.base-url}/auth
+  self:
+    base-url: ${hmpps-arns-coordinator.base-url}
+    endpoints:
+      oasys: /oasys
   db:
     name: arns-coordinator
     endpoint: localhost:5432
