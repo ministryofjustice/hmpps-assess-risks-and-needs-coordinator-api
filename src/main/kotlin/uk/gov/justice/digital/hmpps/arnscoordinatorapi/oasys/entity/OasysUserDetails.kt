@@ -9,7 +9,7 @@ data class OasysUserDetails(
   @Size(max = Constraints.OASYS_USER_ID_MAX_LENGTH)
   val id: String = "",
 
-  @Schema(description = "User name", example = "John Doe")
+  @Schema(description = "User's full name", example = "John Doe")
   @Size(max = Constraints.OASYS_USER_NAME_MAX_LENGTH)
   val name: String = "",
 )

@@ -50,3 +50,4 @@ services:
       SERVER_PORT: 8080
       APP_DB_ENDPOINT: postgres:5432
       HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090
+      SAN_API_BASE_URL: http://hmpps-san:3050 #TODO: Add this container
