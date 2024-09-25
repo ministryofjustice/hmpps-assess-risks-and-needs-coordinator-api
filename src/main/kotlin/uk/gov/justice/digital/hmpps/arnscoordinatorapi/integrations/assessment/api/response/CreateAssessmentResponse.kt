@@ -4,5 +4,5 @@ import java.util.*
 
 data class CreateAssessmentResponse(
   val sanAssessmentId: UUID,
-  val sanAssessmentVersion: Long
+  val sanAssessmentVersion: Long,
 )

@@ -9,19 +9,19 @@ import org.springframework.context.annotation.Configuration
 data class StrengthsAndNeedsApiProperties(
   var baseUrl: String = "",
   var endpoints: Endpoints = Endpoints(),
-  var paths: Endpoints = Endpoints()
+  var paths: Endpoints = Endpoints(),
 ) {
 
   data class Endpoints(
     var fetch: String = "",
-    var create: String = ""
+    var create: String = "",
   )
 
   @PostConstruct
   fun init() {
     paths = Endpoints(
       fetch = baseUrl + endpoints.fetch,
-      create = baseUrl + endpoints.create
+      create = baseUrl + endpoints.create,
     )
   }
 }

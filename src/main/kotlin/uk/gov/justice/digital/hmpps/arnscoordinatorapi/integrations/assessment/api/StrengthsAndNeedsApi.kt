@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 @Component
 class StrengthsAndNeedsApi(
   val sanApiWebClient: WebClient,
-  val apiProperties: StrengthsAndNeedsApiProperties
+  val apiProperties: StrengthsAndNeedsApiProperties,
 ) {
 
   private val logger = LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java)
