@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Size
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -34,6 +35,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of entities associated with an OASys Assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entities found"),
@@ -71,6 +73,7 @@ class OasysController {
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
   @Operation(description = "Create entities and associate them with an OASys assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entities and associations created successfully"),
@@ -116,6 +119,7 @@ class OasysController {
 
   @RequestMapping(path = ["/merge"], method = [RequestMethod.POST])
   @Operation(description = "Transfer associated entities from one PK to another")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entities associated successfully"),
@@ -149,6 +153,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/sign"], method = [RequestMethod.POST])
   @Operation(description = "Signs the latest version of all entities associated with the provided OASys Assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entity versions signed successfully"),
@@ -192,6 +197,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/counter-sign"], method = [RequestMethod.POST])
   @Operation(description = "Marks the entity version's as counter-signed.")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entity versions counter-signed successfully"),
@@ -235,6 +241,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/lock"], method = [RequestMethod.POST])
   @Operation(description = "Locks the latest version of all associated entities.")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entities locked successfully"),
@@ -280,6 +287,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/rollback"], method = [RequestMethod.POST])
   @Operation(description = "Create a new \"ROLLBACK\" version of specified entities")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "ROLLBACK version created"),
@@ -326,6 +334,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/soft-delete"], method = [RequestMethod.POST])
   @Operation(description = "Soft-deletes associations for OASys Assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Associations have been soft-deleted"),
@@ -363,6 +372,7 @@ class OasysController {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/undelete"], method = [RequestMethod.POST])
   @Operation(description = "Undeletes associations for OASys Assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Associations have been undeleted"),
