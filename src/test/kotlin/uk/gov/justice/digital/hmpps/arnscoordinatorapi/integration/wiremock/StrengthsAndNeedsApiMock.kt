@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 
 // TODO: Remove / replace this mock server as it currently calls the Example API (itself)
-class ExampleApiMockServer : WireMockServer(8091) {
+class StrengthsAndNeedsApiMock : WireMockServer(8091) {
   fun stubHealthPing(status: Int) {
     stubFor(
       get("/health/ping").willReturn(
@@ -49,7 +49,7 @@ class ExampleApiMockServer : WireMockServer(8091) {
 class ExampleApiExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
   companion object {
     @JvmField
-    val exampleApi = ExampleApiMockServer()
+    val exampleApi = StrengthsAndNeedsApiMock()
   }
 
   override fun beforeAll(context: ExtensionContext): Unit = exampleApi.start()
