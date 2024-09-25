@@ -51,16 +51,6 @@ app:
         fetch: /assessment/
         create: /assessment
   self:
-    base-url: ${hmpps-handover.base-url}
-    endpoints:
-      oasys:
-        create: /oasys/create
-
-app:
-  services:
-    hmpps-auth:
-      base-url: ${hmpps-auth.base-url}/auth
-  self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
       oasys: /oasys
