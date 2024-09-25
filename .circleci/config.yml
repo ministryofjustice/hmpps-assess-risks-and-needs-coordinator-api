@@ -10,12 +10,20 @@ parameters:
   releases-slack-channel:
     type: string
     default: hmpps-assessments-notifications
+  deploy:
+    description: Trigger a manual deployment
+    type: string
+    default: ""
+
+feature_branch: &feature_branch
+  filters:
+    branches:
+      ignore: main
 
 jobs:
   validate:
-    executor:
-      name: hmpps/java
-      tag: "21.0"
+    machine:
+      image: ubuntu-2204:current
     steps:
       - checkout
       - restore_cache:
@@ -23,7 +31,11 @@ jobs:
             - gradle-{{ checksum "build.gradle.kts" }}
             - gradle-
       - run:
-          command: ./gradlew check
+          command: make dev-up lint test-coverage
+      - run:
+          name: Store container logs
+          command: make save-logs OUTPUT_LOGS_DIR=~/docker-logs
+          when: on_fail
       - save_cache:
           paths:
             - ~/.gradle
@@ -32,10 +44,19 @@ jobs:
           path: build/test-results
       - store_artifacts:
           path: build/reports/tests
+      - store_artifacts:
+          path: build/reports/kover/html
+          destination: kover
+      - store_artifacts:
+          path: build/reports/detekt/detekt.html
+      - store_artifacts:
+          path: ~/docker-logs
 
 workflows:
   version: 2
   build-test-and-deploy:
+    when:
+      not: << pipeline.parameters.deploy >>
     jobs:
       - validate:
           filters:
@@ -43,8 +64,22 @@ workflows:
               ignore: /.*/
       - hmpps/helm_lint:
           name: helm_lint
-      - hmpps/build_multiplatform_docker:
+      - hmpps/build_docker:
           name: build_docker
+          publish: false
+          persist_container_image: true
+          jira_update: true
+          pipeline_id: << pipeline.id >>
+          pipeline_number: << pipeline.number >>
+          context: hmpps-common-vars
+      - hmpps/publish_docker:
+          name: publish_docker
+          publish_latest_tag: true
+          context: hmpps-common-vars
+          requires:
+            - validate
+            - helm_lint
+            - build_docker
           filters:
             branches:
               only:
@@ -53,54 +88,88 @@ workflows:
           name: deploy_dev
           env: "dev"
           jira_update: true
-          pipeline_id: <<pipeline.id>>
-          pipeline_number: <<pipeline.number>>
+          pipeline_id: << pipeline.id >>
+          pipeline_number: << pipeline.number >>
           context: hmpps-common-vars
           filters:
             branches:
               only:
                 - main
           requires:
-            - validate
-            - build_docker
-            - helm_lint
+            - publish_docker
           helm_timeout: 5m
-#      - request-preprod-approval:
-#          type: approval
-#          requires:
-#            - deploy_dev
-#      - hmpps/deploy_env:
-#          name: deploy_preprod
-#          env: "preprod"
-#          jira_update: true
-#          jira_env_type: staging
-#          pipeline_id: <<pipeline.id>>
-#          pipeline_number: <<pipeline.number>>
-#          context:
-#            - hmpps-common-vars
-#            - hmpps-template-kotlin-preprod
-#          requires:
-#            - request-preprod-approval
-#          helm_timeout: 5m
-#      - request-prod-approval:
-#          type: approval
-#          requires:
-#            - deploy_preprod
-#      - hmpps/deploy_env:
-#          name: deploy_prod
-#          env: "prod"
-#          jira_update: true
-#          jira_env_type: production
-#          pipeline_id: <<pipeline.id>>
-#          pipeline_number: <<pipeline.number>>
-#          slack_notification: true
-#          slack_channel_name: << pipeline.parameters.releases-slack-channel >>
-#          context:
-#            - hmpps-common-vars
-#            - hmpps-template-kotlin-prod
-#          requires:
-#            - request-prod-approval
-#          helm_timeout: 5m
+  #      - request-preprod-approval:
+  #          type: approval
+  #          requires:
+  #            - deploy_dev
+  #      - hmpps/deploy_env:
+  #          name: deploy_preprod
+  #          env: "preprod"
+  #          jira_update: true
+  #          jira_env_type: staging
+  #          pipeline_id: <<pipeline.id>>
+  #          pipeline_number: <<pipeline.number>>
+  #          context:
+  #            - hmpps-common-vars
+  #            - hmpps-assess-risks-and-needs-handover-service-preprod
+  #          requires:
+  #            - request-preprod-approval
+  #          helm_timeout: 5m
+  #      - request-prod-approval:
+  #          type: approval
+  #          requires:
+  #            - deploy_preprod
+  #      - hmpps/deploy_env:
+  #          name: deploy_prod
+  #          env: "prod"
+  #          jira_update: true
+  #          jira_env_type: production
+  #          pipeline_id: <<pipeline.id>>
+  #          pipeline_number: <<pipeline.number>>
+  #          slack_notification: true
+  #          slack_channel_name: << pipeline.parameters.releases-slack-channel >>
+  #          context:
+  #            - hmpps-common-vars
+  #            - hmpps-assess-risks-and-needs-handover-service-prod
+  #          requires:
+  #            - request-prod-approval
+  #          helm_timeout: 5m
+
+  deploy-to-test-env:
+    when:
+      and:
+        - equal: [ "test", << pipeline.parameters.deploy >> ]
+    jobs:
+      - hmpps/build_docker:
+          name: build_docker
+          publish: false
+          persist_container_image: true
+          jira_update: true
+          pipeline_id: << pipeline.id >>
+          pipeline_number: << pipeline.number >>
+          context:
+            - hmpps-common-vars
+            - hmpps-assess-risks-and-needs-handover-service-test
+      - hmpps/publish_docker:
+          name: publish_docker
+          publish_latest_tag: false
+          context: hmpps-common-vars
+          requires:
+            - build_docker
+      - hmpps/deploy_env:
+          name: deploy_test
+          env: "test"
+          jira_update: true
+          jira_env_type: testing
+          pipeline_id: << pipeline.id >>
+          pipeline_number: << pipeline.number >>
+          context:
+            - hmpps-common-vars
+            - hmpps-assess-risks-and-needs-handover-service-test
+          requires:
+            - publish_docker
+          helm_timeout: 5m
+
 
   security:
     triggers:
