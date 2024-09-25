@@ -2,6 +2,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 
-data class CreateAssessmentRequest (
-  val userDetails: OasysUserDetails
+data class CreateAssessmentRequest(
+  val userDetails: OasysUserDetails,
 )
