@@ -2,6 +2,7 @@ wiremock:
   port: 8089
   paths:
     strength-and-needs: '/strength-and-needs'
+    sentence-plan: '/sentence-plan'
 
 app:
   services:

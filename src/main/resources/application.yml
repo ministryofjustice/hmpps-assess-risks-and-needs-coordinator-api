@@ -40,6 +40,12 @@ spring:
             client-secret: ${san-api.client.secret}
             authorization-grant-type: client_credentials
             scope: read, write
+          sentence-plan-api:
+            provider: hmpps-auth
+            client-id: ${sp-api.client.id}
+            client-secret: ${sp-api.client.secret}
+            authorization-grant-type: client_credentials
+            scope: read, write
 
 app:
   services:
@@ -50,6 +56,11 @@ app:
       endpoints:
         fetch: /assessment/
         create: /assessment
+    sentence-plan-api:
+      base-url: ${sp-api.base-url}
+      endpoints:
+        fetch: /plan/
+        create: /plan
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
