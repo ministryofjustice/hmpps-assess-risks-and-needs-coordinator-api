@@ -50,4 +50,10 @@ services:
       SERVER_PORT: 8080
       APP_DB_ENDPOINT: postgres:5432
       HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090
-      SAN_API_BASE_URL: http://hmpps-san:3050 #TODO: Add this container
+      SAN_API_BASE_URL: http://san-api:3050
+      # TODO: Need to get some proper credentials for below
+      SAN_API_CLIENT_ID: hmpps-strengths-and-needs-ui-client
+      SAN_API_CLIENT_SECRET: clientsecret
+      SP_API_BASE_URL: http://sp-api:3060
+      SP_API_CLIENT_ID: hmpps-strengths-and-needs-ui-client
+      SP_API_CLIENT_SECRET: clientsecret

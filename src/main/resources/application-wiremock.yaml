@@ -3,8 +3,3 @@ wiremock:
   paths:
     strength-and-needs: '/strength-and-needs'
     sentence-plan: '/sentence-plan'
-
-app:
-  services:
-    strengths-and-needs-api:
-      base-url: ${san-api.base-url:http://localhost:${wiremock.port}${wiremock.paths.strength-and-needs}}
