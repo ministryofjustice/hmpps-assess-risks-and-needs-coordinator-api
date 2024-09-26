@@ -26,12 +26,12 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${app.services.hmpps-auth.base-url}/.well-known/jwks.json
+          jwk-set-uri: ${app.services.hmpps-auth.base-url}/auth/.well-known/jwks.json
 
       client:
         provider:
           hmpps-auth:
-            token-uri: ${app.services.hmpps-auth.base-url}/oauth/token
+            token-uri: ${app.services.hmpps-auth.base-url}/auth/oauth/token
 
         registration:
           san-api:
