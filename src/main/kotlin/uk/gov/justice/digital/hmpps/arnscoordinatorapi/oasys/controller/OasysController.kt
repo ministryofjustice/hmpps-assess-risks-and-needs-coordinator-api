@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Size
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
@@ -31,11 +34,13 @@ import java.util.UUID
 @RestController
 @Tag(name = "OASys")
 @RequestMapping("\${app.self.endpoints.oasys}")
-class OasysController {
+class OasysController(
+  private val oasysCoordinatorService: OasysCoordinatorService,
+) {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of entities associated with an OASys Assessment PK")
-  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "Entities found"),
@@ -73,10 +78,14 @@ class OasysController {
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
   @Operation(description = "Create entities and associate them with an OASys assessment PK")
-  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
   @ApiResponses(
     value = [
-      ApiResponse(responseCode = "200", description = "Entities and associations created successfully"),
+      ApiResponse(
+        responseCode = "200",
+        description = "Entities and associations created successfully",
+        content = arrayOf(Content(schema = Schema(implementation = OasysCreateResponse::class))),
+      ),
       ApiResponse(
         responseCode = "404",
         description = "Previous association/entity not found",
@@ -96,25 +105,31 @@ class OasysController {
   )
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
-  ): OasysCreateResponse {
+  ): ResponseEntity<Any> {
     /**
      * TODO: Implement logic for 2 separate behaviours
-     *  1. Fresh
-     *    1.1. Create fresh entities for SAN, SP
-     *    1.2. Store relevant entity UUID against it's newly created association
-     *    1.3. Return entity UUIDs and version numbers
+     *  1. DONE!
      *  2. From Existing
      *    2.1. Using existing OASys Assessment PK, create a clone from an existing entity in SAN, SP
      *    2.2. Store clone entity UUID against the new OASys Assessment PK
      *    2.3. Return entity UUIDs and version numbers
      *  If any failures, rollback and return error to OASys
      */
-    return OasysCreateResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+    if (request.previousOasysAssessmentPk === null) {
+      return when (val result = oasysCoordinatorService.create(request)) {
+        is OasysCoordinatorService.CreateOperationResult.Success ->
+          ResponseEntity.status(HttpStatus.CREATED).body(result.data)
+        is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
+          ResponseEntity.status(HttpStatus.CONFLICT).body(
+            "An association already exists for the provided OASys Assessment PK: ${request.oasysAssessmentPk}. \n" +
+              "Error details: ${result.errorMessage}",
+          )
+        is OasysCoordinatorService.CreateOperationResult.Failure ->
+          ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      }
+    } else {
+      return ResponseEntity.status(HttpStatus.OK).body("IMPLEMENT THIS LATER")
+    }
   }
 
   @RequestMapping(path = ["/merge"], method = [RequestMethod.POST])
