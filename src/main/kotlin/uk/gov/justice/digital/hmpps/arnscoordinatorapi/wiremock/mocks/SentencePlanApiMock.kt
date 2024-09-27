@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.wiremock.mocks
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import jakarta.annotation.PostConstruct
@@ -22,6 +23,9 @@ class SentencePlanApiMock(
   private fun createPlanStub() {
     wireMockServer.stubFor(
       post(urlEqualTo(wireMockProperties.paths.sentencePlan + apiProperties.endpoints.create))
+        .withRequestBody(matchingJsonPath("$.planType"))
+        .withRequestBody(matchingJsonPath("$.userDetails.id"))
+        .withRequestBody(matchingJsonPath("$.userDetails.name"))
         .willReturn(
           aResponse()
             .withStatus(200)
