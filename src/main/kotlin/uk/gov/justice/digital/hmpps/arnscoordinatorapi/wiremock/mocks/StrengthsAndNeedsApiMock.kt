@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.wiremock.mocks
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
@@ -22,6 +23,8 @@ class StrengthsAndNeedsApiMock(
   private fun createAssessmentStub() {
     wireMockServer.stubFor(
       post(urlEqualTo(wireMockProperties.paths.strengthAndNeeds + apiProperties.endpoints.create))
+        .withRequestBody(WireMock.matchingJsonPath("$.userDetails.id"))
+        .withRequestBody(WireMock.matchingJsonPath("$.userDetails.name"))
         .willReturn(
           aResponse()
             .withStatus(200)

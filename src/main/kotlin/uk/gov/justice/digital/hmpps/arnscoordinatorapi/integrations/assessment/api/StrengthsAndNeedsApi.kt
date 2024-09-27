@@ -5,8 +5,10 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.CreateAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 
 @Component
 class StrengthsAndNeedsApi(
@@ -14,22 +16,42 @@ class StrengthsAndNeedsApi(
   val apiProperties: StrengthsAndNeedsApiProperties,
 ) {
 
-  private val logger = LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java)
-
-  fun createAssessment(body: CreateAssessmentRequest): CreateAssessmentResponse? {
+  fun createAssessment(createData: CreateAssessmentData): ApiOperationResult<VersionedEntity> {
     return try {
-      sanApiWebClient.post()
+      val result = sanApiWebClient.post()
         .uri(apiProperties.endpoints.create)
-        .body(BodyInserters.fromValue(body))
+        .body(BodyInserters.fromValue(createData))
         .retrieve()
         .bodyToMono(CreateAssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.sanAssessmentId,
+            version = it.sanAssessmentVersion,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
         .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during createAssessment")
     } catch (ex: WebClientResponseException) {
-      logger.error("HTTP error during createAssessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-      throw ex
+      ApiOperationResult.Failure("HTTP error during create assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
-      logger.error("Error during createAssessment: ${ex.message}", ex)
-      throw ex
+      ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
+    }
+  }
+
+  sealed class ApiOperationResult<out T> {
+    data class Success<T>(val data: T) : ApiOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : ApiOperationResult<T>() {
+      init {
+        LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java).error(errorMessage)
+      }
     }
   }
 }

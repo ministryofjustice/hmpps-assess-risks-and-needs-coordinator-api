@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Size
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 
 data class OasysCreateRequest(
@@ -26,6 +27,10 @@ data class OasysCreateRequest(
   @Schema(description = "Region prison code", example = "111111")
   @Size(max = Constraints.REGION_PRISON_CODE_MAX_LENGTH)
   val regionPrisonCode: String? = null,
+
+  @Schema(description = "Sentence plan type", example = "INITIAL")
+  @Size(max = Constraints.REGION_PRISON_CODE_MAX_LENGTH)
+  val planType: PlanType,
 
   @Schema(description = "OASys User Details")
   @Valid
