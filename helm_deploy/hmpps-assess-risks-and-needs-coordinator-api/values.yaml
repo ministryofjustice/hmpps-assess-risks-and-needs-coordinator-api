@@ -29,9 +29,6 @@ generic-service:
   namespace_secrets:
     hmpps-assess-risks-and-needs-coordinator-api:
       APPINSIGHTS_INSTRUMENTATIONKEY: "APPINSIGHTS_INSTRUMENTATIONKEY"
-      # Example client registration secrets
-      EXAMPLE_API_CLIENT_ID: "TEMPLATE_KOTLIN_API_CLIENT_ID"
-      EXAMPLE_API_CLIENT_SECRET: "TEMPLATE_KOTLIN_API_CLIENT_SECRET"
 
   allowlist:
     groups:
