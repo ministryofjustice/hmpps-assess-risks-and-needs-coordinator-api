@@ -9,3 +9,7 @@ services:
     volumes:
       - ..:/app
       - ~/.gradle:/home/gradle/.gradle
+    environment:
+      SPRING_PROFILES_ACTIVE: wiremock
+      SP_API_BASE_URL: http://localhost:8089/sentence-plan
+      SAN_API_BASE_URL: http://localhost:8089/strengths-and-needs
