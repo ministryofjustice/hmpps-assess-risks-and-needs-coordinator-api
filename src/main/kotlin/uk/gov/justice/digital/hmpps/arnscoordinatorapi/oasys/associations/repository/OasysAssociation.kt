@@ -10,7 +10,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.UUID
 
 enum class EntityType {
   ASSESSMENT,
