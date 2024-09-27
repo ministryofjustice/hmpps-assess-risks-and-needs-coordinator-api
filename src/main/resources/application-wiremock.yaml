@@ -1,5 +1,5 @@
 wiremock:
   port: 8089
   paths:
-    strength-and-needs: '/strength-and-needs'
+    strength-and-needs: '/strengths-and-needs'
     sentence-plan: '/sentence-plan'
