@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api
 
-import org.jboss.logging.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
@@ -50,7 +50,7 @@ class StrengthsAndNeedsApi(
       val cause: Throwable? = null,
     ) : ApiOperationResult<T>() {
       init {
-        Logger.getLogger(StrengthsAndNeedsApi::class.java).error(errorMessage)
+        LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java).error(errorMessage)
       }
     }
   }

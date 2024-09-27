@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
-import org.jboss.logging.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
@@ -50,7 +50,7 @@ class SentencePlanApi(
       val cause: Throwable? = null,
     ) : ApiOperationResult<T>() {
       init {
-        Logger.getLogger(SentencePlanApi::class.java).error(errorMessage)
+        LoggerFactory.getLogger(SentencePlanApi::class.java).error(errorMessage)
       }
     }
   }
