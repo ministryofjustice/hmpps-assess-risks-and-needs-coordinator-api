@@ -19,7 +19,7 @@ import java.util.UUID
 class AssessmentServiceTest {
   private val strengthsAndNeedsApi = mock(StrengthsAndNeedsApi::class.java)
   private val assessmentService = AssessmentService(strengthsAndNeedsApi)
-  val userDetails = UserDetails(id = "user123", name = "John Doe")
+  private val userDetails = UserDetails(id = "user123", name = "John Doe")
 
   @Nested
   inner class Create {
