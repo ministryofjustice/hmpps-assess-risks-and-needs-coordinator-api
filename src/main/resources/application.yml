@@ -65,6 +65,9 @@ app:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
       oasys: /oasys
+  strategies:
+    plan: true
+    assessment: true
   db:
     name: arns-coordinator
     endpoint: localhost:5432
