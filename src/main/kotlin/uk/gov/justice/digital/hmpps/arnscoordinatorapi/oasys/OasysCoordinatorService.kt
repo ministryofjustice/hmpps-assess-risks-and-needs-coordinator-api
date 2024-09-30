@@ -1,7 +1,9 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
+import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.features.ActionService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.Command
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CommandFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
@@ -11,10 +13,12 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysA
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysCreateResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 
 @Service
 class OasysCoordinatorService(
-  private val actionService: ActionService,
+  private val commandFactory: CommandFactory,
+  private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
 ) {
 
@@ -36,34 +40,45 @@ class OasysCoordinatorService(
     )
   }
 
+  @Transactional
   fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysCreateResponse> {
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    when (val createAllResult = actionService.createAllEntities(buildCreateData(requestData))) {
-      is OperationResult.Failure -> return CreateOperationResult.Failure("Cannot create, creating entities failed: ${createAllResult.errorMessage}")
-      is OperationResult.Success -> {
-        val oasysCreateResponse = OasysCreateResponse()
+    val oasysCreateResponse = OasysCreateResponse()
+    val successfullyExecutedCommands: MutableList<Command> = mutableListOf()
 
-        for (versionedEntity in createAllResult.data) {
-          oasysCreateResponse.addVersionedEntity(versionedEntity)
+    for (strategy in strategyFactory.getStrategies()) {
+      val command = commandFactory.createCommand(strategy, buildCreateData(requestData))
+      val commandResult = command.execute()
 
-          oasysAssociationsService.storeAssociation(
-            OasysAssociation(
-              oasysAssessmentPk = requestData.oasysAssessmentPk,
-              regionPrisonCode = requestData.regionPrisonCode,
-              entityUuid = versionedEntity.id,
-              entityType = versionedEntity.entityType,
-            ),
-          ).onFailure {
-            // TODO: Probably want to do some kind of rollback here in future
-            return CreateOperationResult.Failure("Failed saving associations: $it")
-          }
+      when (commandResult) {
+        is OperationResult.Success -> successfullyExecutedCommands.add(command)
+        is OperationResult.Failure -> {
+          successfullyExecutedCommands.forEach { it.rollback() }
+          return CreateOperationResult.Failure("Failed to create entity for ${strategy.entityType}: ${commandResult.errorMessage}")
         }
+      }
 
-        return CreateOperationResult.Success(oasysCreateResponse)
+      when (
+        oasysAssociationsService.storeAssociation(
+          OasysAssociation(
+            oasysAssessmentPk = requestData.oasysAssessmentPk,
+            regionPrisonCode = requestData.regionPrisonCode,
+            entityType = strategy.entityType,
+            entityUuid = commandResult.data.id,
+          ),
+        )
+      ) {
+        is OperationResult.Success -> oasysCreateResponse.addVersionedEntity(commandResult.data)
+        is OperationResult.Failure -> {
+          successfullyExecutedCommands.forEach { priorCommand -> priorCommand.rollback() }
+          return CreateOperationResult.Failure("Failed saving association for ${strategy.entityType}")
+        }
       }
     }
+
+    return CreateOperationResult.Success(oasysCreateResponse)
   }
 
   sealed class CreateOperationResult<out T> {

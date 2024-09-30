@@ -2,121 +2,187 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.features.ActionService
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CommandFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.util.UUID
 
 class OasysCoordinatorServiceTest {
-  private val actionService = mock(ActionService::class.java)
-  private val oasysAssociationsService = mock(OasysAssociationsService::class.java)
-  private val oasysCoordinatorService = OasysCoordinatorService(actionService, oasysAssociationsService)
+  private val commandFactory: CommandFactory = mock()
+  private val strategyFactory: StrategyFactory = mock()
+  private val oasysAssociationsService: OasysAssociationsService = mock()
 
-  val requestData = OasysCreateRequest(
-    oasysAssessmentPk = "XY/12456",
+  private lateinit var oasysCoordinatorService: OasysCoordinatorService
+
+  private val oasysCreateRequest = OasysCreateRequest(
+    oasysAssessmentPk = "CY/12ZX56",
+    regionPrisonCode = "111111",
     planType = PlanType.INITIAL,
-    regionPrisonCode = "123",
-    userDetails = OasysUserDetails(id = "user123", name = "John Doe"),
+    userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
+
+  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
+
+  @BeforeEach
+  fun setup() {
+    oasysCoordinatorService = OasysCoordinatorService(commandFactory, strategyFactory, oasysAssociationsService)
+  }
 
   @Nested
   inner class Create {
 
     @Test
-    fun `should return success when all services succeed`() {
-      val versionedEntityPlan = VersionedEntity(UUID.randomUUID(), 1L, EntityType.PLAN)
-      val versionedEntityAssessment = VersionedEntity(UUID.randomUUID(), 2L, EntityType.ASSESSMENT)
+    fun `should create entities and associations successfully`() {
+      val command: CreateCommand = mock()
+      val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
 
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk))
-        .thenReturn(OperationResult.Success(Unit))
-      `when`(actionService.createAllEntities(any<CreateData>()))
-        .thenReturn(OperationResult.Success(listOf(versionedEntityPlan, versionedEntityAssessment)))
-      `when`(oasysAssociationsService.storeAssociation(any<OasysAssociation>()))
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      val result = oasysCoordinatorService.create(requestData)
+      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+
+      `when`(commandFactory.createCommand(eq(strategy), any())).thenReturn(command)
+      `when`(command.execute()).thenReturn(OperationResult.Success(versionedEntity))
+
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(oasysCreateRequest)
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(versionedEntity.id, response.sentencePlanId)
 
-      assertEquals(versionedEntityPlan.id, response.sentencePlanId)
-      assertEquals(versionedEntityPlan.version, response.sentencePlanVersion)
-      assertEquals(versionedEntityAssessment.id, response.sanAssessmentId)
-      assertEquals(versionedEntityAssessment.version, response.sanAssessmentVersion)
-
-      verify(oasysAssociationsService).ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      verify(actionService).createAllEntities(any<CreateData>())
-      verify(oasysAssociationsService, times(2)).storeAssociation(any<OasysAssociation>())
+      verify(strategyFactory).getStrategies()
+      verify(commandFactory).createCommand(eq(strategy), any<CreateData>())
+      verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+      verify(oasysAssociationsService, times(1)).storeAssociation(any())
     }
 
     @Test
-    fun `should return failure when actionService fails to create entities`() {
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk))
-        .thenReturn(OperationResult.Success(Unit))
-      `when`(actionService.createAllEntities(any<CreateData>()))
-        .thenReturn(OperationResult.Failure("Failed to create entities"))
+    fun `should create entities and associations successfully for both PLAN and ASSESSMENT`() {
+      val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
+      val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val command: CreateCommand = mock()
 
-      val result = oasysCoordinatorService.create(requestData)
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      `when`(strategyFactory.getStrategies()).thenReturn(listOf(planStrategy, assessmentStrategy))
+
+      `when`(commandFactory.createCommand(any(), any())).thenReturn(command)
+
+      `when`(command.execute()).thenReturn(OperationResult.Success(versionedEntity))
+
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(oasysCreateRequest)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(versionedEntity.id, response.sentencePlanId)
+
+      verify(strategyFactory).getStrategies()
+      verify(commandFactory).createCommand(eq(planStrategy), any())
+      verify(commandFactory).createCommand(eq(assessmentStrategy), any())
+      verify(oasysAssociationsService, times(2)).storeAssociation(any())
+    }
+
+    @Test
+    fun `should rollback on command execution failure`() {
+      val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
+      val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val commandOne: CreateCommand = mock()
+      val commandTwo: CreateCommand = mock()
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      `when`(strategyFactory.getStrategies()).thenReturn(listOf(assessmentStrategy, planStrategy))
+
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      `when`(commandOne.execute()).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(commandTwo.execute()).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
+
+      `when`(commandFactory.createCommand(any(), any()))
+        .thenReturn(commandOne)
+        .thenReturn(commandTwo)
+
+      val result = oasysCoordinatorService.create(oasysCreateRequest)
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
-      val failureMessage = (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage
-      assertEquals("Cannot create, creating entities failed: Failed to create entities", failureMessage)
+      assertEquals(
+        "Failed to create entity for PLAN: Execution failed",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
 
-      verify(oasysAssociationsService).ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      verify(actionService).createAllEntities(any())
+      verify(commandOne).rollback()
     }
 
     @Test
-    fun `should return failure due to conflicting associations`() {
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk))
-        .thenReturn(OperationResult.Failure("Conflicting association"))
+    fun `should rollback on association storage failure`() {
+      val command: CreateCommand = mock()
+      val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
 
-      val result = oasysCoordinatorService.create(requestData)
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+
+      `when`(commandFactory.createCommand(eq(strategy), any())).thenReturn(command)
+      `when`(command.execute()).thenReturn(OperationResult.Success(versionedEntity))
+
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Failure("Storage failed"))
+
+      val result = oasysCoordinatorService.create(oasysCreateRequest)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
+      assertEquals(
+        "Failed saving association for PLAN",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
+
+      verify(command).rollback()
+      verify(commandFactory).createCommand(eq(strategy), any<CreateData>())
+    }
+
+    @Test
+    fun `should return conflicting associations result if associations exist`() {
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Failure("Conflicting associations"))
+
+      val result = oasysCoordinatorService.create(oasysCreateRequest)
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations)
-      val failureMessage = (result as OasysCoordinatorService.CreateOperationResult.ConflictingAssociations).errorMessage
-      assertEquals("Cannot create due to conflicting associations: Conflicting association", failureMessage)
+      assertEquals(
+        "Cannot create due to conflicting associations: Conflicting associations",
+        (result as OasysCoordinatorService.CreateOperationResult.ConflictingAssociations).errorMessage,
+      )
 
-      verify(oasysAssociationsService).ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      verifyNoMoreInteractions(actionService) // Ensure actionService is not called
-    }
-
-    @Test
-    fun `should return failure when association storage fails after entity creation`() {
-      val versionedEntityPlan = VersionedEntity(UUID.randomUUID(), 1L, EntityType.PLAN)
-      val versionedEntityAssessment = VersionedEntity(UUID.randomUUID(), 2L, EntityType.ASSESSMENT)
-
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk))
-        .thenReturn(OperationResult.Success(Unit))
-      `when`(actionService.createAllEntities(any<CreateData>()))
-        .thenReturn(OperationResult.Success(listOf(versionedEntityPlan, versionedEntityAssessment)))
-      `when`(oasysAssociationsService.storeAssociation(any<OasysAssociation>()))
-        .thenReturn(OperationResult.Failure("Failed to store association"))
-
-      val result = oasysCoordinatorService.create(requestData)
-
-      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
-      val failureMessage = (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage
-      assertEquals("Failed saving associations: Failed to store association", failureMessage)
-
-      verify(oasysAssociationsService).ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      verify(actionService).createAllEntities(any<CreateData>())
-      verify(oasysAssociationsService).storeAssociation(any<OasysAssociation>())
+      verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+      verify(commandFactory, never()).createCommand(any(), any())
     }
   }
 }

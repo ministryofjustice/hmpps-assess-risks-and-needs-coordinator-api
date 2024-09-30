@@ -82,7 +82,7 @@ class OasysController(
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Entities and associations created successfully",
         content = arrayOf(Content(schema = Schema(implementation = OasysCreateResponse::class))),
       ),

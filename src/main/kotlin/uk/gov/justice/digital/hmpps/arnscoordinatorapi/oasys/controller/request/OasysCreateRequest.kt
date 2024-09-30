@@ -29,7 +29,6 @@ data class OasysCreateRequest(
   val regionPrisonCode: String? = null,
 
   @Schema(description = "Sentence plan type", example = "INITIAL")
-  @Size(max = Constraints.REGION_PRISON_CODE_MAX_LENGTH)
   val planType: PlanType,
 
   @Schema(description = "OASys User Details")
