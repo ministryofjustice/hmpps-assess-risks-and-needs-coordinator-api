@@ -11,5 +11,7 @@ interface EntityStrategy {
 
   fun create(createData: CreateData): OperationResult<VersionedEntity>
 
+  fun fetch(entityUuid: UUID): OperationResult<*>
+
   fun delete(entityUuid: UUID): OperationResult<Unit>
 }

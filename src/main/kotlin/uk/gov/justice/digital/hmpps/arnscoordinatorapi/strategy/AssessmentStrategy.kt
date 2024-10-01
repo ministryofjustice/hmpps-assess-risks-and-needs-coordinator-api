@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.StrengthsAndNeedsApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
@@ -19,6 +20,13 @@ class AssessmentStrategy(
 
   override fun create(createData: CreateData): OperationResult<VersionedEntity> {
     return when (val result = strengthsAndNeedsApi.createAssessment(createData.assessment!!)) {
+      is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+      is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+    }
+  }
+
+  override fun fetch(entityUuid: UUID): OperationResult<GetAssessmentResponse> {
+    return when (val result = strengthsAndNeedsApi.getAssessment(entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
     }
