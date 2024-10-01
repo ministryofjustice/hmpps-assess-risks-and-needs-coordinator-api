@@ -3,8 +3,10 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.wiremock.mocks
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import jakarta.annotation.PostConstruct
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
@@ -34,6 +36,30 @@ class StrengthsAndNeedsApiMock(
               {
                 "sanAssessmentId": "{{randomValue type='UUID'}}",
                 "sanAssessmentVersion": 0
+              }
+              """.trimIndent(),
+            ),
+        ),
+    )
+  }
+
+  @PostConstruct
+  private fun getAssessmentStub() {
+    wireMockServer.stubFor(
+      get(urlPathMatching(wireMockProperties.paths.strengthAndNeeds + "/assessment/([a-f0-9\\-]+)"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+              {
+                "sanAssessmentId": "{{request.pathSegments.[2]}}",
+                "sanAssessmentVersion": 1,
+                "sanAssessmentData": {
+                  "someMockData": "mockSanData"
+                },
+                "lastUpdatedTimestampSAN": "1725494400"
               }
               """.trimIndent(),
             ),

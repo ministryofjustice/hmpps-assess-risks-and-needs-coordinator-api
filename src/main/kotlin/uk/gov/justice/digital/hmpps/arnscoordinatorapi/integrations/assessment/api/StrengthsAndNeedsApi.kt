@@ -7,8 +7,10 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.CreateAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import java.util.UUID
 
 @Component
 class StrengthsAndNeedsApi(
@@ -39,6 +41,24 @@ class StrengthsAndNeedsApi(
       ApiOperationResult.Failure("HTTP error during create assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
       ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
+    }
+  }
+
+  fun getAssessment(assessmentUuid: UUID): ApiOperationResult<GetAssessmentResponse> {
+    return try {
+      val result = sanApiWebClient.get()
+        .uri("${apiProperties.endpoints.fetch}/$assessmentUuid")
+        .retrieve()
+        .bodyToMono(GetAssessmentResponse::class.java)
+        .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected null response during getAssessment")
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure("HTTP error during get assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during getAssessment: ${ex.message}", ex)
     }
   }
 

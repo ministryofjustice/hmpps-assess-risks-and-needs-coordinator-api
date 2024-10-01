@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 
@@ -19,6 +20,13 @@ class PlanStrategy(
 
   override fun create(createData: CreateData): OperationResult<VersionedEntity> {
     return when (val result = sentencePlanApi.createPlan(createData.plan!!)) {
+      is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+      is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+    }
+  }
+
+  override fun fetch(entityUuid: UUID): OperationResult<GetPlanResponse> {
+    return when (val result = sentencePlanApi.getPlan(entityUuid)) {
       is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
     }

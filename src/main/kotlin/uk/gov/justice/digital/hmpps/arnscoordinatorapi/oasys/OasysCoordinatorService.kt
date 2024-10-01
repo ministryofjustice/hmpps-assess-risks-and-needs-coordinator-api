@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
@@ -11,7 +12,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.req
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysCreateResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 
 @Service
@@ -39,11 +41,11 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysCreateResponse> {
+  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    val oasysCreateResponse = OasysCreateResponse()
+    val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
     for (strategy in strategyFactory.getStrategies()) {
@@ -79,6 +81,29 @@ class OasysCoordinatorService(
     return CreateOperationResult.Success(oasysCreateResponse)
   }
 
+  fun get(oasysAssessmentPk: String): GetOperationResult<OasysGetResponse> {
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return GetOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysGetResponse = OasysGetResponse()
+    for (association in associations) {
+      val strategy = association.entityType?.let(strategyFactory::getStrategy)
+        ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val command = FetchCommand(strategy, association.entityUuid!!)
+
+      when (val response = command.execute()) {
+        is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity, ${response.errorMessage}")
+        is OperationResult.Success -> oasysGetResponse.addEntityData(response.data!!)
+      }
+    }
+
+    return GetOperationResult.Success(oasysGetResponse)
+  }
+
   sealed class CreateOperationResult<out T> {
     data class Success<T>(val data: T) : CreateOperationResult<T>()
 
@@ -90,5 +115,18 @@ class OasysCoordinatorService(
     data class ConflictingAssociations<T>(
       val errorMessage: String,
     ) : CreateOperationResult<T>()
+  }
+
+  sealed class GetOperationResult<out T> {
+    data class Success<T>(val data: T) : GetOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : GetOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : GetOperationResult<T>()
   }
 }

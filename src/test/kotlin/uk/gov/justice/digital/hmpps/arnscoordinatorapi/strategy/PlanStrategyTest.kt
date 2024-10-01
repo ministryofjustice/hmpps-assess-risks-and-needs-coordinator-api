@@ -15,8 +15,11 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import java.time.Instant
 import java.util.UUID
 
 class PlanStrategyTest {
@@ -64,6 +67,47 @@ class PlanStrategyTest {
       assertTrue(result is OperationResult.Failure)
       assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
       verify(sentencePlanApi).createPlan(any())
+    }
+  }
+
+  @Nested
+  inner class Fetch {
+
+    @Test
+    fun `should return success when fetch plan is successful`() {
+      val entityUuid = UUID.randomUUID()
+      val getPlanResponse = GetPlanResponse(
+        sentencePlanId = entityUuid,
+        sentencePlanVersion = 1,
+        planComplete = PlanState.INCOMPLETE,
+        planType = PlanType.INITIAL,
+        lastUpdatedTimestampSP = Instant.now().toEpochMilli(),
+      )
+
+      `when`(sentencePlanApi.getPlan(entityUuid)).thenReturn(
+        SentencePlanApi.ApiOperationResult.Success(getPlanResponse),
+      )
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(getPlanResponse, (result as OperationResult.Success).data)
+      verify(sentencePlanApi).getPlan(entityUuid)
+    }
+
+    @Test
+    fun `should return failure when fetch plan fails`() {
+      val entityUuid = UUID.randomUUID()
+
+      `when`(sentencePlanApi.getPlan(entityUuid)).thenReturn(
+        SentencePlanApi.ApiOperationResult.Failure("Fetch error occurred"),
+      )
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Fetch error occurred", (result as OperationResult.Failure).errorMessage)
+      verify(sentencePlanApi).getPlan(entityUuid)
     }
   }
 }
