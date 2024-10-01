@@ -81,7 +81,7 @@ class PlanStrategyTest {
         sentencePlanVersion = 1,
         planComplete = PlanState.INCOMPLETE,
         planType = PlanType.INITIAL,
-        lastUpdatedTimestampSP = Instant.now().toEpochMilli()
+        lastUpdatedTimestampSP = Instant.now().toEpochMilli(),
       )
 
       `when`(sentencePlanApi.getPlan(entityUuid)).thenReturn(

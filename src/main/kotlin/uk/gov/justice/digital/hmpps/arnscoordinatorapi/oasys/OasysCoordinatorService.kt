@@ -104,7 +104,6 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(oasysGetResponse)
   }
 
-
   sealed class CreateOperationResult<out T> {
     data class Success<T>(val data: T) : CreateOperationResult<T>()
 

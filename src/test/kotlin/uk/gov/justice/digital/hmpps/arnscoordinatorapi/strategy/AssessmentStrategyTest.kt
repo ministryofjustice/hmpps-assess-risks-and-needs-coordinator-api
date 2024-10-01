@@ -78,7 +78,7 @@ class AssessmentStrategyTest {
         sanAssessmentId = entityUuid,
         sanAssessmentVersion = 1,
         sanAssessmentData = emptyMap<String, Any>(),
-        lastUpdatedTimestampSAN = Instant.now().toEpochMilli()
+        lastUpdatedTimestampSAN = Instant.now().toEpochMilli(),
       )
 
       `when`(strengthsAndNeedsApi.getAssessment(entityUuid)).thenReturn(

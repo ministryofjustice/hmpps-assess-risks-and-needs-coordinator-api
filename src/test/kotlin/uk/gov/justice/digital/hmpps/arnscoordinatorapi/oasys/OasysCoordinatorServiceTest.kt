@@ -13,7 +13,6 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -178,7 +177,7 @@ class OasysCoordinatorServiceTest {
       assertTrue(result is OasysCoordinatorService.GetOperationResult.NoAssociations)
       assertEquals(
         "No associations found for the provided OASys Assessment PK",
-        (result as OasysCoordinatorService.GetOperationResult.NoAssociations).errorMessage
+        (result as OasysCoordinatorService.GetOperationResult.NoAssociations).errorMessage,
       )
     }
 
@@ -189,7 +188,7 @@ class OasysCoordinatorServiceTest {
         entityType = null,
         entityUuid = UUID.randomUUID(),
         oasysAssessmentPk = "CY/12ZX56",
-        regionPrisonCode = "111111"
+        regionPrisonCode = "111111",
       )
       `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
 
@@ -198,7 +197,7 @@ class OasysCoordinatorServiceTest {
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
       assertEquals(
         "Strategy not initialized for null",
-        (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage
+        (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage,
       )
     }
 
@@ -210,7 +209,7 @@ class OasysCoordinatorServiceTest {
         entityType = EntityType.PLAN,
         entityUuid = entityUuid,
         oasysAssessmentPk = "CY/12ZX56",
-        regionPrisonCode = "111111"
+        regionPrisonCode = "111111",
       )
       val strategy: EntityStrategy = mock()
 
@@ -224,7 +223,7 @@ class OasysCoordinatorServiceTest {
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
       assertEquals(
         "Failed to retrieve PLAN entity, Execution failed",
-        (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage
+        (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage,
       )
     }
 
@@ -236,7 +235,7 @@ class OasysCoordinatorServiceTest {
         entityType = EntityType.PLAN,
         entityUuid = entityUuid,
         oasysAssessmentPk = "CY/12ZX56",
-        regionPrisonCode = "111111"
+        regionPrisonCode = "111111",
       )
       val strategy: EntityStrategy = mock()
       val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.PLAN)
