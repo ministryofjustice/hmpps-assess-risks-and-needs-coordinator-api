@@ -21,7 +21,8 @@ class CreateCommand(
     }
   }
 
-  override fun rollback(): OperationResult<Unit> {
+  fun rollback(): OperationResult<Unit> {
+    strategy.delete(createdEntity.id)
     return OperationResult.Failure("Rollback has not been implemented")
   }
 }

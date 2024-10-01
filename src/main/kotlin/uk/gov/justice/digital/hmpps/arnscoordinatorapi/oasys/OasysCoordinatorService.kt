@@ -2,8 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.Command
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CommandFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
@@ -17,7 +16,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 
 @Service
 class OasysCoordinatorService(
-  private val commandFactory: CommandFactory,
   private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
 ) {
@@ -46,10 +44,10 @@ class OasysCoordinatorService(
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
     val oasysCreateResponse = OasysCreateResponse()
-    val successfullyExecutedCommands: MutableList<Command> = mutableListOf()
+    val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
     for (strategy in strategyFactory.getStrategies()) {
-      val command = commandFactory.createCommand(strategy, buildCreateData(requestData))
+      val command = CreateCommand(strategy, buildCreateData(requestData))
       val commandResult = command.execute()
 
       when (commandResult) {

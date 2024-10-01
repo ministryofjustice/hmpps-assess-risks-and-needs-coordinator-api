@@ -4,6 +4,4 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 
 interface Command {
   fun execute(): OperationResult<*>
-
-  fun rollback(): OperationResult<Unit>
 }
