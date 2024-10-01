@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.req
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysCreateResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 
 @Service
@@ -39,11 +39,11 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysCreateResponse> {
+  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    val oasysCreateResponse = OasysCreateResponse()
+    val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
     for (strategy in strategyFactory.getStrategies()) {

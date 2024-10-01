@@ -84,7 +84,7 @@ class OasysController(
       ApiResponse(
         responseCode = "201",
         description = "Entities and associations created successfully",
-        content = arrayOf(Content(schema = Schema(implementation = OasysCreateResponse::class))),
+        content = arrayOf(Content(schema = Schema(implementation = OasysVersionedEntityResponse::class))),
       ),
       ApiResponse(
         responseCode = "404",
