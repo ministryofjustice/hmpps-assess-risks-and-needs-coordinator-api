@@ -25,6 +25,6 @@ class AssessmentStrategy(
   }
 
   override fun delete(entityUuid: UUID): OperationResult<Unit> {
-    TODO("Not yet implemented")
+    return OperationResult.Failure("Delete not implemented yet")
   }
 }
