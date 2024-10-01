@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -12,11 +13,13 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
@@ -160,6 +163,94 @@ class OasysCoordinatorServiceTest {
       )
 
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+    }
+  }
+
+  @Nested
+  inner class Get {
+
+    @Test
+    fun `should return failure when no associations are found`() {
+      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(emptyList())
+
+      val result = oasysCoordinatorService.get("CY/12ZX56")
+
+      assertTrue(result is OasysCoordinatorService.GetOperationResult.NoAssociations)
+      assertEquals(
+        "No associations found for the provided OASys Assessment PK",
+        (result as OasysCoordinatorService.GetOperationResult.NoAssociations).errorMessage
+      )
+    }
+
+    @Test
+    fun `should return failure when strategy is not initialized`() {
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = null,
+        entityUuid = UUID.randomUUID(),
+        oasysAssessmentPk = "CY/12ZX56",
+        regionPrisonCode = "111111"
+      )
+      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+
+      val result = oasysCoordinatorService.get("CY/12ZX56")
+
+      assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
+      assertEquals(
+        "Strategy not initialized for null",
+        (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage
+      )
+    }
+
+    @Test
+    fun `should return failure when command execution fails`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        regionPrisonCode = "111111"
+      )
+      val strategy: EntityStrategy = mock()
+
+      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+
+      `when`(strategy.fetch(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
+
+      val result = oasysCoordinatorService.get("CY/12ZX56")
+
+      assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
+      assertEquals(
+        "Failed to retrieve PLAN entity, Execution failed",
+        (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage
+      )
+    }
+
+    @Test
+    fun `should return success when fetch is successful`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        regionPrisonCode = "111111"
+      )
+      val strategy: EntityStrategy = mock()
+      val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.PLAN)
+
+      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+
+      `when`(strategy.fetch(any())).thenReturn(OperationResult.Success(fetchResponse))
+
+      val result = oasysCoordinatorService.get("CY/12ZX56")
+
+      assertTrue(result is OasysCoordinatorService.GetOperationResult.Success)
+      val response = (result as OasysCoordinatorService.GetOperationResult.Success).data
+      assertNotNull(response)
     }
   }
 }
