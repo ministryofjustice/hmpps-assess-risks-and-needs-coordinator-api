@@ -10,6 +10,10 @@ class OasysAssociationsService(
   private val oasysAssociationRepository: OasysAssociationRepository,
 ) {
 
+  fun findAssociations(oasysAssessmentPk: String): List<OasysAssociation> {
+    return oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
+  }
+
   fun ensureNoExistingAssociation(oasysAssessmentPk: String): OperationResult<Unit> {
     val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
 

@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -25,7 +26,7 @@ class OasysAssociationsServiceTest {
   lateinit var oasysAssociationsService: OasysAssociationsService
 
   @Nested
-  inner class EnsureNoExistingAssociationTest {
+  inner class EnsureNoExistingAssociation {
 
     @Test
     fun `should return success when no existing associations`() {
@@ -60,7 +61,7 @@ class OasysAssociationsServiceTest {
   }
 
   @Nested
-  inner class StoreAssociationTest {
+  inner class StoreAssociation {
 
     @Test
     fun `should return success when storing association`() {
@@ -93,6 +94,41 @@ class OasysAssociationsServiceTest {
       assertTrue(result is OperationResult.Failure)
       assertTrue((result as OperationResult.Failure).errorMessage.contains("Failed to store association"))
       verify(oasysAssociationRepository).save(association)
+    }
+  }
+
+  @Nested
+  inner class FindAssociations {
+
+    @Test
+    fun `should return empty list when no associations are found`() {
+      val oasysAssessmentPk = "test-pk"
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
+        .thenReturn(emptyList())
+
+      val result = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+      assertTrue(result.isEmpty())
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
+    }
+
+    @Test
+    fun `should return list of associations when associations are found`() {
+      val oasysAssessmentPk = "test-pk"
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.ASSESSMENT,
+        oasysAssessmentPk = oasysAssessmentPk,
+        entityUuid = UUID.randomUUID(),
+      )
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
+        .thenReturn(listOf(association))
+
+      val result = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+      assertEquals(1, result.size)
+      assertEquals(association, result[0])
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
     }
   }
 }
