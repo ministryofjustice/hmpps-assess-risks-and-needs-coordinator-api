@@ -6,17 +6,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CommandFactory
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -29,7 +24,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.util.UUID
 
 class OasysCoordinatorServiceTest {
-  private val commandFactory: CommandFactory = mock()
   private val strategyFactory: StrategyFactory = mock()
   private val oasysAssociationsService: OasysAssociationsService = mock()
 
@@ -46,7 +40,7 @@ class OasysCoordinatorServiceTest {
 
   @BeforeEach
   fun setup() {
-    oasysCoordinatorService = OasysCoordinatorService(commandFactory, strategyFactory, oasysAssociationsService)
+    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService)
   }
 
   @Nested
@@ -54,7 +48,6 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should create entities and associations successfully`() {
-      val command: CreateCommand = mock()
       val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
@@ -62,8 +55,7 @@ class OasysCoordinatorServiceTest {
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
 
-      `when`(commandFactory.createCommand(eq(strategy), any())).thenReturn(command)
-      `when`(command.execute()).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
 
@@ -74,7 +66,6 @@ class OasysCoordinatorServiceTest {
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
       verify(strategyFactory).getStrategies()
-      verify(commandFactory).createCommand(eq(strategy), any<CreateData>())
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
     }
@@ -83,16 +74,14 @@ class OasysCoordinatorServiceTest {
     fun `should create entities and associations successfully for both PLAN and ASSESSMENT`() {
       val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
       val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
-      val command: CreateCommand = mock()
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(planStrategy, assessmentStrategy))
 
-      `when`(commandFactory.createCommand(any(), any())).thenReturn(command)
-
-      `when`(command.execute()).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(planStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
 
@@ -103,8 +92,6 @@ class OasysCoordinatorServiceTest {
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
       verify(strategyFactory).getStrategies()
-      verify(commandFactory).createCommand(eq(planStrategy), any())
-      verify(commandFactory).createCommand(eq(assessmentStrategy), any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
     }
 
@@ -112,8 +99,6 @@ class OasysCoordinatorServiceTest {
     fun `should rollback on command execution failure`() {
       val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
       val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
-      val commandOne: CreateCommand = mock()
-      val commandTwo: CreateCommand = mock()
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
@@ -123,12 +108,8 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(commandOne.execute()).thenReturn(OperationResult.Success(versionedEntity))
-      `when`(commandTwo.execute()).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
-
-      `when`(commandFactory.createCommand(any(), any()))
-        .thenReturn(commandOne)
-        .thenReturn(commandTwo)
+      `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(planStrategy.create(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
 
       val result = oasysCoordinatorService.create(oasysCreateRequest)
 
@@ -138,12 +119,11 @@ class OasysCoordinatorServiceTest {
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
-      verify(commandOne).rollback()
+      verify(assessmentStrategy).delete(any())
     }
 
     @Test
     fun `should rollback on association storage failure`() {
-      val command: CreateCommand = mock()
       val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
@@ -151,8 +131,7 @@ class OasysCoordinatorServiceTest {
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
 
-      `when`(commandFactory.createCommand(eq(strategy), any())).thenReturn(command)
-      `when`(command.execute()).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Failure("Storage failed"))
 
@@ -164,8 +143,7 @@ class OasysCoordinatorServiceTest {
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
-      verify(command).rollback()
-      verify(commandFactory).createCommand(eq(strategy), any<CreateData>())
+      verify(strategy).delete(any())
     }
 
     @Test
@@ -182,7 +160,6 @@ class OasysCoordinatorServiceTest {
       )
 
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
-      verify(commandFactory, never()).createCommand(any(), any())
     }
   }
 }
