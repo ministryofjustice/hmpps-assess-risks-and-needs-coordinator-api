@@ -2,8 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.Command
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CommandFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
