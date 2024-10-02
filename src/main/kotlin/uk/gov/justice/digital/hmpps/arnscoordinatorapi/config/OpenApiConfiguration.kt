@@ -30,7 +30,7 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
     )
     .components(
       Components().addSecuritySchemes(
-        "ARNS OASys Role",
+        "strengths-and-needs-oasys",
         SecurityScheme().addBearerJwtRequirement("ROLE_STRENGTHS_AND_NEEDS_OASYS"),
       ),
     )
