@@ -47,5 +47,6 @@ abstract class IntegrationTestBase {
   protected fun stubPingWithResponse(status: Int) {
     hmppsAuth.stubHealthPing(status)
     sanServer.stubHealthPing(status)
+    sentencePlanApiMock.stubHealthPing(status)
   }
 }
