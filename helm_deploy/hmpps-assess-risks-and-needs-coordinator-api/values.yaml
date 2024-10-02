@@ -30,6 +30,12 @@ generic-service:
     hmpps-assess-risks-and-needs-coordinator-api:
       APPINSIGHTS_INSTRUMENTATIONKEY: "APPINSIGHTS_INSTRUMENTATIONKEY"
 
+    hmpps-assess-risks-and-needs-integrations-rds-instance:
+      APP_DB_ENDPOINT: rds_instance_endpoint
+      APP_DB_NAME: database_name
+      APP_DB_USERNAME: database_username
+      APP_DB_PASSWORD: database_password
+
   allowlist:
     groups:
       - internal
