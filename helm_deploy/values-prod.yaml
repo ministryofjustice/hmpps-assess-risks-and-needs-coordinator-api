@@ -6,7 +6,7 @@ generic-service:
     host: arns-coordinator-api.hmpps.service.justice.gov.uk
 
   env:
-    HMPPS_AUTH_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
+    HMPPS_AUTH_BASE_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
     SAN_API_BASE_URL: "https://api.strengths-based-needs.hmpps.service.justice.gov.uk"
     SP_API_BASE_URL: "https://sentence-plan-preprod.hmpps.service.justice.gov.uk"
 
