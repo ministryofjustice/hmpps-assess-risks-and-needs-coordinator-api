@@ -8,7 +8,9 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import java.util.UUID
 
 @Component
 class SentencePlanApi(
@@ -39,6 +41,24 @@ class SentencePlanApi(
       ApiOperationResult.Failure("HTTP error during create plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
       ApiOperationResult.Failure("Unexpected error during createPlan: ${ex.message}", ex)
+    }
+  }
+
+  fun getPlan(planUuid: UUID): ApiOperationResult<GetPlanResponse> {
+    return try {
+      val result = sentencePlanApiWebClient.get()
+        .uri("${apiProperties.endpoints.fetch}/$planUuid")
+        .retrieve()
+        .bodyToMono(GetPlanResponse::class.java)
+        .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected null response during getPlan")
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure("HTTP error during get plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during getPlan: ${ex.message}", ex)
     }
   }
 

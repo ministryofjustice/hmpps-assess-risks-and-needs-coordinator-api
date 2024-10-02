@@ -3,11 +3,12 @@
 
 generic-service:
   ingress:
-    host: template-kotlin.hmpps.service.justice.gov.uk
+    host: arns-coordinator-api.hmpps.service.justice.gov.uk
 
   env:
     HMPPS_AUTH_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
     SAN_API_BASE_URL: "https://api.strengths-based-needs.hmpps.service.justice.gov.uk"
+    SP_API_BASE_URL: "https://sentence-plan-preprod.hmpps.service.justice.gov.uk"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

@@ -25,7 +25,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysCreateResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -43,7 +43,11 @@ class OasysController(
   @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
   @ApiResponses(
     value = [
-      ApiResponse(responseCode = "200", description = "Entities found"),
+      ApiResponse(
+        responseCode = "200",
+        description = "Entities found",
+        content = arrayOf(Content(schema = Schema(implementation = OasysGetResponse::class))),
+      ),
       ApiResponse(
         responseCode = "404",
         description = "No associated entities were found",
@@ -61,19 +65,15 @@ class OasysController(
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to return version numbers and UUIDs for each entity
-     *  1. Iterate over each association for the PK in the DB
-     *  2. Call out to external services to get latest version number
-     *  3. Return all
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 5,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 2,
-    )
+  ): ResponseEntity<*> {
+    return when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
+      is OasysCoordinatorService.GetOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.GetOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+    }
   }
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
@@ -82,9 +82,9 @@ class OasysController(
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Entities and associations created successfully",
-        content = arrayOf(Content(schema = Schema(implementation = OasysCreateResponse::class))),
+        content = arrayOf(Content(schema = Schema(implementation = OasysVersionedEntityResponse::class))),
       ),
       ApiResponse(
         responseCode = "404",

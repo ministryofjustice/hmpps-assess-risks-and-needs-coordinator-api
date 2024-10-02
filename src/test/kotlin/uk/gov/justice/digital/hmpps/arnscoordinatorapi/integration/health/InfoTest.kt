@@ -16,7 +16,7 @@ class InfoTest : IntegrationTestBase() {
       .expectStatus()
       .isOk
       .expectBody()
-      .jsonPath("build.name").isEqualTo("hmpps-arns-coordinator")
+      .jsonPath("build.name").isEqualTo("hmpps-arns-coordinator-api")
   }
 
   @Test

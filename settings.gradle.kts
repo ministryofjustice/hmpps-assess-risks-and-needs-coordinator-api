@@ -1,1 +1,1 @@
-rootProject.name = "hmpps-arns-coordinator"
+rootProject.name = "hmpps-arns-coordinator-api"
