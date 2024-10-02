@@ -41,7 +41,7 @@ class OasysController(
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of entities associated with an OASys Assessment PK")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
+  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(
@@ -79,7 +79,7 @@ class OasysController(
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
   @Operation(description = "Create entities and associate them with an OASys assessment PK")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
+  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(
