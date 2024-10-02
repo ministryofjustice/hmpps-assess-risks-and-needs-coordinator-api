@@ -7,7 +7,6 @@ import io.swagger.v3.oas.models.info.Info
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import io.swagger.v3.oas.models.servers.Server
-import io.swagger.v3.oas.models.tags.Tag
 import org.springframework.boot.info.BuildProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -31,7 +30,7 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
     )
     .components(
       Components().addSecuritySchemes(
-        "ARNS OASys Role",
+        "strengths-and-needs-oasys",
         SecurityScheme().addBearerJwtRequirement("ROLE_STRENGTHS_AND_NEEDS_OASYS"),
       ),
     )
