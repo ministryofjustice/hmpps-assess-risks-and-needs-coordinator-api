@@ -28,7 +28,7 @@ class CreateTest : IntegrationTestBase() {
   fun `it successfully creates a new SP and SAN with no previous oasys PK`() {
     val oasysAssessmentPk = "1"
     webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_WRITE")))
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
         OasysCreateRequest(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -59,7 +59,7 @@ class CreateTest : IntegrationTestBase() {
       ),
     )
     webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_WRITE")))
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
         OasysCreateRequest(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -76,7 +76,7 @@ class CreateTest : IntegrationTestBase() {
     stubSentencePlanCreate(500)
     val oasysAssessmentPk = "3"
     webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_WRITE")))
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
         OasysCreateRequest(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -91,7 +91,7 @@ class CreateTest : IntegrationTestBase() {
   @Test
   fun `it returns a 400 status where no oasysAssessmentPk provided`() {
     webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_WRITE")))
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .exchange()
       .expectStatus().isBadRequest
   }
