@@ -59,8 +59,8 @@ app:
     sentence-plan-api:
       base-url: ${sp-api.base-url}
       endpoints:
-        fetch: /plan/
-        create: /plan
+        fetch: /coordinator/plan/
+        create: /coordinator/plan
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:

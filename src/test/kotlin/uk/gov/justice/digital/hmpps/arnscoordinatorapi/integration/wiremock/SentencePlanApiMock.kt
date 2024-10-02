@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.post
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
@@ -15,6 +16,24 @@ class SentencePlanApiMock : WireMockServer(8091) {
         aResponse()
           .withHeader("Content-Type", "application/json")
           .withBody("""{"status":"${if (status == 200) "UP" else "DOWN"}"}""")
+          .withStatus(status),
+      ),
+    )
+  }
+
+  fun stubSentencePlanCreate(status: Int = 201) {
+    stubFor(
+      post("/coordinator/plan").willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "planId": "4180ED3E-2412-4CA5-9B30-9ADD00941113",
+                "planVersion": 0
+              }
+            """.trimIndent(),
+          )
           .withStatus(status),
       ),
     )

@@ -99,7 +99,7 @@ class OasysController(
       ),
       ApiResponse(
         responseCode = "500",
-        description = "Unexpected error",
+        description = "Unexpected sss",
         content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
       ),
     ],
