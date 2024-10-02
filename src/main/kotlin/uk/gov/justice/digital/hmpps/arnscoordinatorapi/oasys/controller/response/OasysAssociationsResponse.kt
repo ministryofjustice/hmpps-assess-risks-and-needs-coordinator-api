@@ -4,5 +4,5 @@ import java.util.UUID
 
 data class OasysAssociationsResponse(
   val sanAssessmentId: UUID,
-  val sentencePlanId: UUID
+  val sentencePlanId: UUID,
 )

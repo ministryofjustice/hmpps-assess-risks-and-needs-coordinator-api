@@ -457,10 +457,11 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
   ): ResponseEntity<Any> {
-
-    return ResponseEntity.ok().body(OasysAssociationsResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sentencePlanId = UUID.randomUUID(),
-    ))
+    return ResponseEntity.ok().body(
+      OasysAssociationsResponse(
+        sanAssessmentId = UUID.randomUUID(),
+        sentencePlanId = UUID.randomUUID(),
+      ),
+    )
   }
 }
