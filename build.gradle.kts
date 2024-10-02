@@ -27,6 +27,7 @@ dependencies {
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.22") {
     exclude(group = "io.swagger.core.v3")
   }
+  testImplementation("com.h2database:h2")
 
   // Dev dependencies
   developmentOnly("org.springframework.boot:spring-boot-devtools")
