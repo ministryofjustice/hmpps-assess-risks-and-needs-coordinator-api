@@ -91,7 +91,7 @@ class CreateTest : IntegrationTestBase() {
   @Test
   fun `it returns a 400 status where no oasysAssessmentPk provided`() {
     webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_WRITE")))
       .exchange()
       .expectStatus().isBadRequest
   }

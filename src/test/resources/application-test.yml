@@ -8,7 +8,7 @@ management.endpoint:
 app:
   services:
     hmpps-auth:
-      base-url: http://localhost:8090
+      base-url: http://localhost:8090/auth
     sentence-plan-api:
       base-url: http://localhost:8091
     strengths-and-needs-api:
