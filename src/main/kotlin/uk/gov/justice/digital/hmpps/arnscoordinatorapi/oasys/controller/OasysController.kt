@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
@@ -426,5 +427,40 @@ class OasysController(
       sentencePlanId = UUID.randomUUID(),
       sentencePlanVersion = 0,
     )
+  }
+
+  @RequestMapping(path = ["/{oasysAssessmentPK}/associations"], method = [RequestMethod.GET])
+  @Operation(description = "Return the associations for OASys Assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Associations returned",
+        content = arrayOf(Content(schema = Schema(implementation = OasysAssociationsResponse::class))),
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "No associations found",
+        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Unexpected error",
+        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
+      ),
+    ],
+  )
+  fun associations(
+    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @PathVariable
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
+  ): ResponseEntity<Any> {
+
+    return ResponseEntity.ok().body(OasysAssociationsResponse(
+      sanAssessmentId = UUID.randomUUID(),
+      sentencePlanId = UUID.randomUUID(),
+    ))
   }
 }
