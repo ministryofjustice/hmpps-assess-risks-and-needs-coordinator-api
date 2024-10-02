@@ -1,15 +1,46 @@
 services:
-  api:
+  redis:
+    ports:
+      - "6379:6379"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  hmpps-auth:
+    ports:
+      - "9090:9090"
+
+  coordinator-api:
     image: quay.io/hmpps/hmpps-assess-risks-and-needs-coordinator-api:local
     build:
       target: development
     command: gradle --parallel --build-cache --configuration-cache bootRun
-    ports:
-      - "5005:5005"
     volumes:
       - ..:/app
-      - ~/.gradle:/home/gradle/.gradle
+      - ../.gradle:/home/gradle/.gradle
+    ports:
+      - "8070:8080"
+      - "5006:5005"
     environment:
-      SPRING_PROFILES_ACTIVE: wiremock
-      SP_API_BASE_URL: http://localhost:8089/sentence-plan
-      SAN_API_BASE_URL: http://localhost:8089/strengths-and-needs
+      SPRING_PROFILES_ACTIVE: dev,postgres
+
+  san-api:
+    ports:
+      - "8080:8080"
+
+  san-ui:
+    ports:
+      - "3000:3000"
+
+  arns-handover:
+    ports:
+      - "7070:7070"
+
+  oasys-ui:
+    ports:
+      - "7072:3000"
+
+volumes:
+  .gradle:
+  build:
