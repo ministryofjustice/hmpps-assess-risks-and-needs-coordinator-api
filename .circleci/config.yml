@@ -31,7 +31,7 @@ jobs:
             - gradle-{{ checksum "build.gradle.kts" }}
             - gradle-
       - run:
-          command: make dev-up lint test
+          command: make test-up lint test
       - run:
           name: Store container logs
           command: make save-logs OUTPUT_LOGS_DIR=~/docker-logs

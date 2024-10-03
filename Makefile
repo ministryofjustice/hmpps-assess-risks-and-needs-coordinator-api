@@ -1,5 +1,6 @@
 SHELL = '/bin/bash'
 DEV_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.dev.yml
+TEST_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.test.yml
 LOCAL_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml
 PROJECT_NAME = hmpps-assess-risks-and-needs
 
@@ -37,8 +38,12 @@ rebuild: ## Re-builds and reloads the API.
 watch: ## Watches for file changes and live-reloads the API. To be used in conjunction with dev-up e.g. "make dev-up watch"
 	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle compileKotlin --continuous --parallel --build-cache --configuration-cache
 
+test-up: ## Starts/restarts the API in a test container. A remote debugger can be attached on port 5005.
+	docker compose ${TEST_COMPOSE_FILES} down coordinator-api
+	docker compose ${TEST_COMPOSE_FILES} up --wait --no-recreate coordinator-api
+
 test: ## Runs all the test suites.
-	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle test --parallel
+	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --parallel
 
 lint: ## Runs the Kotlin linter.
 	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle ktlintCheck --parallel

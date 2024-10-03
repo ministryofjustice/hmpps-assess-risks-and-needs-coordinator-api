@@ -23,7 +23,7 @@ services:
       - "8070:8080"
       - "5006:5005"
     environment:
-      SPRING_PROFILES_ACTIVE: dev,postgres
+      SPRING_PROFILES_ACTIVE: wiremock
 
   san-api:
     ports:
