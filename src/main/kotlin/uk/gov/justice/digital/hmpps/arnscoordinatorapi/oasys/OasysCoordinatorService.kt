@@ -11,8 +11,10 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
@@ -104,6 +106,29 @@ class OasysCoordinatorService(
     }
 
     return GetOperationResult.Success(oasysGetResponse)
+  }
+
+  fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return GetOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysAssociationsResponse = OasysAssociationsResponse()
+    associations.forEach {
+      when (it.entityType) {
+        EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
+          sanAssessmentId = it.entityUuid
+        }
+        EntityType.PLAN -> oasysAssociationsResponse.apply {
+          sentencePlanId = it.entityUuid
+        }
+        null -> return GetOperationResult.Failure("Misconfigured association found")
+      }
+    }
+
+    return GetOperationResult.Success(oasysAssociationsResponse)
   }
 
   sealed class CreateOperationResult<out T> {

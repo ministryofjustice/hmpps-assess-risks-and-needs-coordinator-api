@@ -457,11 +457,13 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
   ): ResponseEntity<Any> {
-    return ResponseEntity.ok().body(
-      OasysAssociationsResponse(
-        sanAssessmentId = UUID.randomUUID(),
-        sentencePlanId = UUID.randomUUID(),
-      ),
-    )
+    return when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {
+      is OasysCoordinatorService.GetOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+      is OasysCoordinatorService.GetOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+    }
   }
 }
