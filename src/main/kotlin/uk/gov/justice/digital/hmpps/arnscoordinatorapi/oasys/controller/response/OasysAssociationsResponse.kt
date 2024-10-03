@@ -3,6 +3,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.respons
 import java.util.UUID
 
 data class OasysAssociationsResponse(
-  val sanAssessmentId: UUID,
-  val sentencePlanId: UUID,
+  var sanAssessmentId: UUID? = null,
+  var sentencePlanId: UUID? = null,
 )
