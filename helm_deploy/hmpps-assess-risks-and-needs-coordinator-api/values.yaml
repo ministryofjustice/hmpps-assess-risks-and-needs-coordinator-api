@@ -29,6 +29,8 @@ generic-service:
   namespace_secrets:
     hmpps-assess-risks-and-needs-coordinator-api:
       APPINSIGHTS_INSTRUMENTATIONKEY: "APPINSIGHTS_INSTRUMENTATIONKEY"
+      CLIENT_ID: "COORDINATOR_CLIENT_ID"
+      CLIENT_SECRET: "COORDINATOR_CLIENT_SECRET"
 
     hmpps-assess-risks-and-needs-integrations-rds-instance:
       APP_DB_ENDPOINT: rds_instance_endpoint

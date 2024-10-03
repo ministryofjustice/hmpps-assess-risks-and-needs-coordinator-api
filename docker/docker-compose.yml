@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   hmpps-auth:
-    image: quay.io/hmpps/hmpps-auth:latest
+    image: quay.io/hmpps/hmpps-auth:2024-10-02.25761.db2ce3c
     healthcheck:
       test: ["CMD", "curl", "-f", "http://hmpps-auth:9090/auth/health"]
       interval: 5s
@@ -49,11 +49,9 @@ services:
     environment:
       SERVER_PORT: 8080
       APP_DB_ENDPOINT: postgres:5432
-      HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090
+      HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090/auth
       SAN_API_BASE_URL: http://san-api:3050
-      # TODO: Need to get some proper credentials for below
-      SAN_API_CLIENT_ID: hmpps-strengths-and-needs-ui-client
-      SAN_API_CLIENT_SECRET: clientsecret
       SP_API_BASE_URL: http://sp-api:3060
-      SP_API_CLIENT_ID: hmpps-strengths-and-needs-ui-client
-      SP_API_CLIENT_SECRET: clientsecret
+      # TODO: Need to get some proper credentials for below
+      CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
+      CLIENT_SECRET: clientsecret
