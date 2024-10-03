@@ -18,6 +18,15 @@ services:
       APPLICATION_AUTHENTICATION_UI_ALLOWLIST: 0.0.0.0/0
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
 
+  hmpps-auth-proxy:
+    image: nginx:latest
+    ports:
+      - "9091:9091"
+    depends_on:
+      - hmpps-auth
+    volumes:
+      - ./hmpps-auth-proxy/nginx.conf:/etc/nginx/nginx.conf
+
   postgres:
     image: postgres:16
     networks:
