@@ -14,7 +14,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import java.util.UUID
 
 @Component
-@ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
 class SentencePlanApi(
   val sentencePlanApiWebClient: WebClient,
   val apiProperties: SentencePlanApiProperties,

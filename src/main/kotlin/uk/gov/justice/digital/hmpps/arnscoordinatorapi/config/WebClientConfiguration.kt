@@ -20,7 +20,7 @@ class WebClientConfiguration(
   fun hmppsAuthHealthWebClient(builder: WebClient.Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, healthTimeout)
 
   @Bean
-  @ConditionalOnProperty(name = ["app.strategies.assessment"], havingValue = "true", matchIfMissing = true)
+  @ConditionalOnProperty(name = ["app.strategies.assessment"], havingValue = "true")
   fun sanApiWebClient(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,
@@ -29,7 +29,7 @@ class WebClientConfiguration(
     builder.authorisedWebClient(authorizedClientManager, registrationId = "san-api", url = sanApiBaseUri, timeout)
 
   @Bean
-  @ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true", matchIfMissing = true)
+  @ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
   fun sentencePlanApiWebClient(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,
