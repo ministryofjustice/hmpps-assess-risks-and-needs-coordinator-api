@@ -42,7 +42,7 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
 
   fun stubAssessmentsCreate(status: Int = 201) {
     stubFor(
-      post("/assessment").willReturn(
+      post("/coordinator/assessment").willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
           .withBody(

@@ -46,7 +46,7 @@ class StrengthsAndNeedsApiMock(
   @PostConstruct
   private fun getAssessmentStub() {
     wireMockServer.stubFor(
-      get(urlPathMatching(wireMockProperties.paths.strengthAndNeeds + "/assessment/([a-f0-9\\-]+)"))
+      get(urlPathMatching(wireMockProperties.paths.strengthAndNeeds + "coordinator/assessment/([a-f0-9\\-]+)"))
         .willReturn(
           aResponse()
             .withStatus(200)
