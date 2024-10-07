@@ -24,7 +24,7 @@ class WebClientConfiguration(
   fun sanApiWebClient(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,
-    @Value("\${app.services.strengths-and-needs-api.base-url:}") sanApiBaseUri: String,
+    @Value("\${app.services.strengths-and-needs-api.base-url}") sanApiBaseUri: String,
   ): WebClient =
     builder.authorisedWebClient(authorizedClientManager, registrationId = "san-api", url = sanApiBaseUri, timeout)
 
