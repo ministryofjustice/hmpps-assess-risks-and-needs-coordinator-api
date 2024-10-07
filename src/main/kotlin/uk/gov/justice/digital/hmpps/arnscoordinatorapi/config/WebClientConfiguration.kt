@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.config
 
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager
@@ -12,8 +13,6 @@ import java.time.Duration
 @Configuration
 class WebClientConfiguration(
   @Value("\${app.services.hmpps-auth.base-url}") val hmppsAuthBaseUri: String,
-  @Value("\${app.services.strengths-and-needs-api.base-url}") val sanApiBaseUri: String,
-  @Value("\${app.services.sentence-plan-api.base-url}") val sentencePlanApiBaseUri: String,
   @Value("\${api.health-timeout:2s}") val healthTimeout: Duration,
   @Value("\${api.timeout:20s}") val timeout: Duration,
 ) {
@@ -21,10 +20,20 @@ class WebClientConfiguration(
   fun hmppsAuthHealthWebClient(builder: WebClient.Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, healthTimeout)
 
   @Bean
-  fun sanApiWebClient(authorizedClientManager: OAuth2AuthorizedClientManager, builder: WebClient.Builder): WebClient =
+  @ConditionalOnProperty(name = ["app.strategies.assessment"], havingValue = "true", matchIfMissing = true)
+  fun sanApiWebClient(
+    authorizedClientManager: OAuth2AuthorizedClientManager,
+    builder: WebClient.Builder,
+    @Value("\${app.services.strengths-and-needs-api.base-url:}") sanApiBaseUri: String,
+  ): WebClient =
     builder.authorisedWebClient(authorizedClientManager, registrationId = "san-api", url = sanApiBaseUri, timeout)
 
   @Bean
-  fun sentencePlanApiWebClient(authorizedClientManager: OAuth2AuthorizedClientManager, builder: WebClient.Builder): WebClient =
+  @ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true", matchIfMissing = true)
+  fun sentencePlanApiWebClient(
+    authorizedClientManager: OAuth2AuthorizedClientManager,
+    builder: WebClient.Builder,
+    @Value("\${app.services.sentence-plan-api.base-url}") sentencePlanApiBaseUri: String,
+  ): WebClient =
     builder.authorisedWebClient(authorizedClientManager, registrationId = "sentence-plan-api", url = sentencePlanApiBaseUri, timeout)
 }
