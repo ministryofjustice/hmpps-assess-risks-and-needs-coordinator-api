@@ -54,8 +54,8 @@ app:
     strengths-and-needs-api:
       base-url: ${san-api.base-url}
       endpoints:
-        fetch: /assessment/
-        create: /assessment
+        fetch: /coordinator/assessment/
+        create: /coordinator/assessment
     sentence-plan-api:
       base-url: ${sp-api.base-url}
       endpoints:

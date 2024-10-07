@@ -17,7 +17,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 
 class AssessmentStrategyTest {
@@ -78,7 +78,7 @@ class AssessmentStrategyTest {
         sanAssessmentId = entityUuid,
         sanAssessmentVersion = 1,
         sanAssessmentData = emptyMap<String, Any>(),
-        lastUpdatedTimestampSAN = Instant.now().toEpochMilli(),
+        lastUpdatedTimestamp = LocalDateTime.now(),
       )
 
       `when`(strengthsAndNeedsApi.getAssessment(entityUuid)).thenReturn(
