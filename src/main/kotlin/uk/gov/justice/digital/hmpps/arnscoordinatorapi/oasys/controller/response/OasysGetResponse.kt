@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
+import java.time.LocalDateTime
 import java.util.UUID
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -12,13 +13,13 @@ data class OasysGetResponse(
   override var sanAssessmentId: UUID? = null,
   override var sanAssessmentVersion: Long? = null,
   var sanAssessmentData: Map<*, *>? = null,
-  var lastUpdatedTimestampSAN: Long? = null,
+  var lastUpdatedTimestampSAN: LocalDateTime? = null,
 
   override var sentencePlanId: UUID? = null,
   override var sentencePlanVersion: Long? = null,
   var planComplete: PlanState? = null,
   var planType: PlanType? = null,
-  var lastUpdatedTimestampSP: Long? = null,
+  var lastUpdatedTimestampSP: LocalDateTime? = null,
 ) : OasysVersionedEntityResponse(
   sanAssessmentId = sanAssessmentId,
   sanAssessmentVersion = sanAssessmentVersion,
@@ -38,7 +39,7 @@ data class OasysGetResponse(
         sanAssessmentId = entityData.sanAssessmentId
         sanAssessmentVersion = entityData.sanAssessmentVersion
         sanAssessmentData = entityData.sanAssessmentData
-        lastUpdatedTimestampSAN = entityData.lastUpdatedTimestampSAN
+        lastUpdatedTimestampSAN = entityData.lastUpdatedTimestamp
       }
     }
   }

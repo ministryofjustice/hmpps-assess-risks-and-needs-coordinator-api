@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
@@ -38,7 +39,32 @@ class SentencePlanApiMock : WireMockServer(8091) {
       ),
     )
   }
+
+  fun stubSentencePlanGet(status: Int = 200) {
+    stubFor(
+      get(urlPathMatching("/coordinator/plan/.*")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "sentencePlanId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "sentencePlanVersion": 0,
+                "planComplete": "COMPLETE",
+                "planType": "INITIAL",
+                "lastUpdatedTimestampSP": "2024-10-03T15:22:31.453096"
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
 }
+
+/*
+
+ */
 
 class SentencePlanApiMockExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
   companion object {
