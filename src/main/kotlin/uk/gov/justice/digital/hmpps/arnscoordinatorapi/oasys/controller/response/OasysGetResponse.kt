@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -35,11 +35,11 @@ data class OasysGetResponse(
         planComplete = entityData.planComplete
         lastUpdatedTimestampSP = entityData.lastUpdatedTimestampSP
       }
-      is GetAssessmentResponse -> {
-        sanAssessmentId = entityData.sanAssessmentId
-        sanAssessmentVersion = entityData.sanAssessmentVersion
-        sanAssessmentData = entityData.sanAssessmentData
-        lastUpdatedTimestampSAN = entityData.lastUpdatedTimestamp
+      is AssessmentResponse -> {
+        sanAssessmentId = entityData.metaData.uuid
+        sanAssessmentVersion = entityData.metaData.versionNumber
+        sanAssessmentData = entityData.assessment
+        lastUpdatedTimestampSAN = entityData.metaData.versionUpdatedAt
       }
     }
   }
