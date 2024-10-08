@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -12,6 +13,8 @@ interface EntityStrategy {
   fun create(createData: CreateData): OperationResult<VersionedEntity>
 
   fun fetch(entityUuid: UUID): OperationResult<*>
+
+  fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity>
 
   fun delete(entityUuid: UUID): OperationResult<Unit>
 }

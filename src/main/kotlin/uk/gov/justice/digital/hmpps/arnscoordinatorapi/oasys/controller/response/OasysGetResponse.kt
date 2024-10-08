@@ -1,10 +1,11 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
+import java.time.LocalDateTime
 import java.util.UUID
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -12,13 +13,13 @@ data class OasysGetResponse(
   override var sanAssessmentId: UUID? = null,
   override var sanAssessmentVersion: Long? = null,
   var sanAssessmentData: Map<*, *>? = null,
-  var lastUpdatedTimestampSAN: Long? = null,
+  var lastUpdatedTimestampSAN: LocalDateTime? = null,
 
   override var sentencePlanId: UUID? = null,
   override var sentencePlanVersion: Long? = null,
   var planComplete: PlanState? = null,
   var planType: PlanType? = null,
-  var lastUpdatedTimestampSP: Long? = null,
+  var lastUpdatedTimestampSP: LocalDateTime? = null,
 ) : OasysVersionedEntityResponse(
   sanAssessmentId = sanAssessmentId,
   sanAssessmentVersion = sanAssessmentVersion,
@@ -34,11 +35,11 @@ data class OasysGetResponse(
         planComplete = entityData.planComplete
         lastUpdatedTimestampSP = entityData.lastUpdatedTimestampSP
       }
-      is GetAssessmentResponse -> {
-        sanAssessmentId = entityData.sanAssessmentId
-        sanAssessmentVersion = entityData.sanAssessmentVersion
-        sanAssessmentData = entityData.sanAssessmentData
-        lastUpdatedTimestampSAN = entityData.lastUpdatedTimestampSAN
+      is AssessmentResponse -> {
+        sanAssessmentId = entityData.metaData.uuid
+        sanAssessmentVersion = entityData.metaData.versionNumber
+        sanAssessmentData = entityData.assessment
+        lastUpdatedTimestampSAN = entityData.metaData.versionUpdatedAt
       }
     }
   }

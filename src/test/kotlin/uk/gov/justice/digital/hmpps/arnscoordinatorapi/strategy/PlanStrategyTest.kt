@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.res
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 
 class PlanStrategyTest {
@@ -81,7 +81,7 @@ class PlanStrategyTest {
         sentencePlanVersion = 1,
         planComplete = PlanState.INCOMPLETE,
         planType = PlanType.INITIAL,
-        lastUpdatedTimestampSP = Instant.now().toEpochMilli(),
+        lastUpdatedTimestampSP = LocalDateTime.now(),
       )
 
       `when`(sentencePlanApi.getPlan(entityUuid)).thenReturn(
