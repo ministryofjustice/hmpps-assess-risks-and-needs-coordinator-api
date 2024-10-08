@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import java.util.UUID
 
 @Service
-@ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
 class PlanStrategy(
   private val sentencePlanApi: SentencePlanApi,
 ) : EntityStrategy {

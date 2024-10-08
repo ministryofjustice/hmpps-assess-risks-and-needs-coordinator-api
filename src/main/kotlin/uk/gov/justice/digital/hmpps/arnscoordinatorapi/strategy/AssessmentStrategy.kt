@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import java.util.UUID
 
 @Component
-@ConditionalOnProperty(name = ["app.strategies.assessment"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = ["app.strategies.assessment"], havingValue = "true")
 class AssessmentStrategy(
   private val strengthsAndNeedsApi: StrengthsAndNeedsApi,
 ) : EntityStrategy {
