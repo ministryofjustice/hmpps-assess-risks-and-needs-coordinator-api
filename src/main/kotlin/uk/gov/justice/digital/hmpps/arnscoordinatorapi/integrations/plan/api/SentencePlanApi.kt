@@ -1,11 +1,8 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
 import org.slf4j.LoggerFactory
-<<<<<<< HEAD
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-=======
 import org.springframework.http.HttpStatus
->>>>>>> 34c20e2 (SP2-791: Added lock assessment and plan)
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
