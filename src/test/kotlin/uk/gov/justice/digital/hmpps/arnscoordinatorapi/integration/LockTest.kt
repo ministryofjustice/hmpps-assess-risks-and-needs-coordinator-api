@@ -29,7 +29,7 @@ class LockTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully locks an existing SP and SAN for an oasys PK`() {
-    val oasysAssessmentPk = "1"
+    val oasysAssessmentPk = "199"
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -69,7 +69,7 @@ class LockTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the SAN assessment is already locked`() {
     stubAssessmentsLock(409)
-    val oasysAssessmentPk = "2"
+    val oasysAssessmentPk = "200"
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -95,13 +95,13 @@ class LockTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.developerMessage).isEqualTo("San assessment is already locked")
+    assertThat(response?.developerMessage).isEqualTo("Failed to lock ASSESSMENT entity due to a conflict, Assessment already locked")
   }
 
   @Test
   fun `it returns a 409 when the Sentence Plan is already locked`() {
     stubSentencePlanLock(409)
-    val oasysAssessmentPk = "2"
+    val oasysAssessmentPk = "201"
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -113,7 +113,7 @@ class LockTest : IntegrationTestBase() {
       ),
     )
 
-    val response = webTestClient.post().uri("/oasys/2/lock")
+    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/lock")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
@@ -127,7 +127,7 @@ class LockTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.developerMessage).isEqualTo("Sentence Plan is already locked")
+    assertThat(response?.developerMessage).isEqualTo("Failed to lock PLAN entity due to a conflict, Sentence Plan is already locked")
   }
 
   @Test
