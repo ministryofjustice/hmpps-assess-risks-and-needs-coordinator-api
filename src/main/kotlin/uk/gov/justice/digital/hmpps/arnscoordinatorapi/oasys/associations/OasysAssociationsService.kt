@@ -30,7 +30,7 @@ class OasysAssociationsService(
       oasysAssociationRepository.save(association)
       OperationResult.Success(Unit)
     } catch (ex: Exception) {
-      OperationResult.Failure("Failed to store association: ${ex.message}", ex)
+      OperationResult.Failure("Failed to store association: ${ex.message}", cause = ex)
     }
   }
 }
