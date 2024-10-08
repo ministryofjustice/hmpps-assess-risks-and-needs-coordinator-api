@@ -59,6 +59,24 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
     )
   }
 
+  fun stubAssessmentsLock(status: Int = 200) {
+    stubFor(
+      post(WireMock.urlPathMatching("/coordinator/assessment/(.*)/lock")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "sanAssessmentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "sanAssessmentVersion": 0
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
+
   fun stubAssessmentsGet(status: Int = 200) {
     stubFor(
       get(WireMock.urlPathMatching("/coordinator/assessment/.*")).willReturn(

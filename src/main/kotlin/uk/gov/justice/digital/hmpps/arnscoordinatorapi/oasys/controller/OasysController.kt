@@ -286,19 +286,15 @@ class OasysController(
     oasysAssessmentPK: String,
     @RequestBody @Valid
     request: OasysGenericRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to lock all entities for signing
-     *  1. Find all associations for a PK in the DB
-     *  2. Contact each service's relevant API to lock that entity, API will return a version number
-     *  3. Return combination of entity UUIDs and their locked version number
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.lock(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.LockOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.LockOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+      is OasysCoordinatorService.LockOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/rollback"], method = [RequestMethod.POST])

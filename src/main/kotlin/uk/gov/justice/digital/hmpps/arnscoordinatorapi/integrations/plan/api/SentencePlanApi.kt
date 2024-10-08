@@ -1,15 +1,22 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
 import org.slf4j.LoggerFactory
+<<<<<<< HEAD
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+=======
+import org.springframework.http.HttpStatus
+>>>>>>> 34c20e2 (SP2-791: Added lock assessment and plan)
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.exception.AlreadyLockedException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 
@@ -43,6 +50,35 @@ class SentencePlanApi(
       ApiOperationResult.Failure("HTTP error during create plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
       ApiOperationResult.Failure("Unexpected error during createPlan: ${ex.message}", ex)
+    }
+  }
+
+  fun lockPlan(lockData: LockData, planUuid: UUID): ApiOperationResult<VersionedEntity> {
+    return try {
+      val result = sentencePlanApiWebClient.post()
+        .uri(apiProperties.endpoints.lock.replace("{uuid}", planUuid.toString()))
+        .body(BodyInserters.fromValue(lockData))
+        .retrieve()
+        .bodyToMono(LockPlanResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.sentencePlanId,
+            version = it.sentencePlanVersion,
+            entityType = EntityType.PLAN,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during lockPlan")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        throw AlreadyLockedException("Sentence Plan is already locked")
+      }
+      ApiOperationResult.Failure("HTTP error during lock plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during lockPlan: ${ex.message}", ex)
     }
   }
 

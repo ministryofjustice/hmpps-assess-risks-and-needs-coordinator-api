@@ -15,6 +15,7 @@ data class StrengthsAndNeedsApiProperties(
   data class Endpoints(
     var fetch: String = "",
     var create: String = "",
+    var lock: String = "",
   )
 
   @PostConstruct
@@ -22,6 +23,7 @@ data class StrengthsAndNeedsApiProperties(
     paths = Endpoints(
       fetch = baseUrl + endpoints.fetch,
       create = baseUrl + endpoints.create,
+      lock = baseUrl + endpoints.lock,
     )
   }
 }

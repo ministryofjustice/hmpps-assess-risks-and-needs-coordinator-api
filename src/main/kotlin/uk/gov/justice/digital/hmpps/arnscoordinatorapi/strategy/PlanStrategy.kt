@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
@@ -20,6 +21,13 @@ class PlanStrategy(
 
   override fun create(createData: CreateData): OperationResult<VersionedEntity> {
     return when (val result = sentencePlanApi.createPlan(createData.plan!!)) {
+      is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+      is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+    }
+  }
+
+  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = sentencePlanApi.lockPlan(lockData, entityUuid)) {
       is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
     }

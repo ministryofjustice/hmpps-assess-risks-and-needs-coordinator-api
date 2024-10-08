@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
@@ -9,7 +10,10 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.CreateAssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.LockAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.exception.AlreadyLockedException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 
@@ -46,6 +50,35 @@ class StrengthsAndNeedsApi(
     }
   }
 
+  fun lockAssessment(lockData: LockData, assessmentUuid: UUID): ApiOperationResult<VersionedEntity> {
+    return try {
+      val result = sanApiWebClient.post()
+        .uri(apiProperties.endpoints.lock.replace("{uuid}", assessmentUuid.toString()))
+        .body(BodyInserters.fromValue(lockData))
+        .retrieve()
+        .bodyToMono(LockAssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.sanAssessmentId,
+            version = it.sanAssessmentVersion,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during lockAssessment")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        throw AlreadyLockedException("San assessment is already locked")
+      }
+      ApiOperationResult.Failure("HTTP error during lock assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during lockAssessment: ${ex.message}", ex)
+    }
+  }
+
   fun getAssessment(assessmentUuid: UUID): ApiOperationResult<GetAssessmentResponse> {
     return try {
       val result = sanApiWebClient.get()
@@ -60,7 +93,7 @@ class StrengthsAndNeedsApi(
     } catch (ex: WebClientResponseException) {
       ApiOperationResult.Failure("HTTP error during get assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during getAssessment: ${ex.message}", ex)
+      ApiOperationResult.Failure(errorMessage = "Unexpected error during getAssessment: ${ex.message}", cause = ex)
     }
   }
 
