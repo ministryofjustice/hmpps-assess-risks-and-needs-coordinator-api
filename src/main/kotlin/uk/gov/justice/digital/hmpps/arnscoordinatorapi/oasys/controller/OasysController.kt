@@ -294,6 +294,14 @@ class OasysController(
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
       is OasysCoordinatorService.LockOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      is OasysCoordinatorService.LockOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = "Conflict: ${result.errorMessage}",
+            developerMessage = result.errorMessage,
+          ),
+        )
     }
   }
 

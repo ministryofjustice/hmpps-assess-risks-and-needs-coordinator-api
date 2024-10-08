@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
@@ -105,6 +106,10 @@ class OasysCoordinatorService(
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
+          if (response.statusCode === HttpStatus.CONFLICT) {
+            return LockOperationResult.Conflict("Failed to lock ${association.entityType} entity due to a conflict, ${response.errorMessage}")
+          }
+
           return LockOperationResult.Failure("Failed to lock ${association.entityType} entity, ${response.errorMessage}")
         }
         is OperationResult.Success -> oasysLockResponse.addVersionedEntity(response.data)
@@ -195,6 +200,10 @@ class OasysCoordinatorService(
     ) : LockOperationResult<T>()
 
     data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : LockOperationResult<T>()
+
+    data class Conflict<T>(
       val errorMessage: String,
     ) : LockOperationResult<T>()
   }
