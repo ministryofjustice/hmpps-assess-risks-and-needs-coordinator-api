@@ -9,7 +9,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.exception.AlreadyLockedException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
@@ -50,7 +49,7 @@ class SentencePlanApi(
     }
   }
 
-  fun lockPlan(lockData: LockData, planUuid: UUID): ApiOperationResult<VersionedEntity> {
+  fun lockPlan(lockData: LockData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
     return try {
       val result = sentencePlanApiWebClient.post()
         .uri(apiProperties.endpoints.lock.replace("{uuid}", planUuid.toString()))
@@ -67,15 +66,15 @@ class SentencePlanApi(
         .block()
 
       result?.let {
-        ApiOperationResult.Success(it)
+        ApiOperationResultExtended.Success(it)
       } ?: throw IllegalStateException("Unexpected error during lockPlan")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
-        throw AlreadyLockedException("Sentence Plan is already locked")
+        return ApiOperationResultExtended.Conflict("Sentence Plan is already locked")
       }
-      ApiOperationResult.Failure("HTTP error during lock plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+      ApiOperationResultExtended.Failure("HTTP error during lock plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during lockPlan: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during lockPlan: ${ex.message}", ex)
     }
   }
 
@@ -104,6 +103,28 @@ class SentencePlanApi(
       val errorMessage: String,
       val cause: Throwable? = null,
     ) : ApiOperationResult<T>() {
+      init {
+        LoggerFactory.getLogger(SentencePlanApi::class.java).error(errorMessage)
+      }
+    }
+  }
+
+  sealed class ApiOperationResultExtended<out T> {
+    data class Success<T>(val data: T) : ApiOperationResultExtended<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : ApiOperationResultExtended<T>() {
+      init {
+        LoggerFactory.getLogger(SentencePlanApi::class.java).error(errorMessage)
+      }
+    }
+
+    data class Conflict<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : ApiOperationResultExtended<T>() {
       init {
         LoggerFactory.getLogger(SentencePlanApi::class.java).error(errorMessage)
       }
