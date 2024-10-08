@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.config
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus.BAD_REQUEST
-import org.springframework.http.HttpStatus.CONFLICT
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
 import org.springframework.http.HttpStatus.NOT_FOUND
@@ -13,7 +12,6 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.servlet.resource.NoResourceFoundException
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.exception.AlreadyLockedException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
@@ -61,17 +59,6 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.debug("Forbidden (403) returned: {}", e.message) }
-
-  @ExceptionHandler(AlreadyLockedException::class)
-  fun handleAlreadyLockedException(e: AlreadyLockedException): ResponseEntity<ErrorResponse> = ResponseEntity
-    .status(CONFLICT)
-    .body(
-      ErrorResponse(
-        status = CONFLICT,
-        userMessage = e.message,
-        developerMessage = e.message,
-      ),
-    ).also { log.error("Already Locked", e) }
 
   @ExceptionHandler(Exception::class)
   fun handleException(e: Exception): ResponseEntity<ErrorResponse> = ResponseEntity
