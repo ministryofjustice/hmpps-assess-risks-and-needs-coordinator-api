@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
@@ -13,6 +14,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import java.util.UUID
 
 @Component
+@ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
 class SentencePlanApi(
   val sentencePlanApiWebClient: WebClient,
   val apiProperties: SentencePlanApiProperties,

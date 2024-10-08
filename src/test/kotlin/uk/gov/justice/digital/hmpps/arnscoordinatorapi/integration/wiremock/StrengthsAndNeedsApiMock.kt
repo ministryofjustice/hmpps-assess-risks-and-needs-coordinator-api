@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -42,7 +43,7 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
 
   fun stubAssessmentsCreate(status: Int = 201) {
     stubFor(
-      post("/assessment").willReturn(
+      post("/coordinator/assessment").willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
           .withBody(
@@ -50,6 +51,52 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
               {
                 "id": "90A71D16-FECD-4E1A-85B9-98178BF0F8D0",
                 "version": 0
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
+
+  fun stubAssessmentsGet(status: Int = 200) {
+    stubFor(
+      get(WireMock.urlPathMatching("/coordinator/assessment/.*")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "sanAssessmentId": "11db45b5-215d-4405-a887-a7efd5216fa2",
+                "sanAssessmentVersion": 1,
+                "sanAssessmentData": {
+                  "metaData": {
+                    "uuid": "11db45b5-215d-4405-a887-a7efd5216fa2",
+                    "createdAt": "2024-10-03T15:22:31.452243",
+                    "oasys_pks": [
+                      "Msmp2OKxx7IWIEa",
+                      "YWFj5GLPTasn9PR"
+                    ],
+                    "versionUuid": "d52fdb5d-4450-40af-806e-97d47b96fa57",
+                    "versionCreatedAt": "2024-10-03T15:22:31.453096",
+                    "versionTag": "UNSIGNED",
+                    "formVersion": "1.0"
+                  },
+                  "assessment": {
+                    "q2": {
+                      "type": "TEXT",
+                      "description": "",
+                      "options": null,
+                      "value": "val2",
+                      "values": null,
+                      "collection": null
+                    }
+                  },
+                  "oasysEquivalent": {
+                    "q2": "2"
+                  }
+                },
+                "lastUpdatedTimestamp": "2024-10-02T15:22:31.452276"
               }
             """.trimIndent(),
           )
