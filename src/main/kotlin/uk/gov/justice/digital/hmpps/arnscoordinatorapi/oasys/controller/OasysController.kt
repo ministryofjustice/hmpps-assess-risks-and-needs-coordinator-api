@@ -291,10 +291,12 @@ class OasysController(
       is OasysCoordinatorService.LockOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
       is OasysCoordinatorService.LockOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse(
-          status = HttpStatus.NOT_FOUND,
-          userMessage = result.errorMessage,
-        ))
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
       is OasysCoordinatorService.LockOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
           ErrorResponse(

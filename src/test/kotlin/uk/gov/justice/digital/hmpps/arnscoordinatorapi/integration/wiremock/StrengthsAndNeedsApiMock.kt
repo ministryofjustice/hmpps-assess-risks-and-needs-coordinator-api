@@ -82,7 +82,7 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
 
   fun stubAssessmentsLock(status: Int = 200) {
     stubFor(
-      post(WireMock.urlPathMatching("/coordinator/assessment/(.*)/lock")).willReturn(
+      post(WireMock.urlPathMatching("/assessment/(.*)/lock")).willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
           .withBody(
