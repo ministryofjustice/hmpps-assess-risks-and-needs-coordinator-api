@@ -95,7 +95,7 @@ class LockTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.developerMessage).isEqualTo("Failed to lock ASSESSMENT entity due to a conflict, Assessment already locked")
+    assertThat(response?.userMessage).isEqualTo("Failed to lock ASSESSMENT entity due to a conflict, Assessment already locked")
   }
 
   @Test
@@ -127,7 +127,7 @@ class LockTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.developerMessage).isEqualTo("Failed to lock PLAN entity due to a conflict, Sentence Plan is already locked")
+    assertThat(response?.userMessage).isEqualTo("Failed to lock PLAN entity due to a conflict, Sentence Plan is already locked")
   }
 
   @Test

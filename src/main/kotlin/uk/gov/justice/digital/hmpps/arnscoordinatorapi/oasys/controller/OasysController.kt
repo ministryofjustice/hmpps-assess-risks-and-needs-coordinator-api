@@ -291,15 +291,22 @@ class OasysController(
       is OasysCoordinatorService.LockOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
       is OasysCoordinatorService.LockOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ))
       is OasysCoordinatorService.LockOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
       is OasysCoordinatorService.LockOperationResult.Conflict ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
           ErrorResponse(
             status = HttpStatus.CONFLICT,
-            userMessage = "Conflict: ${result.errorMessage}",
-            developerMessage = result.errorMessage,
+            userMessage = result.errorMessage,
           ),
         )
     }
