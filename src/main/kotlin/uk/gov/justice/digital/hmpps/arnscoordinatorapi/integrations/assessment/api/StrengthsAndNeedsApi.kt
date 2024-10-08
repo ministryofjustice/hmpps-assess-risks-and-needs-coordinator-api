@@ -8,8 +8,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.CreateAssessmentResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.LockAssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
@@ -29,11 +28,11 @@ class StrengthsAndNeedsApi(
         .uri(apiProperties.endpoints.create)
         .body(BodyInserters.fromValue(createData))
         .retrieve()
-        .bodyToMono(CreateAssessmentResponse::class.java)
+        .bodyToMono(AssessmentResponse::class.java)
         .map {
           VersionedEntity(
-            id = it.sanAssessmentId,
-            version = it.sanAssessmentVersion,
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
             entityType = EntityType.ASSESSMENT,
           )
         }
@@ -78,12 +77,12 @@ class StrengthsAndNeedsApi(
     }
   }
 
-  fun getAssessment(assessmentUuid: UUID): ApiOperationResult<GetAssessmentResponse> {
+  fun getAssessment(assessmentUuid: UUID): ApiOperationResult<AssessmentResponse> {
     return try {
       val result = sanApiWebClient.get()
         .uri("${apiProperties.endpoints.fetch}/$assessmentUuid")
         .retrieve()
-        .bodyToMono(GetAssessmentResponse::class.java)
+        .bodyToMono(AssessmentResponse::class.java)
         .block()
 
       result?.let {
