@@ -9,7 +9,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.LockAssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -54,11 +53,11 @@ class StrengthsAndNeedsApi(
         .uri(apiProperties.endpoints.lock.replace("{uuid}", assessmentUuid.toString()))
         .body(BodyInserters.fromValue(lockData))
         .retrieve()
-        .bodyToMono(LockAssessmentResponse::class.java)
+        .bodyToMono(AssessmentResponse::class.java)
         .map {
           VersionedEntity(
-            id = it.sanAssessmentId,
-            version = it.sanAssessmentVersion,
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
             entityType = EntityType.ASSESSMENT,
           )
         }
