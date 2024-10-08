@@ -13,7 +13,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.LockAssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.exception.AlreadyLockedException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 
@@ -50,7 +49,7 @@ class StrengthsAndNeedsApi(
     }
   }
 
-  fun lockAssessment(lockData: LockData, assessmentUuid: UUID): ApiOperationResult<VersionedEntity> {
+  fun lockAssessment(lockData: LockData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
     return try {
       val result = sanApiWebClient.post()
         .uri(apiProperties.endpoints.lock.replace("{uuid}", assessmentUuid.toString()))
@@ -67,15 +66,15 @@ class StrengthsAndNeedsApi(
         .block()
 
       result?.let {
-        ApiOperationResult.Success(it)
+        ApiOperationResultExtended.Success(it)
       } ?: throw IllegalStateException("Unexpected error during lockAssessment")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
-        throw AlreadyLockedException("San assessment is already locked")
+        return ApiOperationResultExtended.Conflict("Assessment already locked")
       }
-      ApiOperationResult.Failure("HTTP error during lock assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+      ApiOperationResultExtended.Failure("HTTP error during lock assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during lockAssessment: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during lockAssessment: ${ex.message}", ex)
     }
   }
 
@@ -104,6 +103,28 @@ class StrengthsAndNeedsApi(
       val errorMessage: String,
       val cause: Throwable? = null,
     ) : ApiOperationResult<T>() {
+      init {
+        LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java).error(errorMessage)
+      }
+    }
+  }
+
+  sealed class ApiOperationResultExtended<out T> {
+    data class Success<T>(val data: T) : ApiOperationResultExtended<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : ApiOperationResultExtended<T>() {
+      init {
+        LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java).error(errorMessage)
+      }
+    }
+
+    data class Conflict<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : ApiOperationResultExtended<T>() {
       init {
         LoggerFactory.getLogger(StrengthsAndNeedsApi::class.java).error(errorMessage)
       }
