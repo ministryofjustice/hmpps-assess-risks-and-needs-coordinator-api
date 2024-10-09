@@ -158,7 +158,7 @@ class SentencePlanApi(
     }
   }
 
-  fun counterSign(assessmentUuid: UUID, data: CounterSignPlanData): ApiOperationResult<VersionedEntity> {
+  fun counterSign(assessmentUuid: UUID, data: CounterSignPlanData): ApiOperationResultExtended<VersionedEntity> {
     return try {
       val result = sentencePlanApiWebClient.post()
         .uri(apiProperties.endpoints.counterSign.replace("{uuid}", assessmentUuid.toString()))
@@ -175,12 +175,15 @@ class SentencePlanApi(
         .block()
 
       result?.let {
-        ApiOperationResult.Success(it)
+        ApiOperationResultExtended.Success(it)
       } ?: throw IllegalStateException("Unexpected error during counterSign")
     } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure<VersionedEntity>("HTTP error during counterSign: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Sentence Plan could not be counter-signed, Response body: ${ex.responseBodyAsString}")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during counterSign plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during counterSign: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during counterSign: ${ex.message}", ex)
     }
   }
 

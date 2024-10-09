@@ -69,8 +69,9 @@ class PlanStrategy(
 
   override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> {
     return when (val result = sentencePlanApi.counterSign(entityUuid, CounterSignPlanData.from(request))) {
-      is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-      is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+      is SentencePlanApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+      is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+      is SentencePlanApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
     }
   }
 }

@@ -259,9 +259,25 @@ class OasysController(
     @RequestBody @Valid request: OasysCounterSignRequest,
   ): ResponseEntity<Any> {
     return when (val result = oasysCoordinatorService.counterSign(oasysAssessmentPK, request)) {
-      is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
-      is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+      is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
+      is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
       is OasysCoordinatorService.CounterSignOperationResult.Success -> ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.CounterSignOperationResult.Conflict -> ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
     }
   }
 

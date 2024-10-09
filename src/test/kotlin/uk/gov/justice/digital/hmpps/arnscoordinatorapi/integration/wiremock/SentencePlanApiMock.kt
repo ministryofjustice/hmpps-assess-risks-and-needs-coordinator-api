@@ -114,6 +114,24 @@ class SentencePlanApiMock : WireMockServer(8091) {
       ),
     )
   }
+
+  fun stubSentencePlanCounterSign(status: Int = 200) {
+    stubFor(
+      post(urlPathMatching("/coordinator/plan/(.*)/countersign")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "planId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "planVersion": 1
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
 }
 
 class SentencePlanApiMockExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {

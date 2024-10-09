@@ -74,8 +74,9 @@ class AssessmentStrategy(
         CounterSignAssessmentData.from(request),
       )
     ) {
-      is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
     }
   }
 }

@@ -267,6 +267,10 @@ class OasysCoordinatorService(
 
       when (val result = command.execute()) {
         is OperationResult.Failure -> {
+          if (result.statusCode === HttpStatus.CONFLICT) {
+            return CounterSignOperationResult.Conflict("Failed to countersign ${association.entityType} entity due to a conflict")
+          }
+
           return CounterSignOperationResult.Failure("Failed to countersign ${association.entityType} with UUID ${association.uuid}")
         }
 
@@ -312,6 +316,10 @@ class OasysCoordinatorService(
     ) : CounterSignOperationResult<T>()
 
     data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : CounterSignOperationResult<T>()
+
+    data class Conflict<T>(
       val errorMessage: String,
     ) : CounterSignOperationResult<T>()
   }

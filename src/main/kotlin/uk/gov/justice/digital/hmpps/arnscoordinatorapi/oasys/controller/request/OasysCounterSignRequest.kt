@@ -6,18 +6,6 @@ import jakarta.validation.constraints.PositiveOrZero
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 
-// enum class Tag {
-//   UNSIGNED,
-//   LOCKED_INCOMPLETE,
-//   SELF_SIGNED,
-//   AWAITING_COUNTERSIGN,
-//   AWAITING_DOUBLE_COUNTERSIGN,
-//   COUNTERSIGNED,
-//   DOUBLE_COUNTERSIGNED,
-//   REJECTED,
-//   ROLLED_BACK,
-// }
-
 data class OasysCounterSignRequest(
   @Schema(description = "The SAN Assessment version number that was returned from the Sign Assessment API call.", example = "2")
   @PositiveOrZero
