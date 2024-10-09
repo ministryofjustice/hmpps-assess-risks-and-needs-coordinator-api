@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
@@ -73,6 +74,35 @@ class StrengthsAndNeedsApi(
       ApiOperationResultExtended.Failure("HTTP error during lock assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
       ApiOperationResultExtended.Failure("Unexpected error during lockAssessment: ${ex.message}", ex)
+    }
+  }
+
+  fun signAssessment(signData: SignData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sanApiWebClient.post()
+        .uri(apiProperties.endpoints.sign.replace("{uuid}", assessmentUuid.toString()))
+        .body(BodyInserters.fromValue(signData))
+        .retrieve()
+        .bodyToMono(AssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during signAssessment")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Assessment already signed")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during sign assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during signAssessment: ${ex.message}", ex)
     }
   }
 
