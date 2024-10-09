@@ -16,6 +16,7 @@ data class StrengthsAndNeedsApiProperties(
     var fetch: String = "",
     var create: String = "",
     var lock: String = "",
+    var rollback: String = "",
   )
 
   @PostConstruct
@@ -24,6 +25,7 @@ data class StrengthsAndNeedsApiProperties(
       fetch = baseUrl + endpoints.fetch,
       create = baseUrl + endpoints.create,
       lock = baseUrl + endpoints.lock,
+      rollback = baseUrl + endpoints.rollback,
     )
   }
 }

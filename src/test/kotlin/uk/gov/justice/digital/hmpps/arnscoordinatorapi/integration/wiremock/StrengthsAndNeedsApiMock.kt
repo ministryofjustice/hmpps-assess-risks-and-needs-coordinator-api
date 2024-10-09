@@ -119,6 +119,45 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
     )
   }
 
+  fun stubAssessmentsRollback(status: Int = 200) {
+    stubFor(
+      post(WireMock.urlPathMatching("/assessment/(.*)/rollback")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "metaData": {
+                  "uuid": "4da85f64-5717-4562-b3fc-2c963f66afb8",
+                  "createdAt": "2024-10-03T15:22:31.452243",
+                  "versionUuid": "b42fdb5d-4450-40af-806e-97d47b96fa45",
+                  "versionCreatedAt": "2024-10-03T15:22:31.453096",
+                  "versionUpdatedAt": "2024-10-04T15:22:31.453096",
+                  "versionNumber": 1,
+                  "versionTag": "ROLLED_BACK",
+                  "formVersion": "1.0"
+                },
+                "assessment": {
+                  "q2": {
+                    "type": "TEXT",
+                    "description": "",
+                    "options": null,
+                    "value": "val2",
+                    "values": null,
+                    "collection": null
+                  }
+                },
+                "oasysEquivalent": {
+                  "q2": "2"
+                }
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
+
   fun stubAssessmentsGet(status: Int = 200) {
     stubFor(
       get(WireMock.urlPathMatching("/assessment/.*")).willReturn(
