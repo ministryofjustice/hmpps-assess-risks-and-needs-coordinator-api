@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
@@ -44,7 +45,7 @@ class PlanStrategy(
   }
 
   override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = sentencePlanApi.rollback(request, entityUuid)) {
+    return when (val result = sentencePlanApi.rollback(PlanVersionData.from(request), entityUuid)) {
       is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
       is SentencePlanApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
       is SentencePlanApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)

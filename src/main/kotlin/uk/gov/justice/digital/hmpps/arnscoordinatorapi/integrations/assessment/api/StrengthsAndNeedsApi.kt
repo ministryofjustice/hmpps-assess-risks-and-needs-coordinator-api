@@ -11,10 +11,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
 
 @Component
@@ -79,16 +77,11 @@ class StrengthsAndNeedsApi(
     }
   }
 
-  fun rollback(request: OasysRollbackRequest, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+  fun rollback(data: RollbackData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
     return try {
-      val rollbackData = request.sanVersionNumber?.let { RollbackData(it, UserDetails.from(request.userDetails)) }
-      if (rollbackData == null) {
-        return ApiOperationResultExtended.Failure("Unable to construct rollback request data. Missing sanVersionNumber.")
-      }
-
       val result = sanApiWebClient.post()
         .uri(apiProperties.endpoints.rollback.replace("{uuid}", assessmentUuid.toString()))
-        .body(BodyInserters.fromValue(rollbackData))
+        .body(BodyInserters.fromValue(data))
         .retrieve()
         .bodyToMono(AssessmentResponse::class.java)
         .map {
@@ -105,7 +98,7 @@ class StrengthsAndNeedsApi(
       } ?: throw IllegalStateException("Unexpected error during rollback")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
-        return ApiOperationResultExtended.Conflict("Unable to rollback this assessment version")
+        return ApiOperationResultExtended.Conflict("Unable to roll back this assessment version")
       }
       ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {

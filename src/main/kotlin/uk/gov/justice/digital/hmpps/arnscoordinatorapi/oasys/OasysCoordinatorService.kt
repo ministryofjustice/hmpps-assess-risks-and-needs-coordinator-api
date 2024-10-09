@@ -139,10 +139,10 @@ class OasysCoordinatorService(
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
           if (response.statusCode === HttpStatus.CONFLICT) {
-            return RollbackOperationResult.Conflict("Failed to rollback ${association.entityType} entity due to a conflict, ${response.errorMessage}")
+            return RollbackOperationResult.Conflict("Failed to roll back ${association.entityType} entity due to a conflict, ${response.errorMessage}")
           }
 
-          return RollbackOperationResult.Failure("Failed to rollback ${association.entityType} entity, ${response.errorMessage}")
+          return RollbackOperationResult.Failure("Failed to roll back ${association.entityType} entity, ${response.errorMessage}")
         }
         is OperationResult.Success -> oasysRollbackResponse.addVersionedEntity(response.data)
       }

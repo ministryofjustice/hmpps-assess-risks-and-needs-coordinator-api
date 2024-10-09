@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.StrengthsAndNeedsApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -37,7 +38,7 @@ class AssessmentStrategy(
   }
 
   override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.rollback(request, entityUuid)) {
+    return when (val result = strengthsAndNeedsApi.rollback(RollbackData.from(request), entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)

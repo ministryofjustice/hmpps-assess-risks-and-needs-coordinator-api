@@ -16,7 +16,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.res
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.PlanVersionResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
 
 @Component
@@ -99,16 +98,11 @@ class SentencePlanApi(
     }
   }
 
-  fun rollback(request: OasysRollbackRequest, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+  fun rollback(data: PlanVersionData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
     return try {
-      val rollbackData = request.sentencePlanVersionNumber?.let { PlanVersionData(it) }
-      if (rollbackData == null) {
-        return ApiOperationResultExtended.Failure("Unable to construct rollback request data. Missing sentencePlanVersionNumber.")
-      }
-
       val result = sentencePlanApiWebClient.post()
         .uri(apiProperties.endpoints.rollback.replace("{uuid}", planUuid.toString()))
-        .body(BodyInserters.fromValue(rollbackData))
+        .body(BodyInserters.fromValue(data))
         .retrieve()
         .bodyToMono(PlanVersionResponse::class.java)
         .map {
@@ -125,7 +119,7 @@ class SentencePlanApi(
       } ?: throw IllegalStateException("Unexpected error during rollback")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
-        return ApiOperationResultExtended.Conflict("Unable to rollback this plan version")
+        return ApiOperationResultExtended.Conflict("Unable to roll back this plan version")
       }
       ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
