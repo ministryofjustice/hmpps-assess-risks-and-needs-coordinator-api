@@ -361,21 +361,32 @@ class OasysController(
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid
     request: OasysRollbackRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to rollback the sign state of an entity
-     *  1. Find all associations for a PK in the DB
-     *  2. Contact each service's relevant API to rollback that entity with the provided version number,
-     *    API will return a version number
-     *  3. Return combination of entity UUIDs and their locked version number
-     */
-
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.rollback(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.RollbackOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.RollbackOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+      is OasysCoordinatorService.RollbackOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+      is OasysCoordinatorService.RollbackOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/soft-delete"], method = [RequestMethod.POST])

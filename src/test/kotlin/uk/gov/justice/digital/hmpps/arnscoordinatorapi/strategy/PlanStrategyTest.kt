@@ -15,10 +15,13 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -108,6 +111,43 @@ class PlanStrategyTest {
       assertTrue(result is OperationResult.Failure)
       assertEquals("Fetch error occurred", (result as OperationResult.Failure).errorMessage)
       verify(sentencePlanApi).getPlan(entityUuid)
+    }
+  }
+
+  @Nested
+  inner class Rollback {
+    val request = OasysRollbackRequest(
+      sanVersionNumber = null,
+      sentencePlanVersionNumber = 1,
+      userDetails = OasysUserDetails("id", "name"),
+    )
+    val rollbackData = PlanVersionData.from(request)
+    val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
+
+    @Test
+    fun `should return success when rollback assessment is successful`() {
+      `when`(sentencePlanApi.rollback(rollbackData, versionedEntity.id)).thenReturn(
+        SentencePlanApi.ApiOperationResultExtended.Success(versionedEntity),
+      )
+
+      val result = planStrategy.rollback(request, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(versionedEntity, (result as OperationResult.Success).data)
+      verify(sentencePlanApi).rollback(rollbackData, versionedEntity.id)
+    }
+
+    @Test
+    fun `should return failure when create assessment fails`() {
+      `when`(sentencePlanApi.rollback(rollbackData, versionedEntity.id)).thenReturn(
+        SentencePlanApi.ApiOperationResultExtended.Failure("Error occurred"),
+      )
+
+      val result = planStrategy.rollback(request, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
+      verify(sentencePlanApi).rollback(rollbackData, versionedEntity.id)
     }
   }
 }

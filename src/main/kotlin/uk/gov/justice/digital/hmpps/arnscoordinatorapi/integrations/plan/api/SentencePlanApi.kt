@@ -11,10 +11,12 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.SignPlanResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.PlanVersionResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 
@@ -124,6 +126,35 @@ class SentencePlanApi(
       ApiOperationResult.Failure("HTTP error during get plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
       ApiOperationResult.Failure("Unexpected error during getPlan: ${ex.message}", ex)
+    }
+  }
+
+  fun rollback(data: PlanVersionData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sentencePlanApiWebClient.post()
+        .uri(apiProperties.endpoints.rollback.replace("{uuid}", planUuid.toString()))
+        .body(BodyInserters.fromValue(data))
+        .retrieve()
+        .bodyToMono(PlanVersionResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.planId,
+            version = it.planVersion,
+            entityType = EntityType.PLAN,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during rollback")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Unable to roll back this plan version")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during rollback: ${ex.message}", ex)
     }
   }
 

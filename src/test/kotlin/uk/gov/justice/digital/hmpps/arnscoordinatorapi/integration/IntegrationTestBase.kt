@@ -52,6 +52,10 @@ abstract class IntegrationTestBase {
     sanServer.stubAssessmentsLock(status)
   }
 
+  protected fun stubAssessmentsRollback(status: Int = 200) {
+    sanServer.stubAssessmentsRollback(status)
+  }
+
   protected fun stubSentencePlanCreate(status: Int = 201) {
     sentencePlanApiMock.stubSentencePlanCreate(status)
   }
@@ -66,6 +70,10 @@ abstract class IntegrationTestBase {
 
   protected fun stubSentencePlanLock(status: Int = 200) {
     sentencePlanApiMock.stubSentencePlanLock(status)
+  }
+
+  protected fun stubSentencePlanRollback(status: Int = 200) {
+    sentencePlanApiMock.stubSentencePlanRollback(status)
   }
 
   protected fun stubPingWithResponse(status: Int) {

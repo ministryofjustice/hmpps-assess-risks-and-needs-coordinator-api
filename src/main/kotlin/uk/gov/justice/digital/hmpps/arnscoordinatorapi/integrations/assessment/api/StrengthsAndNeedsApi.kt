@@ -8,6 +8,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
@@ -74,6 +75,35 @@ class StrengthsAndNeedsApi(
       ApiOperationResultExtended.Failure("HTTP error during lock assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
       ApiOperationResultExtended.Failure("Unexpected error during lockAssessment: ${ex.message}", ex)
+    }
+  }
+
+  fun rollback(data: RollbackData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sanApiWebClient.post()
+        .uri(apiProperties.endpoints.rollback.replace("{uuid}", assessmentUuid.toString()))
+        .body(BodyInserters.fromValue(data))
+        .retrieve()
+        .bodyToMono(AssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during rollback")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Unable to roll back this assessment version")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during rollback: ${ex.message}", ex)
     }
   }
 

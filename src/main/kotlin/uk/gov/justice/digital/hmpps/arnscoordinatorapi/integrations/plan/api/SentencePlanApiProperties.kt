@@ -17,6 +17,7 @@ data class SentencePlanApiProperties(
     var create: String = "",
     var sign: String = "",
     var lock: String = "",
+    var rollback: String = "",
   )
 
   @PostConstruct
@@ -26,6 +27,7 @@ data class SentencePlanApiProperties(
       create = baseUrl + endpoints.create,
       sign = baseUrl + endpoints.sign,
       lock = baseUrl + endpoints.lock,
+      rollback = baseUrl + endpoints.rollback,
     )
   }
 }

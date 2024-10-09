@@ -11,6 +11,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.StrengthsAndNeedsApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
@@ -18,6 +19,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -112,6 +115,43 @@ class AssessmentStrategyTest {
       assertTrue(result is OperationResult.Failure)
       assertEquals("Fetch error occurred", (result as OperationResult.Failure).errorMessage)
       verify(strengthsAndNeedsApi).getAssessment(entityUuid)
+    }
+  }
+
+  @Nested
+  inner class Rollback {
+    val request = OasysRollbackRequest(
+      sanVersionNumber = 1,
+      sentencePlanVersionNumber = null,
+      userDetails = OasysUserDetails("id", "name"),
+    )
+    val rollbackData = RollbackData.from(request)
+    val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+
+    @Test
+    fun `should return success when rollback assessment is successful`() {
+      `when`(strengthsAndNeedsApi.rollback(rollbackData, versionedEntity.id)).thenReturn(
+        StrengthsAndNeedsApi.ApiOperationResultExtended.Success(versionedEntity),
+      )
+
+      val result = assessmentStrategy.rollback(request, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(versionedEntity, (result as OperationResult.Success).data)
+      verify(strengthsAndNeedsApi).rollback(rollbackData, versionedEntity.id)
+    }
+
+    @Test
+    fun `should return failure when create assessment fails`() {
+      `when`(strengthsAndNeedsApi.rollback(rollbackData, versionedEntity.id)).thenReturn(
+        StrengthsAndNeedsApi.ApiOperationResultExtended.Failure("Error occurred"),
+      )
+
+      val result = assessmentStrategy.rollback(request, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
+      verify(strengthsAndNeedsApi).rollback(rollbackData, versionedEntity.id)
     }
   }
 }
