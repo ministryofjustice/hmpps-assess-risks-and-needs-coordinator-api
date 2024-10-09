@@ -8,11 +8,13 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.SignPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 
@@ -46,6 +48,35 @@ class SentencePlanApi(
       ApiOperationResult.Failure("HTTP error during create plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
     } catch (ex: Exception) {
       ApiOperationResult.Failure("Unexpected error during createPlan: ${ex.message}", ex)
+    }
+  }
+
+  fun signPlan(signData: SignData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sentencePlanApiWebClient.post()
+        .uri(apiProperties.endpoints.sign.replace("{uuid}", planUuid.toString()))
+        .body(BodyInserters.fromValue(signData))
+        .retrieve()
+        .bodyToMono(SignPlanResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.sentencePlanId,
+            version = it.sentencePlanVersion,
+            entityType = EntityType.PLAN,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during signPlan")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Sentence Plan is already signed")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during sign plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during signPlan: ${ex.message}", ex)
     }
   }
 
