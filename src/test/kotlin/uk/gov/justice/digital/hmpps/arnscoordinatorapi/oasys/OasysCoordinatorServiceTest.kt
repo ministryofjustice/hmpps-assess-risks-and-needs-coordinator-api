@@ -13,6 +13,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -42,7 +43,9 @@ class OasysCoordinatorServiceTest {
 
   @BeforeEach
   fun setup() {
-    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService)
+    val executor = ThreadPoolTaskExecutor()
+    executor.initialize()
+    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService, executor)
   }
 
   @Nested
@@ -196,7 +199,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
       assertEquals(
-        "Strategy not initialized for null",
+        "Failed to retrieve null entity, Strategy not initialized for null",
         (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage,
       )
     }

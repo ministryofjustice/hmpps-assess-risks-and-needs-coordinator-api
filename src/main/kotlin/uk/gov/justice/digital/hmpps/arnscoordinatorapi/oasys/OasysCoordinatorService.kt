@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
 import org.springframework.http.HttpStatus
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
@@ -21,12 +22,16 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
+import java.util.*
+import java.util.concurrent.CompletableFuture
 
 @Service
 class OasysCoordinatorService(
   private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
+  private val taskExecutor: ThreadPoolTaskExecutor,
 ) {
 
   private fun buildCreateData(requestData: OasysCreateRequest): CreateData {
@@ -56,18 +61,22 @@ class OasysCoordinatorService(
     val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
-    for (strategy in strategyFactory.getStrategies()) {
-      val command = CreateCommand(strategy, buildCreateData(requestData))
-      val commandResult = command.execute()
+    val commandResponses = strategyFactory.getStrategies().runAsync(
+      data = buildCreateData(requestData),
+      taskExecutor = taskExecutor,
+      executeCommand = { args: List<Any> ->
+        CreateCommand(args[0] as EntityStrategy, args[1] as CreateData).execute()
+      },
+    )
 
+    for ((commandResult, strategy) in commandResponses) {
       when (commandResult) {
-        is OperationResult.Success -> successfullyExecutedCommands.add(command)
+        is OperationResult.Success -> successfullyExecutedCommands.add(CreateCommand(strategy, buildCreateData(requestData)).setCreatedEntity(commandResult.data))
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
           return CreateOperationResult.Failure("Failed to create entity for ${strategy.entityType}: ${commandResult.errorMessage}")
         }
       }
-
       when (
         oasysAssociationsService.storeAssociation(
           OasysAssociation(
@@ -98,18 +107,22 @@ class OasysCoordinatorService(
     }
 
     val oasysLockResponse = OasysVersionedEntityResponse()
-    for (association in associations) {
-      val strategy = association.entityType?.let(strategyFactory::getStrategy)
-        ?: return LockOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = LockCommand(strategy, association.entityUuid!!, LockData(UserDetails(oasysGenericRequest.userDetails.id, oasysGenericRequest.userDetails.name)))
+    val commandResponses = associations.runAsync(
+      data = LockData(UserDetails(oasysGenericRequest.userDetails.id, oasysGenericRequest.userDetails.name)),
+      strategyFactory = strategyFactory,
+      taskExecutor = taskExecutor,
+      executeCommand = { args: List<Any> ->
+        LockCommand(args[0] as EntityStrategy, args[1] as UUID, args[2] as LockData).execute()
+      },
+    )
 
-      when (val response = command.execute()) {
+    for ((response, association) in commandResponses) {
+      when (response) {
         is OperationResult.Failure -> {
           if (response.statusCode === HttpStatus.CONFLICT) {
             return LockOperationResult.Conflict("Failed to lock ${association.entityType} entity due to a conflict, ${response.errorMessage}")
           }
-
           return LockOperationResult.Failure("Failed to lock ${association.entityType} entity, ${response.errorMessage}")
         }
         is OperationResult.Success -> oasysLockResponse.addVersionedEntity(response.data)
@@ -127,13 +140,16 @@ class OasysCoordinatorService(
     }
 
     val oasysGetResponse = OasysGetResponse()
-    for (association in associations) {
-      val strategy = association.entityType?.let(strategyFactory::getStrategy)
-        ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+    val commandResponses = associations.runAsync(
+      strategyFactory = strategyFactory,
+      taskExecutor = taskExecutor,
+      executeCommand = { args: List<Any> ->
+        FetchCommand(args[0] as EntityStrategy, args[1] as UUID).execute()
+      },
+    )
 
-      val command = FetchCommand(strategy, association.entityUuid!!)
-
-      when (val response = command.execute()) {
+    for ((response, association) in commandResponses) {
+      when (response) {
         is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity, ${response.errorMessage}")
         is OperationResult.Success -> oasysGetResponse.addEntityData(response.data!!)
       }
@@ -208,3 +224,34 @@ class OasysCoordinatorService(
     ) : LockOperationResult<T>()
   }
 }
+
+inline fun <reified T> List<OasysAssociation>.runAsync(
+  taskExecutor: ThreadPoolTaskExecutor,
+  strategyFactory: StrategyFactory,
+  data: Any? = null,
+  crossinline executeCommand: (args: List<Any>) -> OperationResult<T>,
+) =
+  mapNotNull { assoc ->
+    CompletableFuture.supplyAsync(
+      {
+        assoc.entityType?.let(strategyFactory::getStrategy)?.let {
+          Pair(executeCommand(listOfNotNull(it, assoc.entityUuid, data)), assoc)
+        } ?: Pair(OperationResult.Failure("Strategy not initialized for ${assoc.entityType}"), assoc)
+      },
+      taskExecutor,
+    )
+  }.map { it.join() }
+
+inline fun <reified T> List<EntityStrategy>.runAsync(
+  taskExecutor: ThreadPoolTaskExecutor,
+  data: Any? = null,
+  crossinline executeCommand: (args: List<Any>) -> OperationResult<T>,
+) =
+  mapNotNull { strategy ->
+    CompletableFuture.supplyAsync(
+      {
+        Pair(executeCommand(listOfNotNull(strategy, data)), strategy)
+      },
+      taskExecutor,
+    )
+  }.map { it.join() }
