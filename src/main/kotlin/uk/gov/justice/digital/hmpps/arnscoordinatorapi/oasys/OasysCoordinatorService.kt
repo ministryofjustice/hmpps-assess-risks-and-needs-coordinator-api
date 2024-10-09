@@ -1,11 +1,14 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
@@ -14,6 +17,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysA
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
@@ -83,6 +87,36 @@ class OasysCoordinatorService(
     }
 
     return CreateOperationResult.Success(oasysCreateResponse)
+  }
+
+  @Transactional
+  fun lock(oasysGenericRequest: OasysGenericRequest, oasysAssessmentPk: String): LockOperationResult<OasysVersionedEntityResponse> {
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return LockOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysLockResponse = OasysVersionedEntityResponse()
+    for (association in associations) {
+      val strategy = association.entityType?.let(strategyFactory::getStrategy)
+        ?: return LockOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val command = LockCommand(strategy, association.entityUuid!!, LockData(UserDetails(oasysGenericRequest.userDetails.id, oasysGenericRequest.userDetails.name)))
+
+      when (val response = command.execute()) {
+        is OperationResult.Failure -> {
+          if (response.statusCode === HttpStatus.CONFLICT) {
+            return LockOperationResult.Conflict("Failed to lock ${association.entityType} entity due to a conflict, ${response.errorMessage}")
+          }
+
+          return LockOperationResult.Failure("Failed to lock ${association.entityType} entity, ${response.errorMessage}")
+        }
+        is OperationResult.Success -> oasysLockResponse.addVersionedEntity(response.data)
+      }
+    }
+
+    return LockOperationResult.Success(oasysLockResponse)
   }
 
   fun get(oasysAssessmentPk: String): GetOperationResult<OasysGetResponse> {
@@ -155,5 +189,22 @@ class OasysCoordinatorService(
     data class NoAssociations<T>(
       val errorMessage: String,
     ) : GetOperationResult<T>()
+  }
+
+  sealed class LockOperationResult<out T> {
+    data class Success<T>(val data: T) : LockOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : LockOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : LockOperationResult<T>()
+
+    data class Conflict<T>(
+      val errorMessage: String,
+    ) : LockOperationResult<T>()
   }
 }

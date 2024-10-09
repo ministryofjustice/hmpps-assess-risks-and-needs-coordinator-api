@@ -1,10 +1,12 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.StrengthsAndNeedsApi
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -25,7 +27,15 @@ class AssessmentStrategy(
     }
   }
 
-  override fun fetch(entityUuid: UUID): OperationResult<GetAssessmentResponse> {
+  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = strengthsAndNeedsApi.lockAssessment(lockData, entityUuid)) {
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
+    }
+  }
+
+  override fun fetch(entityUuid: UUID): OperationResult<AssessmentResponse> {
     return when (val result = strengthsAndNeedsApi.getAssessment(entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)

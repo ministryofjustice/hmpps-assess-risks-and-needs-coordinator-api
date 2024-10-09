@@ -60,6 +60,24 @@ class SentencePlanApiMock : WireMockServer(8091) {
       ),
     )
   }
+
+  fun stubSentencePlanLock(status: Int = 200) {
+    stubFor(
+      post(urlPathMatching("/coordinator/plan/(.*)/lock")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "planId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "planVersion": 0
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
 }
 
 /*

@@ -11,7 +11,8 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.StrengthsAndNeedsApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.GetAssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
@@ -74,11 +75,17 @@ class AssessmentStrategyTest {
     @Test
     fun `should return success when fetch assessment is successful`() {
       val entityUuid = UUID.randomUUID()
-      val getAssessmentResponse = GetAssessmentResponse(
-        sanAssessmentId = entityUuid,
-        sanAssessmentVersion = 1,
-        sanAssessmentData = emptyMap<String, Any>(),
-        lastUpdatedTimestamp = LocalDateTime.now(),
+      val getAssessmentResponse = AssessmentResponse(
+        metaData = AssessmentMetadata(
+          uuid = entityUuid,
+          createdAt = LocalDateTime.now(),
+          versionUuid = UUID.randomUUID(),
+          versionNumber = 1,
+          versionCreatedAt = LocalDateTime.now(),
+          versionUpdatedAt = LocalDateTime.now(),
+          formVersion = "1.0",
+        ),
+        assessment = emptyMap<String, Any>(),
       )
 
       `when`(strengthsAndNeedsApi.getAssessment(entityUuid)).thenReturn(
