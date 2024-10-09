@@ -21,11 +21,6 @@ class CreateCommand(
     }
   }
 
-  fun setCreatedEntity(createdEntity: VersionedEntity): CreateCommand {
-    this.createdEntity = createdEntity
-    return this
-  }
-
   fun rollback(): OperationResult<Unit> {
     strategy.delete(createdEntity.id)
     return OperationResult.Failure("Rollback has not been implemented")

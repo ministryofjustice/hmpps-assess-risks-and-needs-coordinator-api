@@ -65,13 +65,15 @@ class OasysCoordinatorService(
       data = buildCreateData(requestData),
       taskExecutor = taskExecutor,
       executeCommand = { args: List<Any> ->
-        CreateCommand(args[0] as EntityStrategy, args[1] as CreateData).execute()
+        val command = CreateCommand(args[0] as EntityStrategy, args[1] as CreateData)
+        val result = command.execute()
+        Pair(result, command)
       },
     )
 
-    for ((commandResult, strategy) in commandResponses) {
+    for ((commandResult, strategy, command) in commandResponses) {
       when (commandResult) {
-        is OperationResult.Success -> successfullyExecutedCommands.add(CreateCommand(strategy, buildCreateData(requestData)).setCreatedEntity(commandResult.data))
+        is OperationResult.Success -> successfullyExecutedCommands.add(command)
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
           return CreateOperationResult.Failure("Failed to create entity for ${strategy.entityType}: ${commandResult.errorMessage}")
@@ -113,7 +115,9 @@ class OasysCoordinatorService(
       strategyFactory = strategyFactory,
       taskExecutor = taskExecutor,
       executeCommand = { args: List<Any> ->
-        LockCommand(args[0] as EntityStrategy, args[1] as UUID, args[2] as LockData).execute()
+        val command = LockCommand(args[0] as EntityStrategy, args[1] as UUID, args[2] as LockData)
+        val result = command.execute()
+        Pair(result, command)
       },
     )
 
@@ -144,7 +148,9 @@ class OasysCoordinatorService(
       strategyFactory = strategyFactory,
       taskExecutor = taskExecutor,
       executeCommand = { args: List<Any> ->
-        FetchCommand(args[0] as EntityStrategy, args[1] as UUID).execute()
+        val command = FetchCommand(args[0] as EntityStrategy, args[1] as UUID)
+        val result = command.execute()
+        Pair(result, command)
       },
     )
 
@@ -225,32 +231,34 @@ class OasysCoordinatorService(
   }
 }
 
-inline fun <reified T> List<OasysAssociation>.runAsync(
+inline fun <reified T, reified C> List<OasysAssociation>.runAsync(
   taskExecutor: ThreadPoolTaskExecutor,
   strategyFactory: StrategyFactory,
   data: Any? = null,
-  crossinline executeCommand: (args: List<Any>) -> OperationResult<T>,
+  crossinline executeCommand: (args: List<Any>) -> Pair<OperationResult<T>, C>,
 ) =
   mapNotNull { assoc ->
     CompletableFuture.supplyAsync(
       {
         assoc.entityType?.let(strategyFactory::getStrategy)?.let {
-          Pair(executeCommand(listOfNotNull(it, assoc.entityUuid, data)), assoc)
-        } ?: Pair(OperationResult.Failure("Strategy not initialized for ${assoc.entityType}"), assoc)
+          val res = executeCommand(listOfNotNull(it, assoc.entityUuid, data))
+          Triple(res.first, assoc, res.second)
+        } ?: Triple(OperationResult.Failure("Strategy not initialized for ${assoc.entityType}"), assoc, null)
       },
       taskExecutor,
     )
   }.map { it.join() }
 
-inline fun <reified T> List<EntityStrategy>.runAsync(
+inline fun <reified T, reified C> List<EntityStrategy>.runAsync(
   taskExecutor: ThreadPoolTaskExecutor,
   data: Any? = null,
-  crossinline executeCommand: (args: List<Any>) -> OperationResult<T>,
+  crossinline executeCommand: (args: List<Any>) -> Pair<OperationResult<T>, C>,
 ) =
   mapNotNull { strategy ->
     CompletableFuture.supplyAsync(
       {
-        Pair(executeCommand(listOfNotNull(strategy, data)), strategy)
+        val res = executeCommand(listOfNotNull(strategy, data))
+        Triple(res.first, strategy, res.second)
       },
       taskExecutor,
     )
