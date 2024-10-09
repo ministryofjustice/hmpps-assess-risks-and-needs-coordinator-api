@@ -34,7 +34,7 @@ class CounterSignCommandTest {
   }
 
   @Test
-  fun `should execute fetch with correct UUID and return success result`() {
+  fun `should execute counter-sign with correct UUID and return success result`() {
     val successfulRequest = OperationResult.Success(VersionedEntity(UUID.randomUUID(), 2, EntityType.ASSESSMENT))
     `when`(entityStrategy.counterSign(entityUuid, request)).thenReturn(successfulRequest)
 
@@ -46,8 +46,8 @@ class CounterSignCommandTest {
   }
 
   @Test
-  fun `should execute fetch and return failure result`() {
-    val failureResult = OperationResult.Failure<Nothing>("Fetch failed")
+  fun `should execute counter-sign and return failure result`() {
+    val failureResult = OperationResult.Failure<Nothing>("Counter-sign failed")
     `when`(entityStrategy.counterSign(entityUuid, request)).thenReturn(failureResult)
 
     val result = command.execute()
