@@ -15,7 +15,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.req
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.SignPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.PlanVersionResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
@@ -59,11 +58,11 @@ class SentencePlanApi(
         .uri(apiProperties.endpoints.sign.replace("{uuid}", planUuid.toString()))
         .body(BodyInserters.fromValue(signData))
         .retrieve()
-        .bodyToMono(SignPlanResponse::class.java)
+        .bodyToMono(PlanVersionResponse::class.java)
         .map {
           VersionedEntity(
-            id = it.sentencePlanId,
-            version = it.sentencePlanVersion,
+            id = it.planId,
+            version = it.planVersion,
             entityType = EntityType.PLAN,
           )
         }
