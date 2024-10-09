@@ -56,12 +56,14 @@ app:
       endpoints:
         fetch: /assessment
         create: /assessment
+        sign: /assessment/{uuid}/sign
         lock: /assessment/{uuid}/lock
     sentence-plan-api:
       base-url: ${sp-api.base-url}
       endpoints:
         fetch: /coordinator/plan/
         create: /coordinator/plan
+        sign: /coordinator/plan/{uuid}/sign
         lock: /coordinator/plan/{uuid}/lock
   self:
     base-url: ${hmpps-arns-coordinator.base-url}

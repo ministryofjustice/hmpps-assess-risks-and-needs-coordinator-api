@@ -15,6 +15,7 @@ data class SentencePlanApiProperties(
   data class Endpoints(
     var fetch: String = "",
     var create: String = "",
+    var sign: String = "",
     var lock: String = "",
   )
 
@@ -23,6 +24,8 @@ data class SentencePlanApiProperties(
     paths = Endpoints(
       fetch = baseUrl + endpoints.fetch,
       create = baseUrl + endpoints.create,
+      sign = baseUrl + endpoints.sign,
+      lock = baseUrl + endpoints.lock,
     )
   }
 }
