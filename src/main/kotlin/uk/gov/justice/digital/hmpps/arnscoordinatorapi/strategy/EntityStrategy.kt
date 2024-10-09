@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
 
@@ -23,4 +24,6 @@ interface EntityStrategy {
   fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity>
 
   fun delete(entityUuid: UUID): OperationResult<Unit>
+
+  fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity>
 }

@@ -15,6 +15,7 @@ data class SentencePlanApiProperties(
   data class Endpoints(
     var fetch: String = "",
     var create: String = "",
+    var counterSign: String = "",
     var sign: String = "",
     var lock: String = "",
     var rollback: String = "",
@@ -28,6 +29,7 @@ data class SentencePlanApiProperties(
       sign = baseUrl + endpoints.sign,
       lock = baseUrl + endpoints.lock,
       rollback = baseUrl + endpoints.rollback,
+      counterSign = baseUrl + endpoints.counterSign,
     )
   }
 }

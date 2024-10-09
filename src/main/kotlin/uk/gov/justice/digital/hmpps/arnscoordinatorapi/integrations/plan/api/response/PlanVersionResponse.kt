@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.re
 
 import java.util.UUID
 
-class PlanVersionResponse(
+data class PlanVersionResponse(
   val planId: UUID,
   val planVersion: Long,
 )

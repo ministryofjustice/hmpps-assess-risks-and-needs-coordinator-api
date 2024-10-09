@@ -16,6 +16,7 @@ data class StrengthsAndNeedsApiProperties(
     var fetch: String = "",
     var create: String = "",
     var sign: String = "",
+    var counterSign: String = "",
     var lock: String = "",
     var rollback: String = "",
   )
@@ -28,6 +29,7 @@ data class StrengthsAndNeedsApiProperties(
       sign = baseUrl + endpoints.sign,
       lock = baseUrl + endpoints.lock,
       rollback = baseUrl + endpoints.rollback,
+      counterSign = baseUrl + endpoints.create,
     )
   }
 }

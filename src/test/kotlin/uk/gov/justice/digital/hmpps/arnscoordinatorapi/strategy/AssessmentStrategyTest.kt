@@ -9,7 +9,9 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.StrengthsAndNeedsApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CounterSignAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
@@ -19,6 +21,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import java.time.LocalDateTime
@@ -152,6 +155,61 @@ class AssessmentStrategyTest {
       assertTrue(result is OperationResult.Failure)
       assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
       verify(strengthsAndNeedsApi).rollback(rollbackData, versionedEntity.id)
+    }
+  }
+
+  @Nested
+  inner class CounterSign {
+    private val entityUuid = UUID.randomUUID()
+    private val request = OasysCounterSignRequest(
+      sanVersionNumber = 1,
+      sentencePlanVersionNumber = 1,
+      outcome = CounterSignOutcome.COUNTERSIGNED,
+      userDetails = OasysUserDetails("1", "OASys User"),
+    )
+
+    @Test
+    fun `should return success when countersign assessment is successful`() {
+      val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+
+      `when`(strengthsAndNeedsApi.counterSign(entityUuid, CounterSignAssessmentData.from(request))).thenReturn(
+        StrengthsAndNeedsApi.ApiOperationResultExtended.Success(versionedEntity),
+      )
+
+      val result = assessmentStrategy.counterSign(
+        entityUuid,
+        OasysCounterSignRequest(
+          sanVersionNumber = 1,
+          sentencePlanVersionNumber = 1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails("1", "OASys User"),
+        ),
+      )
+
+      verify(strengthsAndNeedsApi).counterSign(entityUuid, CounterSignAssessmentData.from(request))
+      assertTrue(result is OperationResult.Success)
+      assertEquals(versionedEntity, (result as OperationResult.Success).data)
+    }
+
+    @Test
+    fun `should return failure when countersign assessment fails`() {
+      `when`(strengthsAndNeedsApi.counterSign(entityUuid, CounterSignAssessmentData.from(request))).thenReturn(
+        StrengthsAndNeedsApi.ApiOperationResultExtended.Failure("Failed to countersign"),
+      )
+
+      val result = assessmentStrategy.counterSign(
+        entityUuid,
+        OasysCounterSignRequest(
+          sanVersionNumber = 1,
+          sentencePlanVersionNumber = 1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails("1", "OASys User"),
+        ),
+      )
+
+      verify(strengthsAndNeedsApi).counterSign(entityUuid, CounterSignAssessmentData.from(request))
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Failed to countersign", (result as OperationResult.Failure).errorMessage)
     }
   }
 }

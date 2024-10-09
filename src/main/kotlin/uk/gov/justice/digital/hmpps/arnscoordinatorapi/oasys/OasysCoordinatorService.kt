@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 import jakarta.transaction.Transactional
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
@@ -19,6 +20,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.req
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
@@ -240,6 +242,45 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(oasysAssociationsResponse)
   }
 
+  fun counterSign(
+    oasysAssessmentPk: String,
+    request: OasysCounterSignRequest,
+  ): CounterSignOperationResult<OasysVersionedEntityResponse> {
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return CounterSignOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val response = OasysVersionedEntityResponse()
+    associations.forEach { association ->
+      val strategy = association.entityType?.run(strategyFactory::getStrategy)
+        ?: return CounterSignOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val command = association.entityUuid?.let { uuid ->
+        CounterSignCommand(
+          strategy,
+          uuid,
+          request,
+        )
+      } ?: return CounterSignOperationResult.Failure("No entity UUID for association ${association.uuid}")
+
+      when (val result = command.execute()) {
+        is OperationResult.Failure -> {
+          if (result.statusCode === HttpStatus.CONFLICT) {
+            return CounterSignOperationResult.Conflict("Failed to countersign ${association.entityType} entity due to a conflict")
+          }
+
+          return CounterSignOperationResult.Failure("Failed to countersign ${association.entityType} with UUID ${association.uuid}")
+        }
+
+        is OperationResult.Success -> response.addVersionedEntity(result.data)
+      }
+    }
+
+    return CounterSignOperationResult.Success(response)
+  }
+
   sealed class CreateOperationResult<out T> {
     data class Success<T>(val data: T) : CreateOperationResult<T>()
 
@@ -264,6 +305,23 @@ class OasysCoordinatorService(
     data class NoAssociations<T>(
       val errorMessage: String,
     ) : GetOperationResult<T>()
+  }
+
+  sealed class CounterSignOperationResult<out T> {
+    data class Success<T>(val data: T) : CounterSignOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : CounterSignOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : CounterSignOperationResult<T>()
+
+    data class Conflict<T>(
+      val errorMessage: String,
+    ) : CounterSignOperationResult<T>()
   }
 
   sealed class SignOperationResult<out T> {
