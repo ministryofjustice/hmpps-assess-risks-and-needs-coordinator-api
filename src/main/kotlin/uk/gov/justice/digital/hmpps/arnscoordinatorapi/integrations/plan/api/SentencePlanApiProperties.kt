@@ -15,6 +15,7 @@ data class SentencePlanApiProperties(
   data class Endpoints(
     var fetch: String = "",
     var create: String = "",
+    var lock: String = "",
   )
 
   @PostConstruct

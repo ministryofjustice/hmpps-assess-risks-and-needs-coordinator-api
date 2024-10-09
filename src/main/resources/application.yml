@@ -26,24 +26,24 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${app.services.hmpps-auth.base-url}/auth/.well-known/jwks.json
+          jwk-set-uri: ${app.services.hmpps-auth.base-url}/.well-known/jwks.json
 
       client:
         provider:
           hmpps-auth:
-            token-uri: ${app.services.hmpps-auth.base-url}/auth/oauth/token
+            token-uri: ${app.services.hmpps-auth.base-url}/oauth/token
 
         registration:
           san-api:
             provider: hmpps-auth
-            client-id: ${san-api.client.id}
-            client-secret: ${san-api.client.secret}
+            client-id: ${app.client.id}
+            client-secret: ${app.client.secret}
             authorization-grant-type: client_credentials
             scope: read, write
           sentence-plan-api:
             provider: hmpps-auth
-            client-id: ${sp-api.client.id}
-            client-secret: ${sp-api.client.secret}
+            client-id: ${app.client.id}
+            client-secret: ${app.client.secret}
             authorization-grant-type: client_credentials
             scope: read, write
 
@@ -54,17 +54,22 @@ app:
     strengths-and-needs-api:
       base-url: ${san-api.base-url}
       endpoints:
-        fetch: /assessment/
+        fetch: /assessment
         create: /assessment
+        lock: /assessment/{uuid}/lock
     sentence-plan-api:
       base-url: ${sp-api.base-url}
       endpoints:
-        fetch: /plan/
-        create: /plan
+        fetch: /coordinator/plan/
+        create: /coordinator/plan
+        lock: /coordinator/plan/{uuid}/lock
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
       oasys: /oasys
+  strategies:
+    plan: true
+    assessment: true
   db:
     name: arns-coordinator
     endpoint: localhost:5432
@@ -72,6 +77,9 @@ app:
       name: coordinator
     username: postgres
     password: postgres
+  client:
+    id: ${CLIENT_ID}
+    secret: ${CLIENT_SECRET}
 
 server:
   port: 8080

@@ -1,16 +1,35 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
-import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
+import com.github.tomakehurst.wiremock.client.WireMock.post
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 
-// TODO: Remove / replace this mock server as it currently calls the Example API (itself)
-class StrengthsAndNeedsApiMock : WireMockServer(8091) {
+class StrengthsAndNeedsApiExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
+  companion object {
+    @JvmField
+    val sanServer = StrengthsAndNeedsApiMock()
+  }
+
+  override fun beforeAll(context: ExtensionContext) {
+    sanServer.start()
+  }
+
+  override fun beforeEach(context: ExtensionContext) {
+    sanServer.resetAll()
+  }
+
+  override fun afterAll(context: ExtensionContext) {
+    sanServer.stop()
+  }
+}
+
+class StrengthsAndNeedsApiMock : WireMockServer(8092) {
   fun stubHealthPing(status: Int) {
     stubFor(
       get("/health/ping").willReturn(
@@ -22,37 +41,120 @@ class StrengthsAndNeedsApiMock : WireMockServer(8091) {
     )
   }
 
-  fun stubExampleExternalApiUserMessage() {
+  fun stubAssessmentsCreate(status: Int = 201) {
     stubFor(
-      get(urlPathMatching("/example-external-api/[a-zA-Z]*"))
-        .willReturn(
-          aResponse()
-            .withHeader("Content-Type", "application/json")
-            .withBody("""{ "message": "A stubbed message" }"""),
-        ),
+      post("/assessment").willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "metaData": {
+                  "uuid": "90a71d16-fecd-4e1a-85b9-98178bf0f8d0",
+                  "createdAt": "2024-10-03T15:22:31.452243",
+                  "versionUuid": "d52fdb5d-4450-40af-806e-97d47b96fa57",
+                  "versionCreatedAt": "2024-10-03T15:22:31.453096",
+                  "versionUpdatedAt": "2024-10-04T15:22:31.453096",
+                  "versionNumber": 1,
+                  "versionTag": "UNSIGNED",
+                  "formVersion": "1.0"
+                },
+                "assessment": {
+                  "q2": {
+                    "type": "TEXT",
+                    "description": "",
+                    "options": null,
+                    "value": "val2",
+                    "values": null,
+                    "collection": null
+                  }
+                },
+                "oasysEquivalent": {
+                  "q2": "2"
+                }
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
     )
   }
 
-  fun stubExampleExternalApiNotFound() {
+  fun stubAssessmentsLock(status: Int = 200) {
     stubFor(
-      get(urlPathMatching("/example-external-api/[a-zA-Z]*"))
-        .willReturn(
-          aResponse()
-            .withStatus(404)
-            .withHeader("Content-Type", "application/json")
-            .withBody("""{ "userMessage": "A stubbed message" }"""),
-        ),
+      post(WireMock.urlPathMatching("/assessment/(.*)/lock")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "metaData": {
+                  "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "createdAt": "2024-10-03T15:22:31.452243",
+                  "versionUuid": "d52fdb5d-4450-40af-806e-97d47b96fa57",
+                  "versionCreatedAt": "2024-10-03T15:22:31.453096",
+                  "versionUpdatedAt": "2024-10-04T15:22:31.453096",
+                  "versionNumber": 0,
+                  "versionTag": "LOCKED_INCOMPLETE",
+                  "formVersion": "1.0"
+                },
+                "assessment": {
+                  "q2": {
+                    "type": "TEXT",
+                    "description": "",
+                    "options": null,
+                    "value": "val2",
+                    "values": null,
+                    "collection": null
+                  }
+                },
+                "oasysEquivalent": {
+                  "q2": "2"
+                }
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
     )
   }
-}
 
-class ExampleApiExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
-  companion object {
-    @JvmField
-    val exampleApi = StrengthsAndNeedsApiMock()
+  fun stubAssessmentsGet(status: Int = 200) {
+    stubFor(
+      get(WireMock.urlPathMatching("/assessment/.*")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "metaData": {
+                  "uuid": "11db45b5-215d-4405-a887-a7efd5216fa2",
+                  "createdAt": "2024-10-03T15:22:31.452243",
+                  "versionUuid": "d52fdb5d-4450-40af-806e-97d47b96fa57",
+                  "versionCreatedAt": "2024-10-03T15:22:31.453096",
+                  "versionUpdatedAt": "2024-10-04T15:22:31.453096",
+                  "versionNumber": 1,
+                  "versionTag": "UNSIGNED",
+                  "formVersion": "1.0"
+                },
+                "assessment": {
+                  "q2": {
+                    "type": "TEXT",
+                    "description": "",
+                    "options": null,
+                    "value": "val2",
+                    "values": null,
+                    "collection": null
+                  }
+                },
+                "oasysEquivalent": {
+                  "q2": "2"
+                }
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
   }
-
-  override fun beforeAll(context: ExtensionContext): Unit = exampleApi.start()
-  override fun beforeEach(context: ExtensionContext): Unit = exampleApi.resetAll()
-  override fun afterAll(context: ExtensionContext): Unit = exampleApi.stop()
 }

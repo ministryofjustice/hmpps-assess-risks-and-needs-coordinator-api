@@ -25,7 +25,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysCreateResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -40,10 +41,14 @@ class OasysController(
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of entities associated with an OASys Assessment PK")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
+  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
-      ApiResponse(responseCode = "200", description = "Entities found"),
+      ApiResponse(
+        responseCode = "200",
+        description = "Entities found",
+        content = arrayOf(Content(schema = Schema(implementation = OasysGetResponse::class))),
+      ),
       ApiResponse(
         responseCode = "404",
         description = "No associated entities were found",
@@ -61,30 +66,26 @@ class OasysController(
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to return version numbers and UUIDs for each entity
-     *  1. Iterate over each association for the PK in the DB
-     *  2. Call out to external services to get latest version number
-     *  3. Return all
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 5,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 2,
-    )
+  ): ResponseEntity<*> {
+    return when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
+      is OasysCoordinatorService.GetOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.GetOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+    }
   }
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
   @Operation(description = "Create entities and associate them with an OASys assessment PK")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_WRITE')")
+  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Entities and associations created successfully",
-        content = arrayOf(Content(schema = Schema(implementation = OasysCreateResponse::class))),
+        content = arrayOf(Content(schema = Schema(implementation = OasysVersionedEntityResponse::class))),
       ),
       ApiResponse(
         responseCode = "404",
@@ -285,19 +286,32 @@ class OasysController(
     oasysAssessmentPK: String,
     @RequestBody @Valid
     request: OasysGenericRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to lock all entities for signing
-     *  1. Find all associations for a PK in the DB
-     *  2. Contact each service's relevant API to lock that entity, API will return a version number
-     *  3. Return combination of entity UUIDs and their locked version number
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.lock(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.LockOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.LockOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+      is OasysCoordinatorService.LockOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+      is OasysCoordinatorService.LockOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/rollback"], method = [RequestMethod.POST])
@@ -426,5 +440,43 @@ class OasysController(
       sentencePlanId = UUID.randomUUID(),
       sentencePlanVersion = 0,
     )
+  }
+
+  @RequestMapping(path = ["/{oasysAssessmentPK}/associations"], method = [RequestMethod.GET])
+  @Operation(description = "Return the associations for OASys Assessment PK")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Associations returned",
+        content = arrayOf(Content(schema = Schema(implementation = OasysAssociationsResponse::class))),
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "No associations found",
+        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Unexpected error",
+        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
+      ),
+    ],
+  )
+  fun associations(
+    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @PathVariable
+    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Valid oasysAssessmentPK: String,
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {
+      is OasysCoordinatorService.GetOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+      is OasysCoordinatorService.GetOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+    }
   }
 }
