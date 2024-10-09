@@ -56,6 +56,7 @@ app:
       endpoints:
         fetch: /assessment
         create: /assessment
+        sign: /assessment/{uuid}/sign
         lock: /assessment/{uuid}/lock
         rollback: /assessment/{uuid}/rollback
     sentence-plan-api:
@@ -63,6 +64,7 @@ app:
       endpoints:
         fetch: /coordinator/plan/
         create: /coordinator/plan
+        sign: /coordinator/plan/{uuid}/sign
         lock: /coordinator/plan/{uuid}/lock
         rollback: /coordinator/plan/{uuid}/rollback
   self:

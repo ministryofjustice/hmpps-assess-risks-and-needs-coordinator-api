@@ -172,7 +172,11 @@ class OasysController(
   @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
   @ApiResponses(
     value = [
-      ApiResponse(responseCode = "200", description = "Entity versions signed successfully"),
+      ApiResponse(
+        responseCode = "200",
+        description = "Entity versions signed successfully",
+        content = arrayOf(Content(schema = Schema(implementation = OasysVersionedEntityResponse::class))),
+      ),
       ApiResponse(
         responseCode = "404",
         description = "Association/entity not found",
@@ -196,19 +200,32 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysSignRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to entities for self-signing
-     *  1. Find all associations for a PK in the DB
-     *  2. Contact each service's relevant API to self-sign their latest entity, API will return a version number
-     *  3. Return combination of entity UUIDs and their signed version number
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.sign(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.SignOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.SignOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+      is OasysCoordinatorService.SignOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+      is OasysCoordinatorService.SignOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/counter-sign"], method = [RequestMethod.POST])

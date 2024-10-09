@@ -7,10 +7,12 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.RollbackCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
@@ -20,6 +22,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
@@ -122,6 +125,46 @@ class OasysCoordinatorService(
   }
 
   @Transactional
+  fun sign(oasysSignRequest: OasysSignRequest, oasysAssessmentPk: String): SignOperationResult<OasysVersionedEntityResponse> {
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return SignOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysSignResponse = OasysVersionedEntityResponse()
+    for (association in associations) {
+      val strategy = association.entityType?.let(strategyFactory::getStrategy)
+        ?: return SignOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val command = SignCommand(
+        strategy,
+        association.entityUuid!!,
+        SignData(
+          signType = oasysSignRequest.signType,
+          userDetails = UserDetails(
+            oasysSignRequest.userDetails.id,
+            oasysSignRequest.userDetails.name,
+          ),
+        ),
+      )
+
+      when (val response = command.execute()) {
+        is OperationResult.Failure -> {
+          if (response.statusCode === HttpStatus.CONFLICT) {
+            return SignOperationResult.Conflict("Failed to sign ${association.entityType} entity due to a conflict, ${response.errorMessage}")
+          }
+
+          return SignOperationResult.Failure("Failed to sign ${association.entityType} entity, ${response.errorMessage}")
+        }
+        is OperationResult.Success -> oasysSignResponse.addVersionedEntity(response.data)
+      }
+    }
+
+    return SignOperationResult.Success(oasysSignResponse)
+  }
+
+  @Transactional
   fun rollback(rollbackRequest: OasysRollbackRequest, oasysAssessmentPk: String): RollbackOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
@@ -221,6 +264,23 @@ class OasysCoordinatorService(
     data class NoAssociations<T>(
       val errorMessage: String,
     ) : GetOperationResult<T>()
+  }
+
+  sealed class SignOperationResult<out T> {
+    data class Success<T>(val data: T) : SignOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : SignOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : SignOperationResult<T>()
+
+    data class Conflict<T>(
+      val errorMessage: String,
+    ) : SignOperationResult<T>()
   }
 
   sealed class LockOperationResult<out T> {
