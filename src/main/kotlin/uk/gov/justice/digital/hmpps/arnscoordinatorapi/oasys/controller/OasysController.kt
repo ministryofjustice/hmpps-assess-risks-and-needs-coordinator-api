@@ -257,19 +257,12 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysCounterSignRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic to countersign all entities
-     *  1. Find all associations for a PK in the DB
-     *  2. Contact each service's relevant API to sign that entity with the specific tag, API will return a version number
-     *  3. Return combination of entity UUIDs and their locked version number
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.counterSign(oasysAssessmentPK, request)) {
+      is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+      is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+      is OasysCoordinatorService.CounterSignOperationResult.Success -> ResponseEntity.status(HttpStatus.OK).body(result.data)
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/lock"], method = [RequestMethod.POST])

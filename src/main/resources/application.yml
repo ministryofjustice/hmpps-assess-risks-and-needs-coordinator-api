@@ -56,6 +56,7 @@ app:
       endpoints:
         fetch: /assessment
         create: /assessment
+        counterSign: /assessment/{uuid}/counter-sign
         sign: /assessment/{uuid}/sign
         lock: /assessment/{uuid}/lock
         rollback: /assessment/{uuid}/rollback
@@ -65,6 +66,7 @@ app:
         fetch: /coordinator/plan/
         create: /coordinator/plan
         sign: /coordinator/plan/{uuid}/sign
+        counterSign: /coordinator/plan/{uuid}/countersign
         lock: /coordinator/plan/{uuid}/lock
         rollback: /coordinator/plan/{uuid}/rollback
   self:
