@@ -8,10 +8,13 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
 
 @Component
@@ -73,6 +76,40 @@ class StrengthsAndNeedsApi(
       ApiOperationResultExtended.Failure("HTTP error during lock assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
       ApiOperationResultExtended.Failure("Unexpected error during lockAssessment: ${ex.message}", ex)
+    }
+  }
+
+  fun rollback(request: OasysRollbackRequest, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val rollbackData = request.sanVersionNumber?.let { RollbackData(it, UserDetails.from(request.userDetails)) }
+      if (rollbackData == null) {
+        return ApiOperationResultExtended.Failure("Unable to construct rollback request data. Missing sanVersionNumber.")
+      }
+
+      val result = sanApiWebClient.post()
+        .uri(apiProperties.endpoints.rollback.replace("{uuid}", assessmentUuid.toString()))
+        .body(BodyInserters.fromValue(rollbackData))
+        .retrieve()
+        .bodyToMono(AssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during rollback")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Unable to rollback this assessment version")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during rollback: ${ex.message}", ex)
     }
   }
 

@@ -57,12 +57,14 @@ app:
         fetch: /assessment
         create: /assessment
         lock: /assessment/{uuid}/lock
+        rollback: /assessment/{uuid}/rollback
     sentence-plan-api:
       base-url: ${sp-api.base-url}
       endpoints:
         fetch: /coordinator/plan/
         create: /coordinator/plan
         lock: /coordinator/plan/{uuid}/lock
+        rollback: /coordinator/plan/{uuid}/rollback
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:

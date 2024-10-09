@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
 
 @Component
@@ -29,6 +30,14 @@ class AssessmentStrategy(
 
   override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> {
     return when (val result = strengthsAndNeedsApi.lockAssessment(lockData, entityUuid)) {
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
+    }
+  }
+
+  override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = strengthsAndNeedsApi.rollback(request, entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)

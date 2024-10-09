@@ -16,6 +16,7 @@ data class SentencePlanApiProperties(
     var fetch: String = "",
     var create: String = "",
     var lock: String = "",
+    var rollback: String = "",
   )
 
   @PostConstruct
@@ -23,6 +24,7 @@ data class SentencePlanApiProperties(
     paths = Endpoints(
       fetch = baseUrl + endpoints.fetch,
       create = baseUrl + endpoints.create,
+      rollback = baseUrl + endpoints.rollback,
     )
   }
 }
