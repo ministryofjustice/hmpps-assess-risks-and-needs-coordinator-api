@@ -92,6 +92,7 @@ class AssessmentStrategyTest {
           formVersion = "1.0",
         ),
         assessment = emptyMap<String, Any>(),
+        oasysEquivalent = emptyMap<String, Any>()
       )
 
       `when`(strengthsAndNeedsApi.getAssessment(entityUuid)).thenReturn(

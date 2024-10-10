@@ -6,6 +6,7 @@ import java.util.UUID
 data class AssessmentResponse(
   val metaData: AssessmentMetadata,
   val assessment: Map<String, *>,
+  val oasysEquivalent: Map<String, *>
 )
 
 data class AssessmentMetadata(

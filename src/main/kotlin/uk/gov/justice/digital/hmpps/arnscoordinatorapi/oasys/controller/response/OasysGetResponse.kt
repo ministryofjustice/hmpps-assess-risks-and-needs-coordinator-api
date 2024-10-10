@@ -13,6 +13,7 @@ data class OasysGetResponse(
   override var sanAssessmentId: UUID? = null,
   override var sanAssessmentVersion: Long? = null,
   var sanAssessmentData: Map<*, *>? = null,
+  var sanOasysEquivalent: Map<String, *>? = null,
   var lastUpdatedTimestampSAN: LocalDateTime? = null,
 
   override var sentencePlanId: UUID? = null,
@@ -39,6 +40,7 @@ data class OasysGetResponse(
         sanAssessmentId = entityData.metaData.uuid
         sanAssessmentVersion = entityData.metaData.versionNumber
         sanAssessmentData = entityData.assessment
+        sanOasysEquivalent = entityData.oasysEquivalent
         lastUpdatedTimestampSAN = entityData.metaData.versionUpdatedAt
       }
     }
