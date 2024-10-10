@@ -5,17 +5,19 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 
 data class CounterSignAssessmentData(
-  val versionNumber: Int,
+  val versionNumber: Long,
   val outcome: CounterSignOutcome,
   val userDetails: UserDetails,
 ) {
   companion object {
     fun from(request: OasysCounterSignRequest) = with(request) {
-      CounterSignAssessmentData(
-        sanVersionNumber,
-        outcome,
-        userDetails.intoUserDetails(),
-      )
+      sanVersionNumber?.let { versionNumber ->
+        CounterSignAssessmentData(
+          versionNumber,
+          outcome,
+          userDetails.intoUserDetails(),
+        )
+      } ?: throw throw Exception("Unable to construct counter-sign request data. Missing sanVersionNumber")
     }
   }
 }
