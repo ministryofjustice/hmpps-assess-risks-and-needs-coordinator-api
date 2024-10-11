@@ -9,11 +9,11 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 data class OasysCounterSignRequest(
   @Schema(description = "The SAN Assessment version number that was returned from the Sign Assessment API call.", example = "2")
   @PositiveOrZero
-  val sanVersionNumber: Int,
+  val sanVersionNumber: Long?,
 
   @Schema(description = "The Sentence Plan version number that was returned from the Sign Plan API call.", example = "2")
   @PositiveOrZero
-  val sentencePlanVersionNumber: Int,
+  val sentencePlanVersionNumber: Long?,
 
   @Schema(description = "Indicates what type of case this is")
   val outcome: CounterSignOutcome,
