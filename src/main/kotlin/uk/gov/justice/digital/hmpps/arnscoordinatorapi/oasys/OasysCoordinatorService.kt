@@ -145,8 +145,9 @@ class OasysCoordinatorService(
         SignData(
           signType = oasysSignRequest.signType,
           userDetails = UserDetails(
-            oasysSignRequest.userDetails.id,
-            oasysSignRequest.userDetails.name,
+            id = oasysSignRequest.userDetails.id,
+            name = oasysSignRequest.userDetails.name,
+            type = UserType.OASYS,
           ),
         ),
       )
