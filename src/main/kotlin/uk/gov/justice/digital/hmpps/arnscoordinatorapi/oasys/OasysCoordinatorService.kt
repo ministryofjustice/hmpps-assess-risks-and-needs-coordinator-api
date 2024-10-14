@@ -14,8 +14,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -40,17 +38,10 @@ class OasysCoordinatorService(
     return CreateData(
       plan = CreatePlanData(
         planType = requestData.planType,
-        userDetails = UserDetails(
-          id = requestData.userDetails.id,
-          name = requestData.userDetails.name,
-        ),
+        userDetails = requestData.userDetails.intoUserDetails(),
       ),
       assessment = CreateAssessmentData(
-        userDetails = UserDetails(
-          id = requestData.userDetails.id,
-          name = requestData.userDetails.name,
-          type = UserType.OASYS,
-        ),
+        userDetails = requestData.userDetails.intoUserDetails(),
       ),
     )
   }
@@ -109,7 +100,7 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return LockOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = LockCommand(strategy, association.entityUuid!!, LockData(UserDetails(oasysGenericRequest.userDetails.id, oasysGenericRequest.userDetails.name)))
+      val command = LockCommand(strategy, association.entityUuid!!, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
@@ -144,11 +135,7 @@ class OasysCoordinatorService(
         association.entityUuid!!,
         SignData(
           signType = oasysSignRequest.signType,
-          userDetails = UserDetails(
-            id = oasysSignRequest.userDetails.id,
-            name = oasysSignRequest.userDetails.name,
-            type = UserType.OASYS,
-          ),
+          userDetails = oasysSignRequest.userDetails.intoUserDetails(),
         ),
       )
 
