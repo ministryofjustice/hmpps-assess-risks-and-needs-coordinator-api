@@ -70,8 +70,10 @@ class OasysController(
     return when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
       is OasysCoordinatorService.GetOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
+
       is OasysCoordinatorService.GetOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+
       is OasysCoordinatorService.GetOperationResult.NoAssociations ->
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
     }
@@ -116,20 +118,24 @@ class OasysController(
      *    2.3. Return entity UUIDs and version numbers
      *  If any failures, rollback and return error to OASys
      */
-    if (request.previousOasysAssessmentPk === null) {
-      return when (val result = oasysCoordinatorService.create(request)) {
-        is OasysCoordinatorService.CreateOperationResult.Success ->
-          ResponseEntity.status(HttpStatus.CREATED).body(result.data)
-        is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
-          ResponseEntity.status(HttpStatus.CONFLICT).body(
-            "An association already exists for the provided OASys Assessment PK: ${request.oasysAssessmentPk}. \n" +
-              "Error details: ${result.errorMessage}",
-          )
-        is OasysCoordinatorService.CreateOperationResult.Failure ->
-          ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
-      }
+    val result = if (request.previousOasysAssessmentPk === null) {
+      oasysCoordinatorService.create(request)
     } else {
-      return ResponseEntity.status(HttpStatus.OK).body("IMPLEMENT THIS LATER")
+      oasysCoordinatorService.associateWithPrevious(request)
+    }
+
+    return when (result) {
+      is OasysCoordinatorService.CreateOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.CREATED).body(result.data)
+
+      is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          "An association already exists for the provided OASys Assessment PK: ${request.oasysAssessmentPk}. \n" +
+            "Error details: ${result.errorMessage}",
+        )
+
+      is OasysCoordinatorService.CreateOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
     }
   }
 
@@ -204,6 +210,7 @@ class OasysController(
     return when (val result = oasysCoordinatorService.sign(request, oasysAssessmentPK)) {
       is OasysCoordinatorService.SignOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
+
       is OasysCoordinatorService.SignOperationResult.NoAssociations ->
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(
           ErrorResponse(
@@ -211,6 +218,7 @@ class OasysController(
             userMessage = result.errorMessage,
           ),
         )
+
       is OasysCoordinatorService.SignOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
           ErrorResponse(
@@ -218,6 +226,7 @@ class OasysController(
             userMessage = result.errorMessage,
           ),
         )
+
       is OasysCoordinatorService.SignOperationResult.Conflict ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
           ErrorResponse(
@@ -259,19 +268,25 @@ class OasysController(
     @RequestBody @Valid request: OasysCounterSignRequest,
   ): ResponseEntity<Any> {
     return when (val result = oasysCoordinatorService.counterSign(oasysAssessmentPK, request)) {
-      is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-        ErrorResponse(
-          status = HttpStatus.INTERNAL_SERVER_ERROR,
-          userMessage = result.errorMessage,
-        ),
-      )
-      is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-        ErrorResponse(
-          status = HttpStatus.NOT_FOUND,
-          userMessage = result.errorMessage,
-        ),
-      )
-      is OasysCoordinatorService.CounterSignOperationResult.Success -> ResponseEntity.status(HttpStatus.OK).body(result.data)
+      is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.CounterSignOperationResult.Success -> ResponseEntity.status(HttpStatus.OK)
+        .body(result.data)
+
       is OasysCoordinatorService.CounterSignOperationResult.Conflict -> ResponseEntity.status(HttpStatus.CONFLICT).body(
         ErrorResponse(
           status = HttpStatus.CONFLICT,
@@ -316,6 +331,7 @@ class OasysController(
     return when (val result = oasysCoordinatorService.lock(request, oasysAssessmentPK)) {
       is OasysCoordinatorService.LockOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
+
       is OasysCoordinatorService.LockOperationResult.NoAssociations ->
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(
           ErrorResponse(
@@ -323,6 +339,7 @@ class OasysController(
             userMessage = result.errorMessage,
           ),
         )
+
       is OasysCoordinatorService.LockOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
           ErrorResponse(
@@ -330,6 +347,7 @@ class OasysController(
             userMessage = result.errorMessage,
           ),
         )
+
       is OasysCoordinatorService.LockOperationResult.Conflict ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
           ErrorResponse(
@@ -374,6 +392,7 @@ class OasysController(
     return when (val result = oasysCoordinatorService.rollback(request, oasysAssessmentPK)) {
       is OasysCoordinatorService.RollbackOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
+
       is OasysCoordinatorService.RollbackOperationResult.NoAssociations ->
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(
           ErrorResponse(
@@ -381,6 +400,7 @@ class OasysController(
             userMessage = result.errorMessage,
           ),
         )
+
       is OasysCoordinatorService.RollbackOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
           ErrorResponse(
@@ -388,6 +408,7 @@ class OasysController(
             userMessage = result.errorMessage,
           ),
         )
+
       is OasysCoordinatorService.RollbackOperationResult.Conflict ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
           ErrorResponse(
@@ -510,8 +531,10 @@ class OasysController(
     return when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {
       is OasysCoordinatorService.GetOperationResult.Failure ->
         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+
       is OasysCoordinatorService.GetOperationResult.NoAssociations ->
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+
       is OasysCoordinatorService.GetOperationResult.Success ->
         ResponseEntity.status(HttpStatus.OK).body(result.data)
     }

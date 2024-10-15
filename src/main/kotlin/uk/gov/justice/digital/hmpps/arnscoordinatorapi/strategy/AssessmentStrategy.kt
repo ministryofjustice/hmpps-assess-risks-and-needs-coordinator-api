@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
@@ -30,6 +31,13 @@ class AssessmentStrategy(
       is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
     }
+  }
+
+  override fun associateWithPrevious(oasysAssessmentPk: String, associations: List<OasysAssociation>): OperationResult<OasysAssociation> {
+    return associations.find { it.entityType === entityType }?.clone(oasysAssessmentPk)
+      ?.let { OperationResult.Success(it) }
+      // TODO: apply latest version
+      ?: OperationResult.Failure("Failed to associate with previous OASys assessment PK, no association found for $entityType")
   }
 
   override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> {

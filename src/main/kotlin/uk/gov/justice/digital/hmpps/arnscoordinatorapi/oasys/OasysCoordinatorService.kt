@@ -67,14 +67,12 @@ class OasysCoordinatorService(
       }
 
       when (
-        oasysAssociationsService.storeAssociation(
-          OasysAssociation(
-            oasysAssessmentPk = requestData.oasysAssessmentPk,
-            regionPrisonCode = requestData.regionPrisonCode,
-            entityType = strategy.entityType,
-            entityUuid = commandResult.data.id,
-          ),
-        )
+        OasysAssociation(
+          oasysAssessmentPk = requestData.oasysAssessmentPk,
+          regionPrisonCode = requestData.regionPrisonCode,
+          entityType = strategy.entityType,
+          entityUuid = commandResult.data.id,
+        ).run(oasysAssociationsService::storeAssociation)
       ) {
         is OperationResult.Success -> oasysCreateResponse.addVersionedEntity(commandResult.data)
         is OperationResult.Failure -> {
@@ -88,7 +86,35 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun lock(oasysGenericRequest: OasysGenericRequest, oasysAssessmentPk: String): LockOperationResult<OasysVersionedEntityResponse> {
+  fun associateWithPrevious(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
+    oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
+      .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
+
+    return when (val previous = requestData.previousOasysAssessmentPk?.run(::get)) {
+      is GetOperationResult.Success -> with(previous.data) {
+        strategyFactory.getStrategies().map { strategy ->
+          OasysAssociation(
+            entityType = strategy.entityType,
+            entityUuid = idFor(strategy.entityType),
+            baseVersion = versionFor(strategy.entityType),
+            oasysAssessmentPk = requestData.oasysAssessmentPk,
+            regionPrisonCode = requestData.regionPrisonCode,
+          ).run(oasysAssociationsService::storeAssociation)
+            .onFailure { return CreateOperationResult.Failure("Failed to store association") }
+        }
+        CreateOperationResult.Success(previous.data)
+      }
+
+      is GetOperationResult.NoAssociations -> CreateOperationResult.Failure("No associations found for the provided OASys Assessment PK: ${requestData.previousOasysAssessmentPk}")
+      else -> CreateOperationResult.Failure("Failed to get previous versions for OASys Assessment PK: ${requestData.previousOasysAssessmentPk}")
+    }
+  }
+
+  @Transactional
+  fun lock(
+    oasysGenericRequest: OasysGenericRequest,
+    oasysAssessmentPk: String,
+  ): LockOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -110,6 +136,7 @@ class OasysCoordinatorService(
 
           return LockOperationResult.Failure("Failed to lock ${association.entityType} entity, ${response.errorMessage}")
         }
+
         is OperationResult.Success -> oasysLockResponse.addVersionedEntity(response.data)
       }
     }
@@ -118,7 +145,10 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun sign(oasysSignRequest: OasysSignRequest, oasysAssessmentPk: String): SignOperationResult<OasysVersionedEntityResponse> {
+  fun sign(
+    oasysSignRequest: OasysSignRequest,
+    oasysAssessmentPk: String,
+  ): SignOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -147,6 +177,7 @@ class OasysCoordinatorService(
 
           return SignOperationResult.Failure("Failed to sign ${association.entityType} entity, ${response.errorMessage}")
         }
+
         is OperationResult.Success -> oasysSignResponse.addVersionedEntity(response.data)
       }
     }
@@ -155,7 +186,10 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun rollback(rollbackRequest: OasysRollbackRequest, oasysAssessmentPk: String): RollbackOperationResult<OasysVersionedEntityResponse> {
+  fun rollback(
+    rollbackRequest: OasysRollbackRequest,
+    oasysAssessmentPk: String,
+  ): RollbackOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -177,6 +211,7 @@ class OasysCoordinatorService(
 
           return RollbackOperationResult.Failure("Failed to roll back ${association.entityType} entity, ${response.errorMessage}")
         }
+
         is OperationResult.Success -> oasysRollbackResponse.addVersionedEntity(response.data)
       }
     }
@@ -220,9 +255,11 @@ class OasysCoordinatorService(
         EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
           sanAssessmentId = it.entityUuid
         }
+
         EntityType.PLAN -> oasysAssociationsResponse.apply {
           sentencePlanId = it.entityUuid
         }
+
         null -> return GetOperationResult.Failure("Misconfigured association found")
       }
     }

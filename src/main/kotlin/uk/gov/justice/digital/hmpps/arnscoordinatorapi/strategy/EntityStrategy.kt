@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
@@ -14,6 +15,8 @@ interface EntityStrategy {
   val entityType: EntityType
 
   fun create(createData: CreateData): OperationResult<VersionedEntity>
+
+  fun associateWithPrevious(oasysAssessmentPk: String, associations: List<OasysAssociation>): OperationResult<OasysAssociation>
 
   fun fetch(entityUuid: UUID): OperationResult<*>
 

@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -27,6 +28,20 @@ data class OasysGetResponse(
   sentencePlanId = sentencePlanId,
   sentencePlanVersion = sentencePlanVersion,
 ) {
+  fun idFor(entityType: EntityType): UUID? {
+    return when (entityType) {
+      EntityType.ASSESSMENT -> sanAssessmentId
+      EntityType.PLAN -> sentencePlanId
+    }
+  }
+
+  fun versionFor(entityType: EntityType): Long? {
+    return when (entityType) {
+      EntityType.ASSESSMENT -> sanAssessmentVersion
+      EntityType.PLAN -> sentencePlanVersion
+    }
+  }
+
   fun addEntityData(entityData: Any) {
     when (entityData) {
       is GetPlanResponse -> {
