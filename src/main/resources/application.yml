@@ -56,8 +56,9 @@ app:
       endpoints:
         fetch: /assessment
         create: /assessment
-        counterSign: /assessment/{uuid}/counter-sign
+        clone: /assessment/{uuid}/clone
         sign: /assessment/{uuid}/sign
+        counterSign: /assessment/{uuid}/counter-sign
         lock: /assessment/{uuid}/lock
         rollback: /assessment/{uuid}/rollback
     sentence-plan-api:
@@ -65,6 +66,7 @@ app:
       endpoints:
         fetch: /coordinator/plan/
         create: /coordinator/plan
+        clone: /coordinator/plan/{uuid}/clone
         sign: /coordinator/plan/{uuid}/sign
         counterSign: /coordinator/plan/{uuid}/countersign
         lock: /coordinator/plan/{uuid}/lock
