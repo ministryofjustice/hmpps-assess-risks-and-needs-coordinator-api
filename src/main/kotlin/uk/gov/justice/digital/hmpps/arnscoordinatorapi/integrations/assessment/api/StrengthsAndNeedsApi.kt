@@ -50,6 +50,32 @@ class StrengthsAndNeedsApi(
     }
   }
 
+  fun cloneAssessment(createData: CreateAssessmentData): ApiOperationResult<VersionedEntity> {
+    return try {
+      val result = sanApiWebClient.post()
+        .uri(apiProperties.endpoints.clone)
+        .body(BodyInserters.fromValue(createData))
+        .retrieve()
+        .bodyToMono(AssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during cloneAssessment")
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure("HTTP error during clone assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during cloneAssessment: ${ex.message}", ex)
+    }
+  }
+
   fun lockAssessment(lockData: LockData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
     return try {
       val result = sanApiWebClient.post()
