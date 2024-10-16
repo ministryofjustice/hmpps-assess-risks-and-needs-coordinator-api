@@ -115,6 +115,8 @@ class OasysCoordinatorService(
             .onFailure {
               return CreateOperationResult.Failure("Failed to store association")
             }
+
+          oasysCreateResponse.addVersionedEntity(commandResult.data)
         }
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
