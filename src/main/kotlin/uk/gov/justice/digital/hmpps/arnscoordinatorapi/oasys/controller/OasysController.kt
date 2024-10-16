@@ -109,19 +109,10 @@ class OasysController(
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
   ): ResponseEntity<Any> {
-    /**
-     * TODO: Implement logic for 2 separate behaviours
-     *  1. DONE!
-     *  2. From Existing
-     *    2.1. Using existing OASys Assessment PK, create a clone from an existing entity in SAN, SP
-     *    2.2. Store clone entity UUID against the new OASys Assessment PK
-     *    2.3. Return entity UUIDs and version numbers
-     *  If any failures, rollback and return error to OASys
-     */
     val result = if (request.previousOasysAssessmentPk === null) {
       oasysCoordinatorService.create(request)
     } else {
-      oasysCoordinatorService.associateWithPrevious(request)
+      oasysCoordinatorService.clone(request)
     }
 
     return when (result) {
@@ -130,12 +121,27 @@ class OasysController(
 
       is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
-          "An association already exists for the provided OASys Assessment PK: ${request.oasysAssessmentPk}. \n" +
-            "Error details: ${result.errorMessage}",
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
         )
 
       is OasysCoordinatorService.CreateOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.CreateOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
     }
   }
 

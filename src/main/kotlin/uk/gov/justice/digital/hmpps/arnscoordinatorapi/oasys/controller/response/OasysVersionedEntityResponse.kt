@@ -12,6 +12,7 @@ open class OasysVersionedEntityResponse(
   open var sentencePlanId: UUID? = null,
   open var sentencePlanVersion: Long? = null,
 ) {
+
   open fun addVersionedEntity(versionedEntity: VersionedEntity) {
     when (versionedEntity.entityType) {
       EntityType.PLAN -> {

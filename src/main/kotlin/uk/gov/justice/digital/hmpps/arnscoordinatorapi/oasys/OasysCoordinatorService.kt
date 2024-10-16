@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 import jakarta.transaction.Transactional
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CloneCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
@@ -85,29 +86,44 @@ class OasysCoordinatorService(
     return CreateOperationResult.Success(oasysCreateResponse)
   }
 
-  @Transactional
-  fun associateWithPrevious(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
+  fun clone(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
+      .onFailure { return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, $it.") }
 
-    return when (val previous = requestData.previousOasysAssessmentPk?.run(::get)) {
-      is GetOperationResult.Success -> with(previous.data) {
-        strategyFactory.getStrategies().map { strategy ->
+    val associations = oasysAssociationsService.findAssociations(requestData.previousOasysAssessmentPk!!)
+    if (associations.isEmpty()) {
+      return CreateOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysCreateResponse = OasysVersionedEntityResponse()
+    val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
+
+    for (strategy in strategyFactory.getStrategies()) {
+      val command = CloneCommand(strategy, buildCreateData(requestData))
+
+      when (val commandResult = command.execute()) {
+        is OperationResult.Success -> {
+          successfullyExecutedCommands.add(command)
+
           OasysAssociation(
-            entityType = strategy.entityType,
-            entityUuid = idFor(strategy.entityType),
-            baseVersion = versionFor(strategy.entityType),
+            entityType = commandResult.data.entityType,
+            entityUuid = commandResult.data.id,
+            baseVersion = commandResult.data.version,
             oasysAssessmentPk = requestData.oasysAssessmentPk,
             regionPrisonCode = requestData.regionPrisonCode,
           ).run(oasysAssociationsService::storeAssociation)
-            .onFailure { return CreateOperationResult.Failure("Failed to store association") }
+            .onFailure {
+              return CreateOperationResult.Failure("Failed to store association")
+            }
         }
-        CreateOperationResult.Success(previous.data)
+        is OperationResult.Failure -> {
+          successfullyExecutedCommands.forEach { it.rollback() }
+          return CreateOperationResult.Failure("Failed to clone entity for ${strategy.entityType}: ${commandResult.errorMessage}")
+        }
       }
-
-      is GetOperationResult.NoAssociations -> CreateOperationResult.Failure("No associations found for the provided OASys Assessment PK: ${requestData.previousOasysAssessmentPk}")
-      else -> CreateOperationResult.Failure("Failed to get previous versions for OASys Assessment PK: ${requestData.previousOasysAssessmentPk}")
     }
+
+    return CreateOperationResult.Success(oasysCreateResponse)
   }
 
   @Transactional
@@ -312,6 +328,10 @@ class OasysCoordinatorService(
     data class Failure<T>(
       val errorMessage: String,
       val cause: Throwable? = null,
+    ) : CreateOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
     ) : CreateOperationResult<T>()
 
     data class ConflictingAssociations<T>(
