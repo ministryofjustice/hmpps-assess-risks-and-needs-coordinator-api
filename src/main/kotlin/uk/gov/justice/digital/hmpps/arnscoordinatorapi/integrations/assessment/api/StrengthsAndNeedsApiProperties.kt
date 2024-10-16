@@ -15,6 +15,7 @@ data class StrengthsAndNeedsApiProperties(
   data class Endpoints(
     var fetch: String = "",
     var create: String = "",
+    var clone: String = "",
     var sign: String = "",
     var counterSign: String = "",
     var lock: String = "",
@@ -26,6 +27,7 @@ data class StrengthsAndNeedsApiProperties(
     paths = Endpoints(
       fetch = baseUrl + endpoints.fetch,
       create = baseUrl + endpoints.create,
+      clone = baseUrl + endpoints.clone,
       sign = baseUrl + endpoints.sign,
       lock = baseUrl + endpoints.lock,
       rollback = baseUrl + endpoints.rollback,

@@ -32,6 +32,13 @@ class AssessmentStrategy(
     }
   }
 
+  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!, entityUuid)) {
+      is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+      is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+    }
+  }
+
   override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> {
     return when (val result = strengthsAndNeedsApi.signAssessment(signData, entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)

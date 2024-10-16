@@ -53,6 +53,32 @@ class SentencePlanApi(
     }
   }
 
+  fun clonePlan(createData: CreatePlanData, planUuid: UUID): ApiOperationResult<VersionedEntity> {
+    return try {
+      val result = sentencePlanApiWebClient.post()
+        .uri(apiProperties.endpoints.clone.replace("{uuid}", planUuid.toString()))
+        .body(BodyInserters.fromValue(createData))
+        .retrieve()
+        .bodyToMono(CreatePlanResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.sentencePlanId,
+            version = it.sentencePlanVersion,
+            entityType = EntityType.PLAN,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResult.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during clonePlan")
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure("HTTP error during clone plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during clonePlan: ${ex.message}", ex)
+    }
+  }
+
   fun signPlan(signData: SignData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
     return try {
       val result = sentencePlanApiWebClient.post()

@@ -15,6 +15,8 @@ interface EntityStrategy {
 
   fun create(createData: CreateData): OperationResult<VersionedEntity>
 
+  fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity>
+
   fun fetch(entityUuid: UUID): OperationResult<*>
 
   fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity>

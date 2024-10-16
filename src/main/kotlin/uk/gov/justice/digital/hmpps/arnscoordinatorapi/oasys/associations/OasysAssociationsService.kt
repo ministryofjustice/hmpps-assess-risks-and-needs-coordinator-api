@@ -9,7 +9,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 class OasysAssociationsService(
   private val oasysAssociationRepository: OasysAssociationRepository,
 ) {
-
   fun findAssociations(oasysAssessmentPk: String): List<OasysAssociation> {
     return oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
   }

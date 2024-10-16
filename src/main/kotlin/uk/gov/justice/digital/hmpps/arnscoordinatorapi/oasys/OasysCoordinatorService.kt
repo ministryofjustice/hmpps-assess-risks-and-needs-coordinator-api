@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 import jakarta.transaction.Transactional
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CloneCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
@@ -67,14 +68,12 @@ class OasysCoordinatorService(
       }
 
       when (
-        oasysAssociationsService.storeAssociation(
-          OasysAssociation(
-            oasysAssessmentPk = requestData.oasysAssessmentPk,
-            regionPrisonCode = requestData.regionPrisonCode,
-            entityType = strategy.entityType,
-            entityUuid = commandResult.data.id,
-          ),
-        )
+        OasysAssociation(
+          oasysAssessmentPk = requestData.oasysAssessmentPk,
+          regionPrisonCode = requestData.regionPrisonCode,
+          entityType = strategy.entityType,
+          entityUuid = commandResult.data.id,
+        ).run(oasysAssociationsService::storeAssociation)
       ) {
         is OperationResult.Success -> oasysCreateResponse.addVersionedEntity(commandResult.data)
         is OperationResult.Failure -> {
@@ -87,8 +86,53 @@ class OasysCoordinatorService(
     return CreateOperationResult.Success(oasysCreateResponse)
   }
 
+  fun clone(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
+    oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
+      .onFailure { return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, $it.") }
+
+    val associations = oasysAssociationsService.findAssociations(requestData.previousOasysAssessmentPk!!)
+    if (associations.isEmpty()) {
+      return CreateOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysCreateResponse = OasysVersionedEntityResponse()
+    val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
+
+    associations.forEach { association ->
+      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid!!)
+
+      when (val commandResult = command.execute()) {
+        is OperationResult.Success -> {
+          successfullyExecutedCommands.add(command)
+
+          OasysAssociation(
+            entityType = commandResult.data.entityType,
+            entityUuid = commandResult.data.id,
+            baseVersion = commandResult.data.version,
+            oasysAssessmentPk = requestData.oasysAssessmentPk,
+            regionPrisonCode = requestData.regionPrisonCode,
+          ).run(oasysAssociationsService::storeAssociation)
+            .onFailure {
+              return CreateOperationResult.Failure("Failed to store association")
+            }
+
+          oasysCreateResponse.addVersionedEntity(commandResult.data)
+        }
+        is OperationResult.Failure -> {
+          successfullyExecutedCommands.forEach { it.rollback() }
+          return CreateOperationResult.Failure("Failed to clone entity for ${association.entityType}: ${commandResult.errorMessage}")
+        }
+      }
+    }
+
+    return CreateOperationResult.Success(oasysCreateResponse)
+  }
+
   @Transactional
-  fun lock(oasysGenericRequest: OasysGenericRequest, oasysAssessmentPk: String): LockOperationResult<OasysVersionedEntityResponse> {
+  fun lock(
+    oasysGenericRequest: OasysGenericRequest,
+    oasysAssessmentPk: String,
+  ): LockOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -110,6 +154,7 @@ class OasysCoordinatorService(
 
           return LockOperationResult.Failure("Failed to lock ${association.entityType} entity, ${response.errorMessage}")
         }
+
         is OperationResult.Success -> oasysLockResponse.addVersionedEntity(response.data)
       }
     }
@@ -118,7 +163,10 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun sign(oasysSignRequest: OasysSignRequest, oasysAssessmentPk: String): SignOperationResult<OasysVersionedEntityResponse> {
+  fun sign(
+    oasysSignRequest: OasysSignRequest,
+    oasysAssessmentPk: String,
+  ): SignOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -147,6 +195,7 @@ class OasysCoordinatorService(
 
           return SignOperationResult.Failure("Failed to sign ${association.entityType} entity, ${response.errorMessage}")
         }
+
         is OperationResult.Success -> oasysSignResponse.addVersionedEntity(response.data)
       }
     }
@@ -155,7 +204,10 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun rollback(rollbackRequest: OasysRollbackRequest, oasysAssessmentPk: String): RollbackOperationResult<OasysVersionedEntityResponse> {
+  fun rollback(
+    rollbackRequest: OasysRollbackRequest,
+    oasysAssessmentPk: String,
+  ): RollbackOperationResult<OasysVersionedEntityResponse> {
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -177,6 +229,7 @@ class OasysCoordinatorService(
 
           return RollbackOperationResult.Failure("Failed to roll back ${association.entityType} entity, ${response.errorMessage}")
         }
+
         is OperationResult.Success -> oasysRollbackResponse.addVersionedEntity(response.data)
       }
     }
@@ -220,9 +273,11 @@ class OasysCoordinatorService(
         EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
           sanAssessmentId = it.entityUuid
         }
+
         EntityType.PLAN -> oasysAssociationsResponse.apply {
           sentencePlanId = it.entityUuid
         }
+
         null -> return GetOperationResult.Failure("Misconfigured association found")
       }
     }
@@ -275,6 +330,10 @@ class OasysCoordinatorService(
     data class Failure<T>(
       val errorMessage: String,
       val cause: Throwable? = null,
+    ) : CreateOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
     ) : CreateOperationResult<T>()
 
     data class ConflictingAssociations<T>(
