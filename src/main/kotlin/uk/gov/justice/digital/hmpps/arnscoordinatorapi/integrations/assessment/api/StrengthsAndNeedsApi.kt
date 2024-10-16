@@ -50,10 +50,10 @@ class StrengthsAndNeedsApi(
     }
   }
 
-  fun cloneAssessment(createData: CreateAssessmentData): ApiOperationResult<VersionedEntity> {
+  fun cloneAssessment(createData: CreateAssessmentData, assessmentUuid: UUID): ApiOperationResult<VersionedEntity> {
     return try {
       val result = sanApiWebClient.post()
-        .uri(apiProperties.endpoints.clone)
+        .uri(apiProperties.endpoints.clone.replace("{uuid}", assessmentUuid.toString()))
         .body(BodyInserters.fromValue(createData))
         .retrieve()
         .bodyToMono(AssessmentResponse::class.java)

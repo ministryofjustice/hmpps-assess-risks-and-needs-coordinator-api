@@ -32,8 +32,8 @@ class AssessmentStrategy(
     }
   }
 
-  override fun clone(createData: CreateData): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!)) {
+  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!, entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
     }

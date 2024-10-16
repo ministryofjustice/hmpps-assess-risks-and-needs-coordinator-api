@@ -32,8 +32,8 @@ class PlanStrategy(
     }
   }
 
-  override fun clone(createData: CreateData): OperationResult<VersionedEntity> {
-    return when (val result = sentencePlanApi.clonePlan(createData.plan!!)) {
+  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = sentencePlanApi.clonePlan(createData.plan!!, entityUuid)) {
       is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
       is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
     }

@@ -98,8 +98,8 @@ class OasysCoordinatorService(
     val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
 
-    for (strategy in strategyFactory.getStrategies()) {
-      val command = CloneCommand(strategy, buildCreateData(requestData))
+    associations.forEach { association ->
+      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid!!)
 
       when (val commandResult = command.execute()) {
         is OperationResult.Success -> {
@@ -118,7 +118,7 @@ class OasysCoordinatorService(
         }
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
-          return CreateOperationResult.Failure("Failed to clone entity for ${strategy.entityType}: ${commandResult.errorMessage}")
+          return CreateOperationResult.Failure("Failed to clone entity for ${association.entityType}: ${commandResult.errorMessage}")
         }
       }
     }

@@ -53,10 +53,10 @@ class SentencePlanApi(
     }
   }
 
-  fun clonePlan(createData: CreatePlanData): ApiOperationResult<VersionedEntity> {
+  fun clonePlan(createData: CreatePlanData, planUuid: UUID): ApiOperationResult<VersionedEntity> {
     return try {
       val result = sentencePlanApiWebClient.post()
-        .uri(apiProperties.endpoints.clone)
+        .uri(apiProperties.endpoints.clone.replace("{uuid}", planUuid.toString()))
         .body(BodyInserters.fromValue(createData))
         .retrieve()
         .bodyToMono(CreatePlanResponse::class.java)
