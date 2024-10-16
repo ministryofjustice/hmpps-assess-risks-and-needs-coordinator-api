@@ -40,6 +40,10 @@ abstract class IntegrationTestBase {
     sanServer.stubAssessmentsCreate(status)
   }
 
+  protected fun stubAssessmentsClone(status: Int = 200) {
+    sanServer.stubAssessmentsClone(status)
+  }
+
   protected fun stubAssessmentsGet(status: Int = 200) {
     sanServer.stubAssessmentsGet(status)
   }
@@ -70,6 +74,10 @@ abstract class IntegrationTestBase {
 
   protected fun stubSentencePlanSign(status: Int = 200) {
     sentencePlanApiMock.stubSentencePlanSign(status)
+  }
+
+  protected fun stubSentencePlanClone(status: Int = 200) {
+    sentencePlanApiMock.stubSentencePlanClone(status)
   }
 
   protected fun stubSentencePlanLock(status: Int = 200) {
