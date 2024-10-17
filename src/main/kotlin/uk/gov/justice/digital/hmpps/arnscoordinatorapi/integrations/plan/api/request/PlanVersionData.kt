@@ -5,7 +5,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 
 data class PlanVersionData(
   val sentencePlanVersion: Long,
-  val userDetails: UserDetails
+  val userDetails: UserDetails,
 ) {
   companion object {
     fun from(request: OasysRollbackRequest) =
