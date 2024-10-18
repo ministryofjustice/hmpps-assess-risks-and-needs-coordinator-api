@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.UUID
 
 @RestController
 @Tag(name = "OASys")
@@ -425,44 +424,6 @@ class OasysController(
     }
   }
 
-  @RequestMapping(path = ["/{oasysAssessmentPK}/soft-delete"], method = [RequestMethod.POST])
-  @Operation(description = "Soft-deletes associations for OASys Assessment PK")
-  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
-  @ApiResponses(
-    value = [
-      ApiResponse(responseCode = "200", description = "Associations have been soft-deleted"),
-      ApiResponse(
-        responseCode = "404",
-        description = "Association/entity not found",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-      ApiResponse(
-        responseCode = "409",
-        description = "Unable to soft-delete an association that has already been soft-deleted",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-      ApiResponse(
-        responseCode = "500",
-        description = "Unexpected error",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-    ],
-  )
-  fun softDelete(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
-    @PathVariable
-    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
-    @Valid oasysAssessmentPK: String,
-    @RequestBody @Valid request: OasysGenericRequest,
-  ): OasysMessageResponse {
-    /**
-     * TODO: Implement logic for soft-deleting an association
-     *  1. Find all associations for a PK in the DB
-     *  2. Mark each association as deleted
-     */
-    return OasysMessageResponse("Successfully soft-deleted associations for OASys assessment PK $oasysAssessmentPK")
-  }
-
   @RequestMapping(path = ["/{oasysAssessmentPK}/undelete"], method = [RequestMethod.POST])
   @Operation(description = "Undeletes associations for OASys Assessment PK")
   @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
@@ -492,18 +453,35 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic for un-deleting an association
-     *  1. Find all associations for a PK in the DB
-     *  2. Mark each association as not-deleted
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.undelete(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.UndeleteOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+
+      is OasysCoordinatorService.UndeleteOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.UndeleteOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.UndeleteOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/associations"], method = [RequestMethod.GET])

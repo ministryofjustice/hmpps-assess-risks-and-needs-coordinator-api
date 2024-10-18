@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
+import java.util.UUID
 
 @Service
 class OasysAssociationsService(
@@ -12,6 +13,13 @@ class OasysAssociationsService(
   fun findAssociations(oasysAssessmentPk: String): List<OasysAssociation> {
     return oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
   }
+
+  fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> {
+    return oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
+  }
+
+  fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> =
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 
   fun ensureNoExistingAssociation(oasysAssessmentPk: String): OperationResult<Unit> {
     val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)

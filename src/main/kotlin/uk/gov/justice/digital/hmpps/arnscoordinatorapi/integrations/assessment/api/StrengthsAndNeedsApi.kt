@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
@@ -207,6 +208,35 @@ class StrengthsAndNeedsApi(
       ApiOperationResultExtended.Failure("HTTP error during counterSign assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
       ApiOperationResultExtended.Failure("Unexpected error during counterSign: ${ex.message}", ex)
+    }
+  }
+
+  fun undelete(data: UndeleteData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sanApiWebClient.post()
+        .uri(apiProperties.endpoints.undelete.replace("{uuid}", assessmentUuid.toString()))
+        .body(BodyInserters.fromValue(data))
+        .retrieve()
+        .bodyToMono(AssessmentResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.metaData.uuid,
+            version = it.metaData.versionNumber,
+            entityType = EntityType.ASSESSMENT,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during undelete")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Unable to undelete the requested assessment versions: ${ex.responseBodyAsString}")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during undelete: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during undelete: ${ex.message}", ex)
     }
   }
 

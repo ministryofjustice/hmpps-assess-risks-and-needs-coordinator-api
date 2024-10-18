@@ -10,11 +10,13 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.RollbackCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SignCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -99,7 +101,7 @@ class OasysCoordinatorService(
     val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
 
     associations.forEach { association ->
-      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid!!)
+      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid)
 
       when (val commandResult = command.execute()) {
         is OperationResult.Success -> {
@@ -144,7 +146,7 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return LockOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = LockCommand(strategy, association.entityUuid!!, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
+      val command = LockCommand(strategy, association.entityUuid, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
@@ -180,7 +182,7 @@ class OasysCoordinatorService(
 
       val command = SignCommand(
         strategy,
-        association.entityUuid!!,
+        association.entityUuid,
         SignData(
           signType = oasysSignRequest.signType,
           userDetails = oasysSignRequest.userDetails.intoUserDetails(),
@@ -219,7 +221,7 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return RollbackOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = RollbackCommand(strategy, association.entityUuid!!, rollbackRequest)
+      val command = RollbackCommand(strategy, association.entityUuid, rollbackRequest)
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
@@ -249,7 +251,7 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = FetchCommand(strategy, association.entityUuid!!)
+      val command = FetchCommand(strategy, association.entityUuid)
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity, ${response.errorMessage}")
@@ -300,13 +302,11 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.run(strategyFactory::getStrategy)
         ?: return CounterSignOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = association.entityUuid?.let { uuid ->
-        CounterSignCommand(
-          strategy,
-          uuid,
-          request,
-        )
-      } ?: return CounterSignOperationResult.Failure("No entity UUID for association ${association.uuid}")
+      val command = CounterSignCommand(
+        strategy,
+        association.entityUuid,
+        request,
+      )
 
       when (val result = command.execute()) {
         is OperationResult.Failure -> {
@@ -322,6 +322,59 @@ class OasysCoordinatorService(
     }
 
     return CounterSignOperationResult.Success(response)
+  }
+
+  @Transactional
+  fun undelete(
+    oasysGenericRequest: OasysGenericRequest,
+    oasysAssessmentPk: String,
+  ): UndeleteOperationResult<OasysVersionedEntityResponse> {
+    val associations = oasysAssociationsService.findDeletedAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return UndeleteOperationResult.NoAssociations("No deleted associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysUndeleteResponse = OasysVersionedEntityResponse()
+    for (association in associations) {
+      val strategy = association.entityType?.let(strategyFactory::getStrategy)
+        ?: return UndeleteOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val versionTo = oasysAssociationsService
+        .findAllIncludingDeleted(association.entityUuid)
+        .filter { it.createdAt > association.createdAt }.minByOrNull { it.createdAt }?.baseVersion
+
+      val command = UndeleteCommand(
+        strategy,
+        association.entityUuid,
+        UndeleteData(
+          oasysGenericRequest.userDetails.intoUserDetails(),
+          association.baseVersion,
+          versionTo,
+        ),
+      )
+
+      when (val response = command.execute()) {
+        is OperationResult.Failure -> {
+          if (response.statusCode === HttpStatus.CONFLICT) {
+            return UndeleteOperationResult.Conflict("Failed to undelete ${association.entityType} versions from ${association.baseVersion} to $versionTo due to a conflict, ${response.errorMessage}")
+          }
+
+          return UndeleteOperationResult.Failure("Failed to undelete association for ${association.oasysAssessmentPk}, ${response.errorMessage}")
+        }
+
+        is OperationResult.Success -> {
+          when (association.apply { deleted = false }.run(oasysAssociationsService::storeAssociation)) {
+            is OperationResult.Success -> oasysUndeleteResponse.addVersionedEntity(response.data)
+            is OperationResult.Failure -> {
+              return UndeleteOperationResult.Failure("Failed undeleting the association for ${strategy.entityType}")
+            }
+          }
+        }
+      }
+    }
+
+    return UndeleteOperationResult.Success(oasysUndeleteResponse)
   }
 
   sealed class CreateOperationResult<out T> {
@@ -420,5 +473,22 @@ class OasysCoordinatorService(
     data class Conflict<T>(
       val errorMessage: String,
     ) : RollbackOperationResult<T>()
+  }
+
+  sealed class UndeleteOperationResult<out T> {
+    data class Success<T>(val data: T) : UndeleteOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : UndeleteOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : UndeleteOperationResult<T>()
+
+    data class Conflict<T>(
+      val errorMessage: String,
+    ) : UndeleteOperationResult<T>()
   }
 }
