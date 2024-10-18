@@ -453,13 +453,35 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
-  ): OasysMessageResponse {
-    /**
-     * TODO: Implement logic for soft-deleting an association
-     *  1. Find all associations for a PK in the DB
-     *  2. Mark each association as deleted
-     */
-    return OasysMessageResponse("Successfully soft-deleted associations for OASys assessment PK $oasysAssessmentPK")
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.SoftDeleteOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+
+      is OasysCoordinatorService.SoftDeleteOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.SoftDeleteOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.SoftDeleteOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/undelete"], method = [RequestMethod.POST])

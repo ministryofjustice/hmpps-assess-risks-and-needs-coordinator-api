@@ -121,7 +121,7 @@ class OasysCoordinatorServiceTest {
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
-      verify(assessmentStrategy).delete(any())
+      verify(assessmentStrategy).softDelete(any())
     }
 
     @Test
@@ -145,7 +145,7 @@ class OasysCoordinatorServiceTest {
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
-      verify(strategy).delete(any())
+      verify(strategy).softDelete(any())
     }
 
     @Test

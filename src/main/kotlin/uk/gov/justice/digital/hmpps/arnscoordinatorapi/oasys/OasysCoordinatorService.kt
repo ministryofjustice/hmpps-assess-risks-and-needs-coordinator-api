@@ -10,12 +10,14 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.RollbackCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SignCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SoftDeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
@@ -325,6 +327,61 @@ class OasysCoordinatorService(
   }
 
   @Transactional
+  fun softDelete(
+    oasysGenericRequest: OasysGenericRequest,
+    oasysAssessmentPk: String,
+  ): SoftDeleteOperationResult<OasysVersionedEntityResponse> {
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    if (associations.isEmpty()) {
+      return SoftDeleteOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
+    }
+
+    val oasysSoftDeleteResponse = OasysVersionedEntityResponse()
+    for (association in associations) {
+      val strategy = association.entityType?.let(strategyFactory::getStrategy)
+        ?: return SoftDeleteOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val versionTo = oasysAssociationsService
+        .findAllIncludingDeleted(association.entityUuid)
+        .filter { it.createdAt > association.createdAt }
+        .sortedBy { it.createdAt }
+        .firstOrNull()?.baseVersion
+
+      val command = SoftDeleteCommand(
+        strategy,
+        association.entityUuid,
+        SoftDeleteData(
+          oasysGenericRequest.userDetails.intoUserDetails(),
+          association.baseVersion,
+          versionTo,
+        ),
+      )
+
+      when (val response = command.execute()) {
+        is OperationResult.Failure -> {
+          if (response.statusCode === HttpStatus.CONFLICT) {
+            return SoftDeleteOperationResult.Conflict("Failed to soft-delete ${association.entityType} versions from ${association.baseVersion} to $versionTo due to a conflict, ${response.errorMessage}")
+          }
+
+          return SoftDeleteOperationResult.Failure("Failed to soft-delete association for ${association.oasysAssessmentPk}, ${response.errorMessage}")
+        }
+
+        is OperationResult.Success -> {
+          when (association.apply { deleted = true }.run(oasysAssociationsService::storeAssociation)) {
+            is OperationResult.Success -> oasysSoftDeleteResponse.addVersionedEntity(response.data)
+            is OperationResult.Failure -> {
+              return SoftDeleteOperationResult.Failure("Failed setting the association for ${strategy.entityType} to deleted")
+            }
+          }
+        }
+      }
+    }
+
+    return SoftDeleteOperationResult.Success(oasysSoftDeleteResponse)
+  }
+
+  @Transactional
   fun undelete(
     oasysGenericRequest: OasysGenericRequest,
     oasysAssessmentPk: String,
@@ -473,6 +530,23 @@ class OasysCoordinatorService(
     data class Conflict<T>(
       val errorMessage: String,
     ) : RollbackOperationResult<T>()
+  }
+
+  sealed class SoftDeleteOperationResult<out T> {
+    data class Success<T>(val data: T) : SoftDeleteOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : SoftDeleteOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : SoftDeleteOperationResult<T>()
+
+    data class Conflict<T>(
+      val errorMessage: String,
+    ) : SoftDeleteOperationResult<T>()
   }
 
   sealed class UndeleteOperationResult<out T> {

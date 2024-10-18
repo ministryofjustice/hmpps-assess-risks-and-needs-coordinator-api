@@ -20,6 +20,7 @@ data class SentencePlanApiProperties(
     var sign: String = "",
     var lock: String = "",
     var rollback: String = "",
+    var softDelete: String = "",
     var undelete: String = "",
   )
 
@@ -33,6 +34,7 @@ data class SentencePlanApiProperties(
       lock = baseUrl + endpoints.lock,
       rollback = baseUrl + endpoints.rollback,
       counterSign = baseUrl + endpoints.counterSign,
+      softDelete = baseUrl + endpoints.softDelete,
       undelete = baseUrl + endpoints.undelete,
     )
   }
