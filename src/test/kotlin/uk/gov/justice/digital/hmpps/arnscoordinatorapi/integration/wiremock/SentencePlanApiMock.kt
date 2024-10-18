@@ -177,7 +177,7 @@ class SentencePlanApiMock : WireMockServer(8091) {
           .withBody(
             """
               {
-                "planId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "planId": "3fc52df3-ad01-40d5-b29c-eba6573faf91",
                 "planVersion": 3
               }
             """.trimIndent(),

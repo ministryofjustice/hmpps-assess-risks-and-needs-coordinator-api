@@ -33,8 +33,8 @@ class SoftDeleteTest : IntegrationTestBase() {
   @Test
   fun `it successfully soft-deletes an existing association`() {
     val oasysAssessmentPk = "199"
-    val assessmentUuid = UUID.fromString("4fa85f64-5717-4562-b3fc-2c963f66afa6")
-    val planUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6")
+    val assessmentUuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2")
+    val planUuid = UUID.fromString("3fc52df3-ad01-40d5-b29c-eba6573faf91")
 
     oasysAssociationRepository.saveAll(
       listOf(

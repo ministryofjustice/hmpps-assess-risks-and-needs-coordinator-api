@@ -362,7 +362,7 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
             """
               {
                 "metaData": {
-                  "uuid": "4fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "uuid": "61369578-18f5-488c-bc99-7cc6249f39a2",
                   "createdAt": "2024-10-03T15:22:31.452243",
                   "versionUuid": "d52fdb5d-4450-40af-806e-97d47b96fa57",
                   "versionCreatedAt": "2024-10-03T15:22:31.453096",
