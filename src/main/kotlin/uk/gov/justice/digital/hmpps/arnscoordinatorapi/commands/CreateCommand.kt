@@ -22,7 +22,6 @@ class CreateCommand(
   }
 
   fun rollback(): OperationResult<Unit> {
-    strategy.delete(createdEntity.id)
     return OperationResult.Failure("Rollback has not been implemented")
   }
 }

@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.SoftDeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.UndeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
@@ -211,6 +212,35 @@ class SentencePlanApi(
       ApiOperationResultExtended.Failure("HTTP error during counterSign plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
       ApiOperationResultExtended.Failure("Unexpected error during counterSign: ${ex.message}", ex)
+    }
+  }
+
+  fun softDeletePlan(softDeleteData: SoftDeletePlanData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sentencePlanApiWebClient.post()
+        .uri(apiProperties.endpoints.softDelete.replace("{uuid}", planUuid.toString()))
+        .body(BodyInserters.fromValue(softDeleteData))
+        .retrieve()
+        .bodyToMono(LockPlanResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.sentencePlanId,
+            version = it.sentencePlanVersion,
+            entityType = EntityType.PLAN,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during soft-delete")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Unable to soft-delete the requested sentence plan versions: ${ex.responseBodyAsString}")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during soft-delete: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during soft-delete: ${ex.message}", ex)
     }
   }
 
