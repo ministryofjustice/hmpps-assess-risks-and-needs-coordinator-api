@@ -20,6 +20,7 @@ data class StrengthsAndNeedsApiProperties(
     var counterSign: String = "",
     var lock: String = "",
     var rollback: String = "",
+    var undelete: String = "",
   )
 
   @PostConstruct
@@ -32,6 +33,7 @@ data class StrengthsAndNeedsApiProperties(
       lock = baseUrl + endpoints.lock,
       rollback = baseUrl + endpoints.rollback,
       counterSign = baseUrl + endpoints.create,
+      undelete = baseUrl + endpoints.undelete,
     )
   }
 }

@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.UUID
 
 @RestController
 @Tag(name = "OASys")
@@ -492,18 +491,35 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
-  ): OasysVersionedEntityResponse {
-    /**
-     * TODO: Implement logic for un-deleting an association
-     *  1. Find all associations for a PK in the DB
-     *  2. Mark each association as not-deleted
-     */
-    return OasysVersionedEntityResponse(
-      sanAssessmentId = UUID.randomUUID(),
-      sanAssessmentVersion = 0,
-      sentencePlanId = UUID.randomUUID(),
-      sentencePlanVersion = 0,
-    )
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.undelete(request, oasysAssessmentPK)) {
+      is OasysCoordinatorService.UndeleteOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+
+      is OasysCoordinatorService.UndeleteOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.UndeleteOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.UndeleteOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/associations"], method = [RequestMethod.GET])

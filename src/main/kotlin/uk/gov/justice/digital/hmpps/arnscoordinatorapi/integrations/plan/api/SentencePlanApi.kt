@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.UndeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.CreatePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
@@ -210,6 +211,35 @@ class SentencePlanApi(
       ApiOperationResultExtended.Failure("HTTP error during counterSign plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
       ApiOperationResultExtended.Failure("Unexpected error during counterSign: ${ex.message}", ex)
+    }
+  }
+
+  fun undeletePlan(undeleteData: UndeletePlanData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+    return try {
+      val result = sentencePlanApiWebClient.post()
+        .uri(apiProperties.endpoints.undelete.replace("{uuid}", planUuid.toString()))
+        .body(BodyInserters.fromValue(undeleteData))
+        .retrieve()
+        .bodyToMono(PlanVersionResponse::class.java)
+        .map {
+          VersionedEntity(
+            id = it.planId,
+            version = it.planVersion,
+            entityType = EntityType.PLAN,
+          )
+        }
+        .block()
+
+      result?.let {
+        ApiOperationResultExtended.Success(it)
+      } ?: throw IllegalStateException("Unexpected error during undelete")
+    } catch (ex: WebClientResponseException) {
+      if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
+        return ApiOperationResultExtended.Conflict("Unable to undelete the requested sentence plan versions: ${ex.responseBodyAsString}")
+      }
+      ApiOperationResultExtended.Failure("HTTP error during undelete: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+    } catch (ex: Exception) {
+      ApiOperationResultExtended.Failure("Unexpected error during undelete: ${ex.message}", ex)
     }
   }
 

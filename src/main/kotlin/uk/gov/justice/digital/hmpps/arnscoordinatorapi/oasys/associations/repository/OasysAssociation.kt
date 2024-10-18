@@ -8,8 +8,8 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import java.time.Instant
-import java.time.format.DateTimeFormatter
+import org.hibernate.annotations.SQLRestriction
+import java.time.LocalDateTime
 import java.util.UUID
 
 enum class EntityType {
@@ -19,6 +19,7 @@ enum class EntityType {
 
 @Entity
 @Table(name = "oasys_associations", schema = "coordinator")
+@SQLRestriction("deleted IS FALSE")
 data class OasysAssociation(
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,14 +29,14 @@ data class OasysAssociation(
   val uuid: UUID? = UUID.randomUUID(),
 
   @Column(name = "created_at", nullable = false)
-  val createdAt: String = DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
+  val createdAt: LocalDateTime = LocalDateTime.now(),
 
   @Enumerated(EnumType.STRING)
   @Column(name = "entity_type", nullable = false)
   var entityType: EntityType? = null,
 
   @Column(name = "entity_uuid", nullable = false)
-  var entityUuid: UUID? = null,
+  var entityUuid: UUID = UUID.randomUUID(),
 
   @Column(name = "oasys_assessment_pk", length = 64, nullable = false)
   val oasysAssessmentPk: String? = null,
@@ -44,10 +45,10 @@ data class OasysAssociation(
   val regionPrisonCode: String? = null,
 
   @Column(nullable = false)
-  val deleted: Boolean? = false,
+  var deleted: Boolean = false,
 
   @Column(nullable = false)
-  var baseVersion: Long? = 0,
+  var baseVersion: Long = 0,
 ) {
   fun clone(oasysAssessmentPk: String?): OasysAssociation {
     return OasysAssociation(

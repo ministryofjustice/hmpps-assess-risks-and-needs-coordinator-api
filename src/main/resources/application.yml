@@ -61,6 +61,7 @@ app:
         counterSign: /assessment/{uuid}/counter-sign
         lock: /assessment/{uuid}/lock
         rollback: /assessment/{uuid}/rollback
+        undelete: /assessment/{uuid}/undelete
     sentence-plan-api:
       base-url: ${sp-api.base-url}
       endpoints:
@@ -71,6 +72,7 @@ app:
         counterSign: /coordinator/plan/{uuid}/countersign
         lock: /coordinator/plan/{uuid}/lock
         rollback: /coordinator/plan/{uuid}/rollback
+        undelete: /coordinator/plan/{uuid}/restore
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
