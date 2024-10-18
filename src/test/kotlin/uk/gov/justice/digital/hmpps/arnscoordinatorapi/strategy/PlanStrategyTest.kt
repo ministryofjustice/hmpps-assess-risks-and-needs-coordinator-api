@@ -12,12 +12,15 @@ import org.mockito.kotlin.any
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.SoftDeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -206,6 +209,43 @@ class PlanStrategyTest {
       verify(sentencePlanApi).counterSign(entityUuid, CounterSignPlanData.from(request))
       assertTrue(result is OperationResult.Failure)
       assertEquals("Failed to countersign", (result as OperationResult.Failure).errorMessage)
+    }
+  }
+
+  @Nested
+  inner class SoftDelete {
+    val softDeleteData = SoftDeleteData(
+      UserDetails("id", "name", UserType.OASYS),
+      versionFrom = 1L,
+      versionTo = 2L,
+    )
+    val softDeletePlanData = SoftDeletePlanData.from(softDeleteData)
+    val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
+
+    @Test
+    fun `should return success when soft-delete is successful`() {
+      `when`(sentencePlanApi.softDeletePlan(softDeletePlanData, versionedEntity.id)).thenReturn(
+        SentencePlanApi.ApiOperationResultExtended.Success(versionedEntity),
+      )
+
+      val result = planStrategy.softDelete(softDeleteData, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(versionedEntity, (result as OperationResult.Success).data)
+      verify(sentencePlanApi).softDeletePlan(softDeletePlanData, versionedEntity.id)
+    }
+
+    @Test
+    fun `should return failure when soft-delete fails`() {
+      `when`(sentencePlanApi.softDeletePlan(softDeletePlanData, versionedEntity.id)).thenReturn(
+        SentencePlanApi.ApiOperationResultExtended.Failure("Error occurred"),
+      )
+
+      val result = planStrategy.softDelete(softDeleteData, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
+      verify(sentencePlanApi).softDeletePlan(softDeletePlanData, versionedEntity.id)
     }
   }
 }

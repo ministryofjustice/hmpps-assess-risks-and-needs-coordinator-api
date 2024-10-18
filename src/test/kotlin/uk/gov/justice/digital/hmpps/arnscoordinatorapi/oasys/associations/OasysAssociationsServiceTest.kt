@@ -131,4 +131,56 @@ class OasysAssociationsServiceTest {
       verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
     }
   }
+
+  @Nested
+  inner class FindAllIncludingDeleted {
+    val entityUuid = UUID.randomUUID()
+
+    @Test
+    fun `should return empty list when no associations are found`() {
+      `when`(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid))
+        .thenReturn(emptyList())
+
+      assertTrue(oasysAssociationsService.findAllIncludingDeleted(entityUuid).isEmpty())
+
+      verify(oasysAssociationRepository).findAllByEntityUuidIncludingDeleted(entityUuid)
+    }
+
+    @Test
+    fun `should return list of associations when associations are found`() {
+      val associations = listOf(OasysAssociation())
+
+      `when`(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)).thenReturn(associations)
+
+      assertEquals(associations, oasysAssociationsService.findAllIncludingDeleted(entityUuid))
+
+      verify(oasysAssociationRepository).findAllByEntityUuidIncludingDeleted(entityUuid)
+    }
+  }
+
+  @Nested
+  inner class FindDeletedAssociations {
+    val oasysAssessmentPk = "test"
+
+    @Test
+    fun `should return empty list when no associations are found`() {
+      `when`(oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk))
+        .thenReturn(emptyList())
+
+      assertTrue(oasysAssociationsService.findDeletedAssociations(oasysAssessmentPk).isEmpty())
+
+      verify(oasysAssociationRepository).findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
+    }
+
+    @Test
+    fun `should return list of associations when associations are found`() {
+      val associations = listOf(OasysAssociation())
+
+      `when`(oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)).thenReturn(associations)
+
+      assertEquals(associations, oasysAssociationsService.findDeletedAssociations(oasysAssessmentPk))
+
+      verify(oasysAssociationRepository).findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
+    }
+  }
 }
