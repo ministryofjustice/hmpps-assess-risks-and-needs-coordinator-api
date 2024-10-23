@@ -107,7 +107,7 @@ workflows:
           pipeline_number: <<pipeline.number>>
           context:
             - hmpps-common-vars
-            - hmpps-assess-risks-and-needs-handover-service-preprod
+            - hmpps-assess-risks-and-needs-integrations-preprod
           filters:
             branches:
               only:
@@ -126,7 +126,7 @@ workflows:
           slack_channel_name: << pipeline.parameters.releases-slack-channel >>
           context:
             - hmpps-common-vars
-            - hmpps-assess-risks-and-needs-handover-service-prod
+            - hmpps-assess-risks-and-needs-integrations-prod
           filters:
             branches:
               only:
