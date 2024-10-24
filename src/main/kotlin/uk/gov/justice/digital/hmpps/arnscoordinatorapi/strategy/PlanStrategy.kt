@@ -7,11 +7,13 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.SoftDeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.UndeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -72,8 +74,12 @@ class PlanStrategy(
     }
   }
 
-  override fun delete(entityUuid: UUID): OperationResult<Unit> {
-    return OperationResult.Failure("Delete not implemented yet")
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    return when (val result = sentencePlanApi.softDeletePlan(SoftDeletePlanData.from(softDeleteData), entityUuid)) {
+      is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+      is SentencePlanApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+      is SentencePlanApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
+    }
   }
   override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
     return when (val result = sentencePlanApi.undeletePlan(UndeletePlanData.from(undeleteData), entityUuid)) {

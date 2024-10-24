@@ -18,7 +18,9 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
@@ -211,6 +213,42 @@ class AssessmentStrategyTest {
       verify(strengthsAndNeedsApi).counterSign(entityUuid, CounterSignAssessmentData.from(request))
       assertTrue(result is OperationResult.Failure)
       assertEquals("Failed to countersign", (result as OperationResult.Failure).errorMessage)
+    }
+  }
+
+  @Nested
+  inner class SoftDelete {
+    val softDeleteData = SoftDeleteData(
+      UserDetails("id", "name", UserType.OASYS),
+      versionFrom = 1L,
+      versionTo = 2L,
+    )
+    val versionedEntity = VersionedEntity(UUID.randomUUID(), 2, EntityType.ASSESSMENT)
+
+    @Test
+    fun `should return success when soft-delete is successful`() {
+      `when`(strengthsAndNeedsApi.softDelete(softDeleteData, versionedEntity.id)).thenReturn(
+        StrengthsAndNeedsApi.ApiOperationResultExtended.Success(versionedEntity),
+      )
+
+      val result = assessmentStrategy.softDelete(softDeleteData, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(versionedEntity, (result as OperationResult.Success).data)
+      verify(strengthsAndNeedsApi).softDelete(softDeleteData, versionedEntity.id)
+    }
+
+    @Test
+    fun `should return failure when soft-delete fails`() {
+      `when`(strengthsAndNeedsApi.softDelete(softDeleteData, versionedEntity.id)).thenReturn(
+        StrengthsAndNeedsApi.ApiOperationResultExtended.Failure("Error occurred"),
+      )
+
+      val result = assessmentStrategy.softDelete(softDeleteData, versionedEntity.id)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
+      verify(strengthsAndNeedsApi).softDelete(softDeleteData, versionedEntity.id)
     }
   }
 }
