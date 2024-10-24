@@ -130,9 +130,9 @@ class StrengthsAndNeedsApi(
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
         return ApiOperationResultExtended.Conflict("Unable to roll back this assessment version")
       }
-      ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+      ApiOperationResultExtended.Failure("HTTP error during rollback assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResultExtended.Failure("Unexpected error during rollback: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during rollbackAssessment: ${ex.message}", ex)
     }
   }
 
@@ -208,7 +208,7 @@ class StrengthsAndNeedsApi(
       }
       ApiOperationResultExtended.Failure("HTTP error during counterSign assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResultExtended.Failure("Unexpected error during counterSign: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during counterSignAssessment: ${ex.message}", ex)
     }
   }
 
@@ -264,9 +264,9 @@ class StrengthsAndNeedsApi(
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
         return ApiOperationResultExtended.Conflict("Unable to undelete the requested assessment versions: ${ex.responseBodyAsString}")
       }
-      ApiOperationResultExtended.Failure("HTTP error during undelete: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+      ApiOperationResultExtended.Failure("HTTP error during undelete assessment versions: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResultExtended.Failure("Unexpected error during undelete: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during undeleteAssessmentVersions: ${ex.message}", ex)
     }
   }
 

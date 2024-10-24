@@ -175,14 +175,14 @@ class SentencePlanApi(
 
       result?.let {
         ApiOperationResultExtended.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during rollback")
+      } ?: throw IllegalStateException("Unexpected error during rollbackPlan")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
         return ApiOperationResultExtended.Conflict("Unable to roll back this plan version")
       }
-      ApiOperationResultExtended.Failure("HTTP error during rollback: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+      ApiOperationResultExtended.Failure("HTTP error during rollback plan version: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResultExtended.Failure("Unexpected error during rollback: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during rollbackPlanVersion: ${ex.message}", ex)
     }
   }
 
@@ -262,14 +262,14 @@ class SentencePlanApi(
 
       result?.let {
         ApiOperationResultExtended.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during undelete")
+      } ?: throw IllegalStateException("Unexpected error during undelete plan version")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
         return ApiOperationResultExtended.Conflict("Unable to undelete the requested sentence plan versions: ${ex.responseBodyAsString}")
       }
-      ApiOperationResultExtended.Failure("HTTP error during undelete: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+      ApiOperationResultExtended.Failure("HTTP error during undelete plan version: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResultExtended.Failure("Unexpected error during undelete: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during undeletePlanVersion: ${ex.message}", ex)
     }
   }
 
