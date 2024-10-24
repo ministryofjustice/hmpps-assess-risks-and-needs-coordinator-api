@@ -233,14 +233,14 @@ class SentencePlanApi(
 
       result?.let {
         ApiOperationResultExtended.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during soft-delete")
+      } ?: throw IllegalStateException("Unexpected error during soft-delete plan versions")
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
         return ApiOperationResultExtended.Conflict("Unable to soft-delete the requested sentence plan versions: ${ex.responseBodyAsString}")
       }
-      ApiOperationResultExtended.Failure("HTTP error during soft-delete: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
+      ApiOperationResultExtended.Failure("HTTP error during soft-delete plan versions: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}")
     } catch (ex: Exception) {
-      ApiOperationResultExtended.Failure("Unexpected error during soft-delete: ${ex.message}", ex)
+      ApiOperationResultExtended.Failure("Unexpected error during softDeletePlan: ${ex.message}", ex)
     }
   }
 
