@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.Sent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension.Companion.sanServer
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
+import java.util.UUID
 
 @ExtendWith(HmppsAuthApiExtension::class, StrengthsAndNeedsApiExtension::class, SentencePlanApiMockExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
@@ -104,8 +105,8 @@ abstract class IntegrationTestBase {
     sentencePlanApiMock.stubSentencePlanUndelete(status)
   }
 
-  protected fun stubSentencePlanSoftDelete(status: Int = 200, emptyBody: Boolean = false) {
-    sentencePlanApiMock.stubSentencePlanSoftDelete(status, emptyBody)
+  protected fun stubSentencePlanSoftDelete(status: Int = 200, uuid: UUID = UUID.fromString("3fc52df3-ad01-40d5-b29c-eba6573faf91")) {
+    sentencePlanApiMock.stubSentencePlanSoftDelete(status, uuid)
   }
 
   protected fun stubPingWithResponse(status: Int) {

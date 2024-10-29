@@ -120,27 +120,25 @@ class SoftDeleteTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully soft-deletes the only existing association`() {
-    stubAssessmentsSoftDelete(200, emptyBody = true)
-    stubSentencePlanSoftDelete(200, emptyBody = true)
-
     val oasysAssessmentPk = "198"
     val assessmentUuid = UUID.randomUUID()
     val planUuid = UUID.randomUUID()
+
+    stubAssessmentsSoftDelete(200, emptyBody = true)
+    stubSentencePlanSoftDelete(200, planUuid)
 
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           id = 1L,
-          createdAt = LocalDateTime.now().minusDays(1),
-          oasysAssessmentPk = "198",
+          oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = planUuid,
           baseVersion = 0,
         ),
         OasysAssociation(
           id = 2L,
-          createdAt = LocalDateTime.now().minusDays(1),
-          oasysAssessmentPk = "198",
+          oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = assessmentUuid,
           baseVersion = 0,
@@ -164,8 +162,8 @@ class SoftDeleteTest : IntegrationTestBase() {
 
     assertThat(response!!.sanAssessmentId).isNull()
     assertThat(response.sanAssessmentVersion).isNull()
-    assertThat(response.sentencePlanId).isNull()
-    assertThat(response.sentencePlanVersion).isNull()
+    assertThat(response.sentencePlanId).isEqualTo(planUuid)
+    assertThat(response.sentencePlanVersion).isEqualTo(3)
 
     oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(1, count())
