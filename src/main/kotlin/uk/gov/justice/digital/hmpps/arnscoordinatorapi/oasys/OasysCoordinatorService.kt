@@ -369,7 +369,7 @@ class OasysCoordinatorService(
 
         is OperationResult.Success -> {
           when (association.apply { deleted = true }.run(oasysAssociationsService::storeAssociation)) {
-            is OperationResult.Success -> oasysSoftDeleteResponse.addVersionedEntity(response.data)
+            is OperationResult.Success -> response.data?.run(oasysSoftDeleteResponse::addVersionedEntity)
             is OperationResult.Failure -> {
               return SoftDeleteOperationResult.Failure("Failed setting the association for ${strategy.entityType} to deleted")
             }

@@ -119,6 +119,64 @@ class SoftDeleteTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `it successfully soft-deletes the only existing association`() {
+    val oasysAssessmentPk = "198"
+    val assessmentUuid = UUID.randomUUID()
+    val planUuid = UUID.randomUUID()
+
+    stubAssessmentsSoftDelete(200, emptyBody = true)
+    stubSentencePlanSoftDelete(200, planUuid)
+
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(
+          id = 1L,
+          oasysAssessmentPk = oasysAssessmentPk,
+          entityType = EntityType.PLAN,
+          entityUuid = planUuid,
+          baseVersion = 0,
+        ),
+        OasysAssociation(
+          id = 2L,
+          oasysAssessmentPk = oasysAssessmentPk,
+          entityType = EntityType.ASSESSMENT,
+          entityUuid = assessmentUuid,
+          baseVersion = 0,
+        ),
+      ),
+    )
+
+    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/soft-delete")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysGenericRequest(
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(OasysVersionedEntityResponse::class.java)
+      .returnResult()
+      .responseBody
+
+    assertThat(response!!.sanAssessmentId).isNull()
+    assertThat(response.sanAssessmentVersion).isNull()
+    assertThat(response.sentencePlanId).isEqualTo(planUuid)
+    assertThat(response.sentencePlanVersion).isEqualTo(3)
+
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
+      assertEquals(1, count())
+      assertTrue(all { it.deleted })
+    }
+
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
+      assertEquals(1, count())
+      assertTrue(all { it.deleted })
+    }
+  }
+
+  @Test
   fun `it returns a 409 when the SAN assessment is already soft-deleted`() {
     stubAssessmentsSoftDelete(409)
     val oasysAssessmentPk = "200"
