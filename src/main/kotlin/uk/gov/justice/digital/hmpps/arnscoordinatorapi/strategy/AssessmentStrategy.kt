@@ -72,7 +72,7 @@ class AssessmentStrategy(
     }
   }
 
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> {
     return when (val result = strengthsAndNeedsApi.softDelete(softDeleteData, entityUuid)) {
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
       is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)

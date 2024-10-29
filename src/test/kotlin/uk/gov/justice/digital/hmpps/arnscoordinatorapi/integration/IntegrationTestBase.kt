@@ -68,8 +68,8 @@ abstract class IntegrationTestBase {
     sanServer.stubAssessmentsUndelete(status)
   }
 
-  protected fun stubAssessmentsSoftDelete(status: Int = 200) {
-    sanServer.stubAssessmentsSoftDelete(status)
+  protected fun stubAssessmentsSoftDelete(status: Int = 200, emptyBody: Boolean = false) {
+    sanServer.stubAssessmentsSoftDelete(status, emptyBody)
   }
 
   protected fun stubSentencePlanCreate(status: Int = 201) {
@@ -104,8 +104,8 @@ abstract class IntegrationTestBase {
     sentencePlanApiMock.stubSentencePlanUndelete(status)
   }
 
-  protected fun stubSentencePlanSoftDelete(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanSoftDelete(status)
+  protected fun stubSentencePlanSoftDelete(status: Int = 200, emptyBody: Boolean = false) {
+    sentencePlanApiMock.stubSentencePlanSoftDelete(status, emptyBody)
   }
 
   protected fun stubPingWithResponse(status: Int) {

@@ -27,7 +27,7 @@ interface EntityStrategy {
 
   fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity>
 
-  fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?>
 
   fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity>
 

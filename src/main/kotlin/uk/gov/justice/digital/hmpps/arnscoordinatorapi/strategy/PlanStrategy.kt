@@ -74,13 +74,14 @@ class PlanStrategy(
     }
   }
 
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> {
     return when (val result = sentencePlanApi.softDeletePlan(SoftDeletePlanData.from(softDeleteData), entityUuid)) {
       is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
       is SentencePlanApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
       is SentencePlanApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
     }
   }
+
   override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
     return when (val result = sentencePlanApi.undeletePlan(UndeletePlanData.from(undeleteData), entityUuid)) {
       is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)

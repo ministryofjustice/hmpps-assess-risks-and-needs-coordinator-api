@@ -11,5 +11,5 @@ class SoftDeleteCommand(
   private val entityUuid: UUID,
   private val softDeleteData: SoftDeleteData,
 ) : Command {
-  override fun execute(): OperationResult<VersionedEntity> = strategy.softDelete(softDeleteData, entityUuid)
+  override fun execute(): OperationResult<VersionedEntity?> = strategy.softDelete(softDeleteData, entityUuid)
 }

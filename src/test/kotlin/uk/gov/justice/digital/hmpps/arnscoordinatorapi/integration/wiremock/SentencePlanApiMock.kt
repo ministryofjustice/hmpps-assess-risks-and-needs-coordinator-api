@@ -169,20 +169,26 @@ class SentencePlanApiMock : WireMockServer(8091) {
     )
   }
 
-  fun stubSentencePlanSoftDelete(status: Int = 200) {
+  fun stubSentencePlanSoftDelete(status: Int = 200, emptyBody: Boolean = false) {
     stubFor(
       post(urlPathMatching("/coordinator/plan/(.*)/soft-delete")).willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
-              {
-                "planId": "3fc52df3-ad01-40d5-b29c-eba6573faf91",
-                "planVersion": 3
-              }
-            """.trimIndent(),
-          )
-          .withStatus(status),
+          .withStatus(status)
+          .run {
+            if (emptyBody) {
+              this
+            } else {
+              withBody(
+                """
+                {
+                  "planId": "3fc52df3-ad01-40d5-b29c-eba6573faf91",
+                  "planVersion": 3
+                }
+                """.trimIndent(),
+              )
+            }
+          },
       ),
     )
   }
