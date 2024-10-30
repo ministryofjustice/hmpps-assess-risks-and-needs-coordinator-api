@@ -39,7 +39,7 @@ data class OasysAssociation(
   var entityUuid: UUID = UUID.randomUUID(),
 
   @Column(name = "oasys_assessment_pk", length = 64, nullable = false)
-  val oasysAssessmentPk: String? = null,
+  var oasysAssessmentPk: String? = null,
 
   @Column(name = "region_prison_code", length = 64)
   val regionPrisonCode: String? = null,

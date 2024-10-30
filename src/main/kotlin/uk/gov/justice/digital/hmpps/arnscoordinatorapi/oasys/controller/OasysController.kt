@@ -27,7 +27,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
@@ -169,13 +168,35 @@ class OasysController(
   )
   fun merge(
     @RequestBody @Valid request: OasysMergeRequest,
-  ): OasysMessageResponse {
-    /**
-     * TODO: Implement logic to merge two or more associated OASys Assessment PKs together
-     *  1. Loop over each OASys Assessment PK pair
-     *  2. Update all associations in DB that have old PK, replace with new PK
-     */
-    return OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements")
+  ): ResponseEntity<Any> {
+    return when (val result = oasysCoordinatorService.merge(request)) {
+      is OasysCoordinatorService.MergeOperationResult.Success ->
+        ResponseEntity.status(HttpStatus.OK).body(result.data)
+
+      is OasysCoordinatorService.MergeOperationResult.NoAssociations ->
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          ErrorResponse(
+            status = HttpStatus.NOT_FOUND,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.MergeOperationResult.Failure ->
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+          ErrorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            userMessage = result.errorMessage,
+          ),
+        )
+
+      is OasysCoordinatorService.MergeOperationResult.Conflict ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+          ErrorResponse(
+            status = HttpStatus.CONFLICT,
+            userMessage = result.errorMessage,
+          ),
+        )
+    }
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/sign"], method = [RequestMethod.POST])
