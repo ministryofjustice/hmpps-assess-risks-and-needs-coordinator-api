@@ -53,7 +53,7 @@ class GetTest : IntegrationTestBase() {
 
     assertThat(response?.sanAssessmentId).isEqualTo(UUID.fromString("11db45b5-215d-4405-a887-a7efd5216fa2"))
     assertThat(response?.sanAssessmentVersion).isEqualTo(1)
-    assertThat(response?.sanAssessmentData?.get("q2")).hasFieldOrPropertyWithValue("value", "Question answer &, ', <, >, /, \\, `")
-    assertThat(response?.sanOasysEquivalent).isEqualTo(mapOf("q2" to "Question answer &, ', <, >, /, \\, `"))
+    assertThat(response?.sanAssessmentData?.get("q2")).hasFieldOrPropertyWithValue("value", "Question answer &, ', <, >, /, \\, `, \"")
+    assertThat(response?.sanOasysEquivalent).isEqualTo(mapOf("q2" to "Question answer &, ', <, >, /, \\, `, \""))
   }
 }

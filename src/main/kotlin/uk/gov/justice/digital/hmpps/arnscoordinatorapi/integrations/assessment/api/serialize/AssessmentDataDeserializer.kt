@@ -16,6 +16,7 @@ class AssessmentDataDeserializer : JsonDeserializer<AssessmentData>() {
       .replace("&#x2F;", "/")
       .replace("&#x5C;", "\\\\")
       .replace("&#96;", "`")
+      .replace("&quot;", "\\\"")
       .let {
         JsonMapper().readValue(it, AssessmentData::class.java)
       }

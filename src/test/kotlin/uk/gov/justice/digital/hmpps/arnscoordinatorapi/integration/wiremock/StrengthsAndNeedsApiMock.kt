@@ -337,13 +337,13 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
                     "type": "TEXT",
                     "description": "",
                     "options": null,
-                    "value": "Question answer &amp;, &#x27;, &lt;, &gt;, &#x2F;, &#x5C;, &#96;",
+                    "value": "Question answer &amp;, &#x27;, &lt;, &gt;, &#x2F;, &#x5C;, &#96;, &quot;",
                     "values": null,
                     "collection": null
                   }
                 },
                 "oasysEquivalent": {
-                  "q2": "Question answer &amp;, &#x27;, &lt;, &gt;, &#x2F;, &#x5C;, &#96;"
+                  "q2": "Question answer &amp;, &#x27;, &lt;, &gt;, &#x2F;, &#x5C;, &#96;, &quot;"
                 }
               }
             """.trimIndent(),

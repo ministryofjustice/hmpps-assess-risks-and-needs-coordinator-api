@@ -41,6 +41,7 @@ class AssessmentDataDeserializerTest {
         "&#x2F;" to "/",
         "&#x5C;" to "\\",
         "&#96;" to "`",
+        "&quot;" to "\"",
       )
 
       return Stream.of(
