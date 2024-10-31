@@ -1,12 +1,18 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.serialize.AssessmentDataDeserializer
 import java.time.LocalDateTime
 import java.util.UUID
 
+typealias AssessmentData = Map<String, *>
+
 data class AssessmentResponse(
   val metaData: AssessmentMetadata,
-  val assessment: Map<String, *>,
-  val oasysEquivalent: Map<String, *>,
+  @JsonDeserialize(using = AssessmentDataDeserializer::class)
+  val assessment: AssessmentData,
+  @JsonDeserialize(using = AssessmentDataDeserializer::class)
+  val oasysEquivalent: AssessmentData,
 )
 
 data class AssessmentMetadata(
