@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CloneCommand
@@ -26,10 +27,12 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 
@@ -434,6 +437,44 @@ class OasysCoordinatorService(
     return UndeleteOperationResult.Success(oasysUndeleteResponse)
   }
 
+  @Transactional
+  fun merge(request: OasysMergeRequest): MergeOperationResult<OasysMessageResponse> {
+    val notFoundPKs = mutableListOf<String>()
+    val conflictPKs = mutableListOf<String>()
+
+    val oldAssociations = request.merge.map { merge ->
+      oasysAssociationsService.findAssociations(merge.newOasysAssessmentPK).run {
+        if (isNotEmpty()) conflictPKs.add(merge.newOasysAssessmentPK)
+      }
+      merge.newOasysAssessmentPK to oasysAssociationsService.findAssociations(merge.oldOasysAssessmentPK)
+        .also {
+          if (it.isEmpty()) notFoundPKs.add(merge.oldOasysAssessmentPK)
+        }
+    }.toMap()
+
+    if (notFoundPKs.isNotEmpty()) {
+      return MergeOperationResult.NoAssociations("The following association(s) could not be located: ${notFoundPKs.joinToString()} and the operation has not been actioned.")
+    }
+
+    if (conflictPKs.isNotEmpty()) {
+      return MergeOperationResult.Conflict("Existing association(s) for ${conflictPKs.joinToString()}")
+    }
+
+    oldAssociations.map {
+      it.value.map { association ->
+        association.apply { oasysAssessmentPk = it.key }
+          .run(oasysAssociationsService::storeAssociation)
+          .onFailure { error ->
+            return MergeOperationResult.Failure("Failed to store ${association.entityType?.name} association ${association.uuid}")
+          }
+      }
+    }
+
+    log.info("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "\nFrom ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}")
+
+    return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))
+  }
+
   sealed class CreateOperationResult<out T> {
     data class Success<T>(val data: T) : CreateOperationResult<T>()
 
@@ -564,5 +605,26 @@ class OasysCoordinatorService(
     data class Conflict<T>(
       val errorMessage: String,
     ) : UndeleteOperationResult<T>()
+  }
+
+  sealed class MergeOperationResult<out T> {
+    data class Success<T>(val data: T) : MergeOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : MergeOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : MergeOperationResult<T>()
+
+    data class Conflict<T>(
+      val errorMessage: String,
+    ) : MergeOperationResult<T>()
+  }
+
+  private companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
   }
 }
