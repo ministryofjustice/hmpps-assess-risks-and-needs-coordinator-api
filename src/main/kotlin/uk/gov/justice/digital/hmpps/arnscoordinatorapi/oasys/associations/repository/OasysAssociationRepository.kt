@@ -15,7 +15,7 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociation?, Long?> {
   @Query(
     """
     SELECT DISTINCT oa.oasysAssessmentPk from OasysAssociation oa where oa.entityUuid = :entityUuid
-  """,
+    """,
   )
   fun findOasysAssessmentPk(entityUuid: UUID): String?
 
