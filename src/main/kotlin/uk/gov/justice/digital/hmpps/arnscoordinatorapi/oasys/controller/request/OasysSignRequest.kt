@@ -7,10 +7,10 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 
 data class OasysSignRequest(
   @Schema(description = "Indicates the signing type")
-  @Valid
+  @field:Valid
   val signType: SignType,
 
   @Schema(description = "OASys User")
-  @Valid
+  @field:Valid
   val userDetails: OasysUserDetails,
 )

@@ -9,10 +9,13 @@ import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.util.stream.Collectors
 
 @RestControllerAdvice
 class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
@@ -26,6 +29,28 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.info("Validation exception: {}", e.message) }
+
+  @ExceptionHandler(MethodArgumentNotValidException::class)
+  fun handleArgumentNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST,
+        userMessage = "Validation failure: ${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
+        developerMessage = "${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
+      ),
+    ).also { log.info("Validation exceptions: {}", e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" }) }
+
+  @ExceptionHandler(HandlerMethodValidationException::class)
+  fun handlerMethodNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST,
+        userMessage = "Validation failure: ${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
+        developerMessage = "${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
+      ),
+    ).also { log.info("Validation exceptions: {}", e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" }) }
 
   @ExceptionHandler(HttpMessageNotReadableException::class)
   fun handleNoRequestException(e: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> = ResponseEntity

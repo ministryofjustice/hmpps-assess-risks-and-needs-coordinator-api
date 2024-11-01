@@ -6,6 +6,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 
 data class OasysGenericRequest(
   @Schema(description = "OASys User Details")
-  @Valid
+  @field:Valid
   val userDetails: OasysUserDetails,
 )

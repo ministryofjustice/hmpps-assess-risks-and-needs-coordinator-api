@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -13,7 +14,8 @@ data class OasysCreateRequest(
     description = "OASys Assessment PK to create an association for",
     example = "CY/12ZX56",
   )
-  @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+  @field:Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+  @field:Pattern(regexp = "^[0-9]{1,15}$", message = "Must only contain numeric characters")
   val oasysAssessmentPk: String,
 
   @Schema(
@@ -21,17 +23,18 @@ data class OasysCreateRequest(
       "The new OASys Assessment PK will be associated to clones of the previous associated entities",
     example = "CY/12ZX56",
   )
-  @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+  @field:Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+  @field:Pattern(regexp = "^[0-9]{1,15}$", message = "Must only contain numeric characters")
   val previousOasysAssessmentPk: String? = null,
 
   @Schema(description = "Region prison code", example = "111111")
-  @Size(max = Constraints.REGION_PRISON_CODE_MAX_LENGTH)
+  @field:Size(max = Constraints.REGION_PRISON_CODE_MAX_LENGTH)
   val regionPrisonCode: String? = null,
 
   @Schema(description = "Sentence plan type", example = "INITIAL")
   val planType: PlanType,
 
   @Schema(description = "OASys User Details")
-  @Valid
+  @field:Valid
   val userDetails: OasysUserDetails,
 )
