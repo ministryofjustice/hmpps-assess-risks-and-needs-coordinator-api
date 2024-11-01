@@ -12,6 +12,13 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociation?, Long?> {
   @Query("SELECT * FROM coordinator.oasys_associations WHERE oasys_assessment_pk = :oasysAssessmentPk AND deleted IS TRUE", nativeQuery = true)
   fun findAllDeletedByOasysAssessmentPk(oasysAssessmentPk: String): List<OasysAssociation>
 
+  @Query(
+    """
+    SELECT DISTINCT oa.oasysAssessmentPk from OasysAssociation oa where oa.entityUuid = :entityUuid
+  """,
+  )
+  fun findOasysAssessmentPk(entityUuid: UUID): String?
+
   @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_uuid = :entityUuid", nativeQuery = true)
   fun findAllByEntityUuidIncludingDeleted(entityUuid: UUID): List<OasysAssociation>
 }

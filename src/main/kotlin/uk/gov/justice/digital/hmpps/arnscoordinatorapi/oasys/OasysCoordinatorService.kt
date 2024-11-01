@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
+import java.util.*
 
 @Service
 class OasysCoordinatorService(
@@ -265,6 +266,12 @@ class OasysCoordinatorService(
     }
 
     return GetOperationResult.Success(oasysGetResponse)
+  }
+
+  fun getByEntityId(entityUuid: UUID): GetOperationResult<OasysGetResponse> {
+    val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
+      ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
+    return get(oasysAssessmentPk)
   }
 
   fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {

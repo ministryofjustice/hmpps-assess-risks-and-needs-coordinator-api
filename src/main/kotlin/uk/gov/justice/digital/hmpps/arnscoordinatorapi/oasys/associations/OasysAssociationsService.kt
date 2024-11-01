@@ -18,6 +18,10 @@ class OasysAssociationsService(
     return oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
   }
 
+  fun findOasysPkByEntityId(entityUuid: UUID): String? {
+    return oasysAssociationRepository.findOasysAssessmentPk(entityUuid)
+  }
+
   fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> =
     oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 
