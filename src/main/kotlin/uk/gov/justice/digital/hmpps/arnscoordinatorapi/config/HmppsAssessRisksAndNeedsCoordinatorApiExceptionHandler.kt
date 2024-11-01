@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.stream.Collectors
 
 @RestControllerAdvice
 class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
