@@ -4,11 +4,12 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
-import java.util.*
+import java.util.UUID
 
 class GetTest : IntegrationTestBase() {
 
@@ -102,5 +103,14 @@ class GetTest : IntegrationTestBase() {
     assertThat(sanResponse?.sanAssessmentVersion).isEqualTo(1)
     assertThat(sanResponse?.sanAssessmentData?.get("q2")).hasFieldOrPropertyWithValue("value", "Question answer &, ', <, >, /, \\, `, \"")
     assertThat(sanResponse?.sanOasysEquivalent).isEqualTo(mapOf("q2" to "Question answer &, ', <, >, /, \\, `, \""))
+  }
+
+  @Test
+  fun `get by entity id returns not found`() {
+    webTestClient.get().uri("/oasys/entity/5dc85f64-5717-4562-b3fc-2c963f66afa7")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isEqualTo(404)
   }
 }
