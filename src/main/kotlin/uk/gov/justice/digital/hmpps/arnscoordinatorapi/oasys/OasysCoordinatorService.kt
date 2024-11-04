@@ -107,7 +107,7 @@ class OasysCoordinatorService(
     val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
 
     associations.forEach { association ->
-      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid,)
+      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid)
 
       when (val commandResult = command.execute()) {
         is OperationResult.Success -> {
@@ -126,7 +126,6 @@ class OasysCoordinatorService(
 
           oasysCreateResponse.addVersionedEntity(commandResult.data)
         }
-
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
           return CreateOperationResult.Failure("Failed to clone entity for ${association.entityType}: ${commandResult.errorMessage}")
@@ -493,11 +492,7 @@ class OasysCoordinatorService(
       }
     }
 
-    log.info(
-      "Associations transferred by user ID ${request.userDetails.id}: ${
-        request.merge.map { "\nFrom ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()
-      }",
-    )
+    log.info("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "\nFrom ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}")
 
     return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))
   }
