@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -63,6 +64,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
   ): ResponseEntity<*> {
     return when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
@@ -230,6 +232,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysSignRequest,
   ): ResponseEntity<Any> {
@@ -290,6 +293,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysCounterSignRequest,
   ): ResponseEntity<Any> {
@@ -349,6 +353,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid
     oasysAssessmentPK: String,
     @RequestBody @Valid
@@ -411,6 +416,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid
     request: OasysRollbackRequest,
@@ -472,6 +478,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
   ): ResponseEntity<Any> {
@@ -532,6 +539,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
   ): ResponseEntity<Any> {
@@ -591,6 +599,7 @@ class OasysController(
     @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
+    @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
   ): ResponseEntity<Any> {
     return when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {

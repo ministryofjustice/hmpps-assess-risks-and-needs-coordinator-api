@@ -12,19 +12,19 @@ data class OasysCreateRequest(
   @Schema(
     required = true,
     description = "OASys Assessment PK to create an association for",
-    example = "CY/12ZX56",
+    example = "123456",
   )
   @field:Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
-  @field:Pattern(regexp = "^[0-9]{1,15}$", message = "Must only contain numeric characters")
+  @field:Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
   val oasysAssessmentPk: String,
 
   @Schema(
     description = "(Optional) Provide an old OASys Assessment PK. " +
       "The new OASys Assessment PK will be associated to clones of the previous associated entities",
-    example = "CY/12ZX56",
+    example = "123456",
   )
   @field:Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
-  @field:Pattern(regexp = "^[0-9]{1,15}$", message = "Must only contain numeric characters")
+  @field:Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
   val previousOasysAssessmentPk: String? = null,
 
   @Schema(description = "Region prison code", example = "111111")

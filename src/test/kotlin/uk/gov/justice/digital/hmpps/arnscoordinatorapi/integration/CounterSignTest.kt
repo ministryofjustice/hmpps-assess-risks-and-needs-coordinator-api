@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -160,7 +161,7 @@ class CounterSignTest : IntegrationTestBase() {
 
   @Test
   fun `it returns 400 when validation errors occur in both parameter and body`() {
-    val sixteenCharPk = "0123456789012345"
+    val sixteenCharPk = "0123456789012345A"
     val sixteenCharId = "ABCDEFGHIJKLMNOP"
     val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
 
@@ -178,10 +179,10 @@ class CounterSignTest : IntegrationTestBase() {
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isBadRequest
-      .expectBody()
+      .expectBody<ErrorResponse>()
       .returnResult()
 
-    println(response)
+    assertThat(response.responseBody?.developerMessage).isEqualTo("")
   }
 
   @Test
@@ -203,10 +204,10 @@ class CounterSignTest : IntegrationTestBase() {
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isBadRequest
-      .expectBody()
+      .expectBody<ErrorResponse>()
       .returnResult()
 
-    println(response)
+    assertThat(response.responseBody?.developerMessage).isEqualTo("")
   }
 
   @Test
@@ -227,9 +228,37 @@ class CounterSignTest : IntegrationTestBase() {
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isBadRequest
-      .expectBody()
+      .expectBody<ErrorResponse>()
       .returnResult()
 
-    println(response)
+    assertThat(response.responseBody?.developerMessage).isEqualTo("")
+  }
+
+  @Test
+  fun `it returns 400 when the CounterSignOutcome is not one of the enum values`() {
+    val request = """
+        {
+          "sanVersionNumber":1,
+          "sentencePlanVersionNumber":1,
+          "outcome":"OUTCOME",
+          "userDetails":
+          {
+            "id":"1",
+            "name":"Test Name"
+          }
+        }
+    """.trimIndent()
+
+    val response = webTestClient.post().uri("/oasys/999/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation())
+      .bodyValue(request)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.userMessage).startsWith("Validation failure: JSON parse error")
+    assertThat(response.responseBody?.developerMessage).startsWith("JSON parse error: Cannot deserialize value of type")
   }
 }
