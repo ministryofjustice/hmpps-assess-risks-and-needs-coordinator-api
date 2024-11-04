@@ -107,11 +107,7 @@ class OasysCoordinatorService(
     val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
 
     associations.forEach { association ->
-      val command = CloneCommand(
-        strategyFactory.getStrategy(association.entityType!!),
-        buildCreateData(requestData),
-        association.entityUuid,
-      )
+      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid,)
 
       when (val commandResult = command.execute()) {
         is OperationResult.Success -> {
@@ -157,8 +153,7 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return LockOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command =
-        LockCommand(strategy, association.entityUuid, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
+      val command = LockCommand(strategy, association.entityUuid, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
