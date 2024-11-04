@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
+import java.util.UUID
 
 @Service
 class OasysCoordinatorService(
@@ -262,6 +263,27 @@ class OasysCoordinatorService(
         is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity, ${response.errorMessage}")
         is OperationResult.Success -> oasysGetResponse.addEntityData(response.data!!)
       }
+    }
+
+    return GetOperationResult.Success(oasysGetResponse)
+  }
+
+  fun getByEntityId(entityUuid: UUID, entityType: EntityType): GetOperationResult<OasysGetResponse> {
+    val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
+      ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
+    val association = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+      .firstOrNull { it.entityType == entityType }
+      ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid and entityType")
+
+    val oasysGetResponse = OasysGetResponse()
+
+    val strategy = association.entityType?.let(strategyFactory::getStrategy)
+      ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+    val command = FetchCommand(strategy, association.entityUuid)
+
+    when (val response = command.execute()) {
+      is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve $entityType entity, ${response.errorMessage}")
+      is OperationResult.Success -> oasysGetResponse.addEntityData(response.data!!)
     }
 
     return GetOperationResult.Success(oasysGetResponse)
