@@ -107,7 +107,11 @@ class OasysCoordinatorService(
     val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
 
     associations.forEach { association ->
-      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid)
+      val command = CloneCommand(
+        strategyFactory.getStrategy(association.entityType!!),
+        buildCreateData(requestData),
+        association.entityUuid,
+      )
 
       when (val commandResult = command.execute()) {
         is OperationResult.Success -> {
@@ -126,6 +130,7 @@ class OasysCoordinatorService(
 
           oasysCreateResponse.addVersionedEntity(commandResult.data)
         }
+
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
           return CreateOperationResult.Failure("Failed to clone entity for ${association.entityType}: ${commandResult.errorMessage}")
@@ -152,7 +157,8 @@ class OasysCoordinatorService(
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return LockOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
-      val command = LockCommand(strategy, association.entityUuid, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
+      val command =
+        LockCommand(strategy, association.entityUuid, LockData(oasysGenericRequest.userDetails.intoUserDetails()))
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> {
@@ -268,10 +274,25 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(oasysGetResponse)
   }
 
-  fun getByEntityId(entityUuid: UUID): GetOperationResult<OasysGetResponse> {
+  fun getByEntityId(entityUuid: UUID, entityType: EntityType): GetOperationResult<OasysGetResponse> {
     val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
       ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
-    return get(oasysAssessmentPk)
+    val association = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+      .firstOrNull { it.entityType == entityType }
+      ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid and entityType")
+
+    val oasysGetResponse = OasysGetResponse()
+
+    val strategy = association.entityType?.let(strategyFactory::getStrategy)
+      ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+    val command = FetchCommand(strategy, association.entityUuid)
+
+    when (val response = command.execute()) {
+      is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve $entityType entity, ${response.errorMessage}")
+      is OperationResult.Success -> oasysGetResponse.addEntityData(response.data!!)
+    }
+
+    return GetOperationResult.Success(oasysGetResponse)
   }
 
   fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {
@@ -477,7 +498,11 @@ class OasysCoordinatorService(
       }
     }
 
-    log.info("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "\nFrom ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}")
+    log.info(
+      "Associations transferred by user ID ${request.userDetails.id}: ${
+        request.merge.map { "\nFrom ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()
+      }",
+    )
 
     return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))
   }

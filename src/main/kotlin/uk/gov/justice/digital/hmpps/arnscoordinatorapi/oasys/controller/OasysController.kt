@@ -26,10 +26,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.UUID
 
 @RestController
 @Tag(name = "OASys")
@@ -37,85 +35,6 @@ import java.util.UUID
 class OasysController(
   private val oasysCoordinatorService: OasysCoordinatorService,
 ) {
-
-  @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
-  @Operation(description = "Get the latest version of entities associated with an OASys Assessment PK")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
-  @ApiResponses(
-    value = [
-      ApiResponse(
-        responseCode = "200",
-        description = "Entities found",
-        content = arrayOf(Content(schema = Schema(implementation = OasysGetResponse::class))),
-      ),
-      ApiResponse(
-        responseCode = "404",
-        description = "No associated entities were found",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-      ApiResponse(
-        responseCode = "500",
-        description = "Unexpected error",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-    ],
-  )
-  fun get(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
-    @PathVariable
-    @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
-    @Valid oasysAssessmentPK: String,
-  ): ResponseEntity<*> {
-    return when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
-      is OasysCoordinatorService.GetOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
-
-      is OasysCoordinatorService.GetOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
-
-      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
-    }
-  }
-
-  @RequestMapping(path = ["/entity/{entityUuid}"], method = [RequestMethod.GET])
-  @Operation(description = "Get the latest version of entities associated with the OASys Assessment PK linked to the a provided entity id")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
-  @ApiResponses(
-    value = [
-      ApiResponse(
-        responseCode = "200",
-        description = "Entities found",
-        content = arrayOf(Content(schema = Schema(implementation = OasysGetResponse::class))),
-      ),
-      ApiResponse(
-        responseCode = "404",
-        description = "No associated entities were found",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-      ApiResponse(
-        responseCode = "500",
-        description = "Unexpected error",
-        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
-      ),
-    ],
-  )
-  fun getByEntityId(
-    @Parameter(description = "Entity UUID. SAN or SP Entity Id", required = true, example = "90a71d16-fecd-4e1a-85b9-98178bf0f8d0")
-    @PathVariable
-    @Valid entityUuid: UUID,
-  ): ResponseEntity<*> {
-    return when (val result = oasysCoordinatorService.getByEntityId(entityUuid)) {
-      is OasysCoordinatorService.GetOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
-
-      is OasysCoordinatorService.GetOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
-
-      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
-    }
-  }
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
   @Operation(description = "Create entities and associate them with an OASys assessment PK")
