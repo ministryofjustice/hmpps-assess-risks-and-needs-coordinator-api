@@ -157,4 +157,79 @@ class CounterSignTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isNotFound
   }
+
+  @Test
+  fun `it returns 400 when validation errors occur in both parameter and body`() {
+    val sixteenCharPk = "0123456789012345"
+    val sixteenCharId = "ABCDEFGHIJKLMNOP"
+    val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
+
+    val response = webTestClient.post().uri("/oasys/${sixteenCharPk}/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCounterSignRequest(
+          sanVersionNumber = -1,
+          sentencePlanVersionNumber = -1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails(id = sixteenCharId, name = longName),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody()
+      .returnResult()
+
+    println(response)
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in body only`() {
+    val sixteenCharId = "ABCDEFGHIJKLMNOP"
+    val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
+
+    val response = webTestClient.post().uri("/oasys/012345678901234/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCounterSignRequest(
+          sanVersionNumber = -1,
+          sentencePlanVersionNumber = -1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails(id = sixteenCharId, name = longName),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody()
+      .returnResult()
+
+    println(response)
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in parameter only`() {
+    val sixteenCharPk = "0123456789012345"
+
+    val response = webTestClient.post().uri("/oasys/${sixteenCharPk}/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCounterSignRequest(
+          sanVersionNumber = 1,
+          sentencePlanVersionNumber = 1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody()
+      .returnResult()
+
+    println(response)
+  }
 }

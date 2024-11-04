@@ -35,21 +35,30 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
     .body(
       ErrorResponse(
         status = BAD_REQUEST,
-        userMessage = "Validation failure: ${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
-        developerMessage = "${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
+        userMessage = "Validation failure: ${(e.bindingResult.fieldErrors.map { "${it.codes?.get(1)} - ${it.defaultMessage}" })}",
+        developerMessage = "${(e.bindingResult.fieldErrors.map { "${it.codes?.get(1)} - ${it.defaultMessage}" })}",
       ),
-    ).also { log.info("Validation exceptions: {}", e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" }) }
+    ).also { log.info("MethodArgumentNotValidException: {}", e.bindingResult.fieldErrors.map { "${it.codes?.get(1)} - ${it.defaultMessage}" }) }
 
   @ExceptionHandler(HandlerMethodValidationException::class)
-  fun handlerMethodNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity
-    .status(BAD_REQUEST)
-    .body(
-      ErrorResponse(
-        status = BAD_REQUEST,
-        userMessage = "Validation failure: ${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
-        developerMessage = "${(e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" })}",
-      ),
-    ).also { log.info("Validation exceptions: {}", e.bindingResult.fieldErrors.map { "${it.field} - ${it.defaultMessage}" }) }
+  fun handlerMethodNotValidationException(e: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
+    val parsedErrors = e.allValidationResults
+      .map { it.resolvableErrors }
+      .flatMap { it }
+      .map { "${it.codes?.get(1)?.substringAfter(".")} - ${it.defaultMessage}" }
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = "Validation failure: $parsedErrors",
+          developerMessage = "$parsedErrors",
+        ),
+      ).also {
+        log.info("HandlerMethodValidationException: {}", parsedErrors)
+      }
+  }
 
   @ExceptionHandler(HttpMessageNotReadableException::class)
   fun handleNoRequestException(e: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> = ResponseEntity
