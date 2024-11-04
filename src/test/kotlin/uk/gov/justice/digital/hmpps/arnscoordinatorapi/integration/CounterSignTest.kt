@@ -160,7 +160,7 @@ class CounterSignTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns 400 when validation errors occur in both parameter and body`() {
+  fun `it returns 400 when validation errors occur in both the path parameter and body`() {
     val sixteenCharPk = "0123456789012345A"
     val sixteenCharId = "ABCDEFGHIJKLMNOP"
     val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
@@ -182,11 +182,16 @@ class CounterSignTest : IntegrationTestBase() {
       .expectBody<ErrorResponse>()
       .returnResult()
 
-    assertThat(response.responseBody?.developerMessage).isEqualTo("")
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("sanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("sentencePlanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and 64")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and 15")
   }
 
   @Test
-  fun `it returns 400 when validation errors occur in body only`() {
+  fun `it returns 400 when validation errors occur in the body only`() {
     val sixteenCharId = "ABCDEFGHIJKLMNOP"
     val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
 
@@ -207,11 +212,14 @@ class CounterSignTest : IntegrationTestBase() {
       .expectBody<ErrorResponse>()
       .returnResult()
 
-    assertThat(response.responseBody?.developerMessage).isEqualTo("")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and 64")
+    assertThat(response.responseBody?.developerMessage).contains("sentencePlanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("sanVersionNumber - must be greater than or equal to 0")
   }
 
   @Test
-  fun `it returns 400 when validation errors occur in parameter only`() {
+  fun `it returns 400 when validation errors occur in the path parameter only`() {
     val sixteenCharPk = "0123456789012345"
 
     val response = webTestClient.post().uri("/oasys/$sixteenCharPk/counter-sign")
@@ -231,7 +239,7 @@ class CounterSignTest : IntegrationTestBase() {
       .expectBody<ErrorResponse>()
       .returnResult()
 
-    assertThat(response.responseBody?.developerMessage).isEqualTo("")
+    assertThat(response.responseBody?.developerMessage).isEqualTo("[oasysAssessmentPK - size must be between 1 and 15]")
   }
 
   @Test

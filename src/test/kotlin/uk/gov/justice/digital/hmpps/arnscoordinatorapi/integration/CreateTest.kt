@@ -4,12 +4,18 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.*
 
 class CreateTest : IntegrationTestBase() {
@@ -158,5 +164,34 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isNotFound
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in the body`() {
+    val previousOasysAssessmentPk = "012345678901234A"
+    val oasysAssessmentPk = "012345678901234A"
+
+    val response = webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          previousOasysAssessmentPk = previousOasysAssessmentPk,
+          oasysAssessmentPk = oasysAssessmentPk,
+          planType = PlanType.INITIAL,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    println(response)
+
+    assertThat(response.responseBody?.developerMessage).contains("previousOasysAssessmentPk - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("previousOasysAssessmentPk - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).doesNotContain("Size.previousOasysAssessmentPk")
   }
 }

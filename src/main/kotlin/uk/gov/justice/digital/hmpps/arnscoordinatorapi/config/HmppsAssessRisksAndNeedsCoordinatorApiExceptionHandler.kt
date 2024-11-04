@@ -30,15 +30,21 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
     ).also { log.info("Validation exception: {}", e.message) }
 
   @ExceptionHandler(MethodArgumentNotValidException::class)
-  fun handleArgumentNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity
-    .status(BAD_REQUEST)
-    .body(
-      ErrorResponse(
-        status = BAD_REQUEST,
-        userMessage = "Validation failure: ${(e.bindingResult.fieldErrors.map { "${it.codes?.get(1)} - ${it.defaultMessage}" })}",
-        developerMessage = "${(e.bindingResult.fieldErrors.map { "${it.codes?.get(1)} - ${it.defaultMessage}" })}",
-      ),
-    ).also { log.info("MethodArgumentNotValidException: {}", e.bindingResult.fieldErrors.map { "${it.codes?.get(1)} - ${it.defaultMessage}" }) }
+  fun handleArgumentNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+    val parsedErrors = e.bindingResult.fieldErrors.map{ "${it.codes?.get(1)?.substringAfter(".")} - ${it.defaultMessage}" }
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = "Validation failure: $parsedErrors",
+          developerMessage = "$parsedErrors",
+        ),
+      ).also {
+        log.info("MethodArgumentNotValidException: {}", "$parsedErrors")
+      }
+  }
 
   @ExceptionHandler(HandlerMethodValidationException::class)
   fun handlerMethodNotValidationException(e: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
