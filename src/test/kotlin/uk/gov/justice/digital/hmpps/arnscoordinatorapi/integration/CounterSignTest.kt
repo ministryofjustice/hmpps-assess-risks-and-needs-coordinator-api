@@ -164,7 +164,7 @@ class CounterSignTest : IntegrationTestBase() {
     val sixteenCharId = "ABCDEFGHIJKLMNOP"
     val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
 
-    val response = webTestClient.post().uri("/oasys/${sixteenCharPk}/counter-sign")
+    val response = webTestClient.post().uri("/oasys/$sixteenCharPk/counter-sign")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
@@ -213,7 +213,7 @@ class CounterSignTest : IntegrationTestBase() {
   fun `it returns 400 when validation errors occur in parameter only`() {
     val sixteenCharPk = "0123456789012345"
 
-    val response = webTestClient.post().uri("/oasys/${sixteenCharPk}/counter-sign")
+    val response = webTestClient.post().uri("/oasys/$sixteenCharPk/counter-sign")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
