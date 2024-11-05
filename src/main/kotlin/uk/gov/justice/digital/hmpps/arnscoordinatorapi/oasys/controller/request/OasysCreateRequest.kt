@@ -15,7 +15,7 @@ data class OasysCreateRequest(
     example = "123456",
   )
   @field:Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
-  @field:Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
+  @field:Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
   val oasysAssessmentPk: String,
 
   @Schema(
@@ -24,7 +24,7 @@ data class OasysCreateRequest(
     example = "123456",
   )
   @field:Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
-  @field:Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
+  @field:Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
   val previousOasysAssessmentPk: String? = null,
 
   @Schema(description = "Region prison code", example = "111111")
