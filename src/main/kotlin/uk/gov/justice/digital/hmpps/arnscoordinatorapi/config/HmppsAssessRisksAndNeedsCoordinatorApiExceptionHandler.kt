@@ -31,7 +31,8 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
 
   @ExceptionHandler(MethodArgumentNotValidException::class)
   fun handleArgumentNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
-    val parsedErrors = e.bindingResult.fieldErrors.map{ "${it.codes?.get(1)?.substringAfter(".")} - ${it.defaultMessage}" }
+    val parsedErrors = e.bindingResult.fieldErrors
+      .map{ "${it.codes?.get(0)?.substringAfter("#")?.substringAfter(".")} - ${it.defaultMessage}" }
 
     return ResponseEntity
       .status(BAD_REQUEST)
@@ -51,7 +52,7 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
     val parsedErrors = e.allValidationResults
       .map { it.resolvableErrors }
       .flatMap { it }
-      .map { "${it.codes?.get(1)?.substringAfter(".")} - ${it.defaultMessage}" }
+      .map { "${it.codes?.get(0)?.substringAfter("#")?.substringAfter(".")} - ${it.defaultMessage}" }
 
     return ResponseEntity
       .status(BAD_REQUEST)

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
@@ -133,5 +134,55 @@ class MergeTest : IntegrationTestBase() {
     assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("NEW-10")).isEmpty()
     assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("OLD-12")).isEmpty()
     assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("NEW-12")).isEmpty()
+  }
+
+  @Test
+  fun `it returns 400 and validation errors when invalid PKs submitted`() {
+    val invalidOasysAssessmentPk = "012345678901234A"
+
+    val response = webTestClient.post().uri("/oasys/merge")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysMergeRequest(
+          merge = listOf(
+            OasysTransferAssociation(invalidOasysAssessmentPk, invalidOasysAssessmentPk),
+            OasysTransferAssociation(invalidOasysAssessmentPk, invalidOasysAssessmentPk),
+          ),
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[0].oldOasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[0].oldOasysAssessmentPK - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[0].newOasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[0].newOasysAssessmentPK - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[1].oldOasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[1].oldOasysAssessmentPK - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[1].newOasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysMergeRequest.merge[1].newOasysAssessmentPK - size must be between 1 and 15")
+  }
+
+  @Test
+  fun `it returns 400 and a validation error when an empty merge list is submitted`() {
+    val response = webTestClient.post().uri("/oasys/merge")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysMergeRequest(
+          merge = listOf(),
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).isEqualTo("[oasysMergeRequest.merge - must not be empty]")
   }
 }

@@ -186,8 +186,6 @@ class CreateTest : IntegrationTestBase() {
       .expectBody<ErrorResponse>()
       .returnResult()
 
-    println(response)
-
     assertThat(response.responseBody?.developerMessage).contains("previousOasysAssessmentPk - Must only contain numeric characters")
     assertThat(response.responseBody?.developerMessage).contains("previousOasysAssessmentPk - size must be between 1 and 15")
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - Must only contain numeric characters")
