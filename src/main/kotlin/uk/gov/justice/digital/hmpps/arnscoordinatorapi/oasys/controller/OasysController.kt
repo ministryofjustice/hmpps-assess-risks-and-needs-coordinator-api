@@ -61,7 +61,7 @@ class OasysController(
     ],
   )
   fun get(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -229,7 +229,7 @@ class OasysController(
     ],
   )
   fun sign(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -290,7 +290,7 @@ class OasysController(
     ],
   )
   fun counterSign(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -350,7 +350,7 @@ class OasysController(
     ],
   )
   fun lock(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -413,7 +413,7 @@ class OasysController(
     ],
   )
   fun rollback(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -475,7 +475,7 @@ class OasysController(
     ],
   )
   fun softDelete(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -536,7 +536,7 @@ class OasysController(
     ],
   )
   fun undelete(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
@@ -596,7 +596,7 @@ class OasysController(
     ],
   )
   fun associations(
-    @Parameter(description = "OASys Assessment PK", required = true, example = "oasys-pk-goes-here")
+    @Parameter(description = "OASys Assessment PK", required = true, example = "1001")
     @PathVariable
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "^\\d+$", message = "Must only contain numeric characters")
