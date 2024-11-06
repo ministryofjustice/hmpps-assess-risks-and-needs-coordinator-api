@@ -7,6 +7,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OasysUserDetailsValidationTest {
@@ -33,12 +34,12 @@ class OasysUserDetailsValidationTest {
   @Test
   fun `Invalid OasysUserDetails will produce size violations`() {
     val userName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
-    val sixteenCharId = "ABCDEFGHIJKLMNOP"
-    val oasysUserDetails = OasysUserDetails(id = sixteenCharId, name = userName)
+    val thirtyOneCharId = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345"
+    val oasysUserDetails = OasysUserDetails(id = thirtyOneCharId, name = userName)
 
     assertThat(validator.validate(oasysUserDetails)).hasSize(2)
 
-    assertThat(validator.validateProperty(oasysUserDetails, "name").first().message).isEqualTo("size must be between 0 and 64")
-    assertThat(validator.validateProperty(oasysUserDetails, "id").first().message).isEqualTo("size must be between 0 and 15")
+    assertThat(validator.validateProperty(oasysUserDetails, "name").first().message).isEqualTo("size must be between 0 and ${Constraints.OASYS_USER_NAME_MAX_LENGTH}")
+    assertThat(validator.validateProperty(oasysUserDetails, "id").first().message).isEqualTo("size must be between 0 and ${Constraints.OASYS_USER_ID_MAX_LENGTH}")
   }
 }
