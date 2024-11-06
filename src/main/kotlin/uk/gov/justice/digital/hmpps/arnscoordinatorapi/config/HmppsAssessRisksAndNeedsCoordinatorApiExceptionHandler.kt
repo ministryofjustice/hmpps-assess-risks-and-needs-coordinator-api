@@ -29,6 +29,7 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
       ),
     ).also { log.info("Validation exception: {}", e.message) }
 
+  // MethodArgumentNotValidException is thrown when one or more body parameters are invalid.
   @ExceptionHandler(MethodArgumentNotValidException::class)
   fun handleArgumentNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
     val parsedErrors = e.bindingResult.fieldErrors
@@ -47,6 +48,8 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
       }
   }
 
+  // HandlerMethodValidationException if thrown when a path parameter is invalid.
+  // If both the path parameter and body are invalid, this will also contain the validation errors for the body.
   @ExceptionHandler(HandlerMethodValidationException::class)
   fun handlerMethodNotValidationException(e: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
     val parsedErrors = e.allValidationResults
