@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -156,5 +157,116 @@ class CounterSignTest : IntegrationTestBase() {
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isNotFound
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in both the path parameter and body`() {
+    val sixteenCharPk = "0123456789012345A"
+    val sixteenCharId = "ABCDEFGHIJKLMNOP"
+    val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
+
+    val response = webTestClient.post().uri("/oasys/$sixteenCharPk/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCounterSignRequest(
+          sanVersionNumber = -1,
+          sentencePlanVersionNumber = -1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails(id = sixteenCharId, name = longName),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - size must be between 1 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("sanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("sentencePlanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and 64")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and 15")
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in the body only`() {
+    val sixteenCharId = "ABCDEFGHIJKLMNOP"
+    val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
+
+    val response = webTestClient.post().uri("/oasys/012345678901234/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCounterSignRequest(
+          sanVersionNumber = -1,
+          sentencePlanVersionNumber = -1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails(id = sixteenCharId, name = longName),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and 64")
+    assertThat(response.responseBody?.developerMessage).contains("sentencePlanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("sanVersionNumber - must be greater than or equal to 0")
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in the path parameter only`() {
+    val sixteenCharPk = "0123456789012345"
+
+    val response = webTestClient.post().uri("/oasys/$sixteenCharPk/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCounterSignRequest(
+          sanVersionNumber = 1,
+          sentencePlanVersionNumber = 1,
+          outcome = CounterSignOutcome.COUNTERSIGNED,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).isEqualTo("[oasysAssessmentPK - size must be between 1 and 15]")
+  }
+
+  @Test
+  fun `it returns 400 when the CounterSignOutcome is not one of the enum values`() {
+    val request = """
+        {
+          "sanVersionNumber":1,
+          "sentencePlanVersionNumber":1,
+          "outcome":"OUTCOME",
+          "userDetails":
+          {
+            "id":"1",
+            "name":"Test Name"
+          }
+        }
+    """.trimIndent()
+
+    val response = webTestClient.post().uri("/oasys/999/counter-sign")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation())
+      .bodyValue(request)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.userMessage).startsWith("Validation failure: JSON parse error")
+    assertThat(response.responseBody?.developerMessage).startsWith("JSON parse error: Cannot deserialize value of type")
   }
 }

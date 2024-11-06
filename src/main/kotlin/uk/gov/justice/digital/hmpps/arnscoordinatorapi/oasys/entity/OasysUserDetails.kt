@@ -8,11 +8,11 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 
 data class OasysUserDetails(
   @Schema(description = "User ID", example = "RB123XYZ")
-  @Size(max = Constraints.OASYS_USER_ID_MAX_LENGTH)
+  @field:Size(max = Constraints.OASYS_USER_ID_MAX_LENGTH)
   val id: String = "",
 
   @Schema(description = "User's full name", example = "John Doe")
-  @Size(max = Constraints.OASYS_USER_NAME_MAX_LENGTH)
+  @field:Size(max = Constraints.OASYS_USER_NAME_MAX_LENGTH)
   val name: String = "",
 ) {
   fun intoUserDetails() = UserDetails(id, name, UserType.OASYS)

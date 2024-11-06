@@ -8,11 +8,11 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 
 data class OasysMergeRequest(
   @Schema(description = "List of OASys Assessment PKs pairs to merge")
-  @Valid
-  @NotEmpty
+  @field:Valid
+  @field:NotEmpty
   val merge: List<OasysTransferAssociation>,
 
   @Schema(description = "OASys User")
-  @Valid
+  @field:Valid
   val userDetails: OasysUserDetails,
 )

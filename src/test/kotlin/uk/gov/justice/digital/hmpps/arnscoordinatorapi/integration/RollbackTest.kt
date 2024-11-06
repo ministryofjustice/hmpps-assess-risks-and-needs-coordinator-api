@@ -5,6 +5,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
@@ -95,5 +97,42 @@ class RollbackTest : IntegrationTestBase() {
   @Test
   fun `it returns a 404 when no associations found`() {
     request("999").expectStatus().isNotFound
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in the path parameter`() {
+    val sixteenCharPk = "012345678901234A"
+
+    val response = request(sixteenCharPk)
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - Must only contain numeric characters")
+    assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - size must be between 1 and 15")
+  }
+
+  @Test
+  fun `it returns 400 when validation errors occur in the body`() {
+    val fifteenCharPk = "012345678901234"
+
+    val response = webTestClient.post().uri("/oasys/$fifteenCharPk/rollback")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysRollbackRequest(
+          sanVersionNumber = -1,
+          sentencePlanVersionNumber = -2,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.developerMessage).contains("oasysRollbackRequest.sentencePlanVersionNumber - must be greater than or equal to 0")
+    assertThat(response.responseBody?.developerMessage).contains("oasysRollbackRequest.sanVersionNumber - must be greater than or equal to 0")
   }
 }

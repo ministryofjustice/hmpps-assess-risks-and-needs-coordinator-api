@@ -9,8 +9,10 @@ import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
@@ -26,6 +28,47 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.info("Validation exception: {}", e.message) }
+
+  // MethodArgumentNotValidException is thrown when one or more body parameters are invalid.
+  @ExceptionHandler(MethodArgumentNotValidException::class)
+  fun handleArgumentNotValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+    val parsedErrors = e.bindingResult.fieldErrors
+      .map { "${it.codes?.get(0)?.substringAfter("#")?.substringAfter(".")} - ${it.defaultMessage}" }
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = "Validation failure: $parsedErrors",
+          developerMessage = "$parsedErrors",
+        ),
+      ).also {
+        log.info("MethodArgumentNotValidException: {}", "$parsedErrors")
+      }
+  }
+
+  // HandlerMethodValidationException if thrown when a path parameter is invalid.
+  // If both the path parameter and body are invalid, this will also contain the validation errors for the body.
+  @ExceptionHandler(HandlerMethodValidationException::class)
+  fun handlerMethodNotValidationException(e: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
+    val parsedErrors = e.allValidationResults
+      .map { it.resolvableErrors }
+      .flatMap { it }
+      .map { "${it.codes?.get(0)?.substringAfter("#")?.substringAfter(".")} - ${it.defaultMessage}" }
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = "Validation failure: $parsedErrors",
+          developerMessage = "$parsedErrors",
+        ),
+      ).also {
+        log.info("HandlerMethodValidationException: {}", parsedErrors)
+      }
+  }
 
   @ExceptionHandler(HttpMessageNotReadableException::class)
   fun handleNoRequestException(e: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> = ResponseEntity
