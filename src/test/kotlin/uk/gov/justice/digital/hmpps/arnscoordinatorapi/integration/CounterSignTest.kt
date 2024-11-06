@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -162,7 +163,7 @@ class CounterSignTest : IntegrationTestBase() {
   @Test
   fun `it returns 400 when validation errors occur in both the path parameter and body`() {
     val sixteenCharPk = "0123456789012345A"
-    val sixteenCharId = "ABCDEFGHIJKLMNOP"
+    val thirtyOneCharId = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345"
     val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
 
     val response = webTestClient.post().uri("/oasys/$sixteenCharPk/counter-sign")
@@ -173,7 +174,7 @@ class CounterSignTest : IntegrationTestBase() {
           sanVersionNumber = -1,
           sentencePlanVersionNumber = -1,
           outcome = CounterSignOutcome.COUNTERSIGNED,
-          userDetails = OasysUserDetails(id = sixteenCharId, name = longName),
+          userDetails = OasysUserDetails(id = thirtyOneCharId, name = longName),
         ),
       )
       .accept(MediaType.APPLICATION_JSON)
@@ -186,13 +187,13 @@ class CounterSignTest : IntegrationTestBase() {
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPK - size must be between 1 and 15")
     assertThat(response.responseBody?.developerMessage).contains("sanVersionNumber - must be greater than or equal to 0")
     assertThat(response.responseBody?.developerMessage).contains("sentencePlanVersionNumber - must be greater than or equal to 0")
-    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and 64")
-    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and 15")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and ${Constraints.OASYS_USER_NAME_MAX_LENGTH}")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and ${Constraints.OASYS_USER_ID_MAX_LENGTH}")
   }
 
   @Test
   fun `it returns 400 when validation errors occur in the body only`() {
-    val sixteenCharId = "ABCDEFGHIJKLMNOP"
+    val thirtyOneCharId = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345"
     val longName = "SomebodyHasAReallyLongFirstName ItsAlmostAsLongAsTheirSurnameButNotQuite"
 
     val response = webTestClient.post().uri("/oasys/012345678901234/counter-sign")
@@ -203,7 +204,7 @@ class CounterSignTest : IntegrationTestBase() {
           sanVersionNumber = -1,
           sentencePlanVersionNumber = -1,
           outcome = CounterSignOutcome.COUNTERSIGNED,
-          userDetails = OasysUserDetails(id = sixteenCharId, name = longName),
+          userDetails = OasysUserDetails(id = thirtyOneCharId, name = longName),
         ),
       )
       .accept(MediaType.APPLICATION_JSON)
@@ -212,8 +213,8 @@ class CounterSignTest : IntegrationTestBase() {
       .expectBody<ErrorResponse>()
       .returnResult()
 
-    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and 15")
-    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and 64")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.id - size must be between 0 and ${Constraints.OASYS_USER_ID_MAX_LENGTH}")
+    assertThat(response.responseBody?.developerMessage).contains("userDetails.name - size must be between 0 and ${Constraints.OASYS_USER_NAME_MAX_LENGTH}")
     assertThat(response.responseBody?.developerMessage).contains("sentencePlanVersionNumber - must be greater than or equal to 0")
     assertThat(response.responseBody?.developerMessage).contains("sanVersionNumber - must be greater than or equal to 0")
   }
