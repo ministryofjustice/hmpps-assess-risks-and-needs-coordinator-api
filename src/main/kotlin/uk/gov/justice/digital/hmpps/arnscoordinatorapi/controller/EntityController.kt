@@ -33,7 +33,7 @@ class EntityController(
 
   @RequestMapping(path = ["/{entityUuid}/{entityType}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of the provided entity type associated with the OASys Assessment PK linked to the provided entity id")
-  @PreAuthorize("hasRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ')")
   @ApiResponses(
     value = [
       ApiResponse(
