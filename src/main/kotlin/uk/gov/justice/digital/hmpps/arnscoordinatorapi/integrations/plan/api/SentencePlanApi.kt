@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.res
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.PlanVersionResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
+import kotlin.jvm.optionals.getOrNull
 
 @Component
 @ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
@@ -215,9 +216,9 @@ class SentencePlanApi(
     }
   }
 
-  fun softDeletePlan(softDeleteData: SoftDeletePlanData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
+  fun softDeletePlan(softDeleteData: SoftDeletePlanData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity?> {
     return try {
-      val result = sentencePlanApiWebClient.post()
+      sentencePlanApiWebClient.post()
         .uri(apiProperties.endpoints.softDelete.replace("{uuid}", planUuid.toString()))
         .body(BodyInserters.fromValue(softDeleteData))
         .retrieve()
@@ -229,11 +230,9 @@ class SentencePlanApi(
             entityType = EntityType.PLAN,
           )
         }
-        .block()
-
-      result?.let {
-        ApiOperationResultExtended.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during soft-delete plan versions")
+        .blockOptional()
+        .getOrNull()
+        .let { ApiOperationResultExtended.Success(it) }
     } catch (ex: WebClientResponseException) {
       if (ex.statusCode.value() == HttpStatus.CONFLICT.value()) {
         return ApiOperationResultExtended.Conflict("Unable to soft-delete the requested sentence plan versions: ${ex.responseBodyAsString}")
