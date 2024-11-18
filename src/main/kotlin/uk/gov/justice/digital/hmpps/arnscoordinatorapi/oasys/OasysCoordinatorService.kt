@@ -492,7 +492,7 @@ class OasysCoordinatorService(
       }
     }
 
-    log.info("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "\nFrom ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}")
+    log.info("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "From ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}")
 
     return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))
   }
