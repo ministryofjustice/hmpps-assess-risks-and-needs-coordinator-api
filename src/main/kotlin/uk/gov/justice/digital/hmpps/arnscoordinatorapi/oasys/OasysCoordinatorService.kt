@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
 import jakarta.transaction.Transactional
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -492,7 +493,7 @@ class OasysCoordinatorService(
       }
     }
 
-    log.info("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "From ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}")
+    log.info(StringUtils.normalizeSpace("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "From ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}"))
 
     return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))
   }
