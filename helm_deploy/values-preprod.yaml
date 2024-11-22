@@ -14,9 +14,8 @@ generic-service:
     SP_API_BASE_URL: "https://sentence-plan-api-preprod.hmpps.service.justice.gov.uk"
   
   allowlist:
-    live_data-public-eu-west-2a: 13.41.38.176/32
-    live_data-public-eu-west-2b: 3.8.81.175/32
-    live_data-public-eu-west-2c: 3.11.197.133/32  
+    groups:
+      - mod-platform-live
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
