@@ -3,7 +3,10 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
@@ -16,6 +19,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysTransfe
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
+@ExtendWith(OutputCaptureExtension::class)
 class MergeTest : IntegrationTestBase() {
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
@@ -184,5 +188,34 @@ class MergeTest : IntegrationTestBase() {
       .returnResult()
 
     assertThat(response.responseBody?.developerMessage).isEqualTo("[oasysMergeRequest.merge - must not be empty]")
+  }
+
+  @Test
+  fun `log message does not contain crlf characters`(output: CapturedOutput) {
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(id = 1L, oasysAssessmentPk = "101", entityType = EntityType.PLAN),
+        OasysAssociation(id = 2L, oasysAssessmentPk = "101", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(id = 3L, oasysAssessmentPk = "102", entityType = EntityType.PLAN),
+        OasysAssociation(id = 4L, oasysAssessmentPk = "102", entityType = EntityType.ASSESSMENT),
+      ),
+    )
+
+    webTestClient.post().uri("/oasys/merge")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysMergeRequest(
+          merge = listOf(
+            OasysTransferAssociation(oldOasysAssessmentPK = "101", newOasysAssessmentPK = "201"),
+            OasysTransferAssociation(oldOasysAssessmentPK = "102", newOasysAssessmentPK = "202"),
+          ),
+          userDetails = OasysUserDetails(id = "\r\nForged the log\r\n", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isOk
+
+    assertThat(output.out).contains("Forged the log : From 101 to 201, From 102 to 202")
   }
 }
