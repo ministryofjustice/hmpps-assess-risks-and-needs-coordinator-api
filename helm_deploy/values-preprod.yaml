@@ -12,6 +12,10 @@ generic-service:
     HMPPS_AUTH_BASE_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
     SAN_API_BASE_URL: "https://api.strengths-based-needs-preprod.hmpps.service.justice.gov.uk"
     SP_API_BASE_URL: "https://sentence-plan-api-preprod.hmpps.service.justice.gov.uk"
+  
+  allowlist:
+    groups:
+      - mod-platform-live
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
