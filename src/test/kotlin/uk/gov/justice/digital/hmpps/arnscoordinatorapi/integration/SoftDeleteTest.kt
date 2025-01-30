@@ -33,7 +33,8 @@ class SoftDeleteTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully soft-deletes an existing association`() {
-    val oasysAssessmentPk = "199"
+    val oasysAssessmentPk = getRandomOasysPk()
+    val unaffectedOasysAssessmentPk = getRandomOasysPk()
     val assessmentUuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2")
     val planUuid = UUID.fromString("3fc52df3-ad01-40d5-b29c-eba6573faf91")
 
@@ -41,14 +42,14 @@ class SoftDeleteTest : IntegrationTestBase() {
       listOf(
         OasysAssociation(
           createdAt = LocalDateTime.now().minusDays(1),
-          oasysAssessmentPk = "198",
+          oasysAssessmentPk = unaffectedOasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = planUuid,
           baseVersion = 1,
         ),
         OasysAssociation(
           createdAt = LocalDateTime.now().minusDays(1),
-          oasysAssessmentPk = "198",
+          oasysAssessmentPk = unaffectedOasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = assessmentUuid,
           baseVersion = 2,
@@ -117,7 +118,7 @@ class SoftDeleteTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully soft-deletes the only existing association`() {
-    val oasysAssessmentPk = "198"
+    val oasysAssessmentPk = getRandomOasysPk()
     val assessmentUuid = UUID.randomUUID()
     val planUuid = UUID.randomUUID()
 
@@ -176,11 +177,10 @@ class SoftDeleteTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the SAN assessment is already soft-deleted`() {
     stubAssessmentsSoftDelete(409)
-    val oasysAssessmentPk = "200"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -208,11 +208,10 @@ class SoftDeleteTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the Sentence Plan version(s) is already soft-deleted`() {
     stubSentencePlanSoftDelete(409)
-    val oasysAssessmentPk = "201"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -239,7 +238,7 @@ class SoftDeleteTest : IntegrationTestBase() {
 
   @Test
   fun `it returns a 404 when no associations found`() {
-    webTestClient.post().uri("/oasys/999/soft-delete")
+    webTestClient.post().uri("/oasys/${getRandomOasysPk()}/soft-delete")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(

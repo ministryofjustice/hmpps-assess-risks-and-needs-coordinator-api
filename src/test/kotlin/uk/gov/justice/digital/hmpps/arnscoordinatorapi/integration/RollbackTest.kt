@@ -18,13 +18,14 @@ import java.util.*
 class RollbackTest : IntegrationTestBase() {
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
-  val oasysAssessmentPk = "199"
+  lateinit var oasysAssessmentPk: String
 
   @BeforeEach
   fun setUp() {
     stubGrantToken()
     stubAssessmentsRollback()
     stubSentencePlanRollback()
+    oasysAssessmentPk = getRandomOasysPk()
 
     oasysAssociationRepository.saveAll(
       listOf(

@@ -32,7 +32,7 @@ class UndeleteTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully undeletes an existing SP and SAN for an oasys PK`() {
-    val oasysAssessmentPk = "699"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -80,7 +80,7 @@ class UndeleteTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the SAN assessment is already undeleted`() {
     stubAssessmentsUndelete(409)
-    val oasysAssessmentPk = "600"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -113,7 +113,7 @@ class UndeleteTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the Sentence Plan is already undeleted`() {
     stubSentencePlanUndelete(409)
-    val oasysAssessmentPk = "601"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -145,7 +145,7 @@ class UndeleteTest : IntegrationTestBase() {
 
   @Test
   fun `it returns a 404 when no deleted associations found`() {
-    val oasysAssessmentPk = "401"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -156,7 +156,7 @@ class UndeleteTest : IntegrationTestBase() {
         ),
       ),
     )
-    webTestClient.post().uri("/oasys/999/undelete")
+    webTestClient.post().uri("/oasys/${getRandomOasysPk()}/undelete")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(

@@ -31,12 +31,18 @@ class MergeTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully merges two pairs of OASys PKs`() {
+    val existingOasysPk1 = getRandomOasysPk()
+    val existingOasysPk2 = getRandomOasysPk()
+
+    val newOasysPk1 = getRandomOasysPk()
+    val newOasysPk2 = getRandomOasysPk()
+
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = "101", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "101", entityType = EntityType.ASSESSMENT),
-        OasysAssociation(oasysAssessmentPk = "102", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "102", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.ASSESSMENT),
       ),
     )
 
@@ -46,8 +52,8 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = "101", newOasysAssessmentPK = "201"),
-            OasysTransferAssociation(oldOasysAssessmentPK = "102", newOasysAssessmentPK = "202"),
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk1, newOasysAssessmentPK = newOasysPk1),
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk2, newOasysAssessmentPK = newOasysPk2),
           ),
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
@@ -60,20 +66,25 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.message).isEqualTo("Successfully processed all 2 merge elements")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("101")).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("102")).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("201").size).isEqualTo(2)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("202").size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingOasysPk1)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingOasysPk2)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk1).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk2).size).isEqualTo(2)
   }
 
   @Test
   fun `it returns a 409 when an association already exists for the new OASys PK`() {
+    val existingAssociationPk1 = getRandomOasysPk()
+    val existingAssociationPk2 = getRandomOasysPk()
+    val existingAssociationPk3 = getRandomOasysPk()
+    val existingAssociationPk4 = getRandomOasysPk()
+
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = "103", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "203", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "104", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "204", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.PLAN),
       ),
     )
 
@@ -83,8 +94,8 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = "103", newOasysAssessmentPK = "203"),
-            OasysTransferAssociation(oldOasysAssessmentPK = "104", newOasysAssessmentPK = "204"),
+            OasysTransferAssociation(oldOasysAssessmentPK = existingAssociationPk1, newOasysAssessmentPK = existingAssociationPk2),
+            OasysTransferAssociation(oldOasysAssessmentPK = existingAssociationPk3, newOasysAssessmentPK = existingAssociationPk4),
           ),
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
@@ -95,19 +106,28 @@ class MergeTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Existing association(s) for 203, 204")
+    assertThat(response?.userMessage).isEqualTo("Existing association(s) for $existingAssociationPk2, $existingAssociationPk4")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("103").size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("203").size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("104").size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("204").size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk1).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk2).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk3).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk4).size).isEqualTo(1)
   }
 
   @Test
   fun `it returns a 404 when an association is not found`() {
+    val oasysAssessmentPk = getRandomOasysPk()
+    val newOasysAssessmentPk = getRandomOasysPk()
+
+    val missingOasysAssessmentPk1 = getRandomOasysPk()
+    val newMissingOasysAssessmentPk1 = getRandomOasysPk()
+
+    val missingOasysAssessmentPk2 = getRandomOasysPk()
+    val newMissingOasysAssessmentPk2 = getRandomOasysPk()
+
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(id = 1L, oasysAssessmentPk = "105", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.PLAN),
       ),
     )
 
@@ -117,9 +137,9 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = "105", newOasysAssessmentPK = "205"),
-            OasysTransferAssociation(oldOasysAssessmentPK = "1010", newOasysAssessmentPK = "2010"),
-            OasysTransferAssociation(oldOasysAssessmentPK = "1012", newOasysAssessmentPK = "2012"),
+            OasysTransferAssociation(oldOasysAssessmentPK = oasysAssessmentPk, newOasysAssessmentPK = newOasysAssessmentPk),
+            OasysTransferAssociation(oldOasysAssessmentPK = missingOasysAssessmentPk1, newOasysAssessmentPK = newMissingOasysAssessmentPk1),
+            OasysTransferAssociation(oldOasysAssessmentPK = missingOasysAssessmentPk2, newOasysAssessmentPK = newMissingOasysAssessmentPk2),
           ),
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
@@ -130,14 +150,14 @@ class MergeTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("The following association(s) could not be located: 1010, 1012 and the operation has not been actioned.")
+    assertThat(response?.userMessage).isEqualTo("The following association(s) could not be located: $missingOasysAssessmentPk1, $missingOasysAssessmentPk2 and the operation has not been actioned.")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("105").size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("205")).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("1010")).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("2010")).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("1012")).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk("2012")).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysAssessmentPk)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(missingOasysAssessmentPk1)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newMissingOasysAssessmentPk1)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(missingOasysAssessmentPk2)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newMissingOasysAssessmentPk2)).isEmpty()
   }
 
   @Test
@@ -192,12 +212,18 @@ class MergeTest : IntegrationTestBase() {
 
   @Test
   fun `log message does not contain crlf characters`(output: CapturedOutput) {
+    val existingOasysPk1 = getRandomOasysPk()
+    val existingOasysPk2 = getRandomOasysPk()
+
+    val newOasysPk1 = getRandomOasysPk()
+    val newOasysPk2 = getRandomOasysPk()
+
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = "106", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "106", entityType = EntityType.ASSESSMENT),
-        OasysAssociation(oasysAssessmentPk = "107", entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = "107", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.ASSESSMENT),
       ),
     )
 
@@ -207,8 +233,8 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = "106", newOasysAssessmentPK = "206"),
-            OasysTransferAssociation(oldOasysAssessmentPK = "107", newOasysAssessmentPK = "207"),
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk1, newOasysAssessmentPK = newOasysPk1),
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk2, newOasysAssessmentPK = newOasysPk2),
           ),
           userDetails = OasysUserDetails(id = "\r\nForged the log\r\n", name = "Test Name"),
         ),
@@ -216,6 +242,6 @@ class MergeTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isOk
 
-    assertThat(output.out).contains("Forged the log : From 106 to 206, From 107 to 207")
+    assertThat(output.out).contains("Forged the log : From $existingOasysPk1 to $newOasysPk1, From $existingOasysPk2 to $newOasysPk2")
   }
 }

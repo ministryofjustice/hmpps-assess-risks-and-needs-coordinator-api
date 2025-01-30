@@ -30,17 +30,15 @@ class LockTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully locks an existing SP and SAN for an oasys PK`() {
-    val oasysAssessmentPk = "199"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
         OasysAssociation(
-          id = 2L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("4fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -70,11 +68,10 @@ class LockTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the SAN assessment is already locked`() {
     stubAssessmentsLock(409)
-    val oasysAssessmentPk = "200"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -102,11 +99,10 @@ class LockTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the Sentence Plan is already locked`() {
     stubSentencePlanLock(409)
-    val oasysAssessmentPk = "201"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),

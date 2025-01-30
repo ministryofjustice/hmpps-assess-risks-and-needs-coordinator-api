@@ -4,21 +4,25 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.TestBeanConfig
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.SentencePlanApiMockExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.SentencePlanApiMockExtension.Companion.sentencePlanApiMock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension.Companion.sanServer
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.RandomOasysPk
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.util.UUID
 
 @ExtendWith(HmppsAuthApiExtension::class, StrengthsAndNeedsApiExtension::class, SentencePlanApiMockExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
+@Import(TestBeanConfig::class)
 abstract class IntegrationTestBase {
 
   @Autowired
@@ -26,6 +30,11 @@ abstract class IntegrationTestBase {
 
   @Autowired
   protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
+
+  @Autowired
+  lateinit var randomOasysPk: RandomOasysPk
+
+  fun getRandomOasysPk() = randomOasysPk.get()
 
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",

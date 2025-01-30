@@ -32,7 +32,7 @@ class CounterSignTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully countersigns an existing SP and SAN for an oasys PK`() {
-    val oasysAssessmentPk = "199"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -73,7 +73,7 @@ class CounterSignTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the SAN assessment is already locked`() {
     stubAssessmentsCounterSign(409)
-    val oasysAssessmentPk = "200"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -107,7 +107,7 @@ class CounterSignTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the Sentence Plan is already locked`() {
     stubSentencePlanCounterSign(409)
-    val oasysAssessmentPk = "201"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
