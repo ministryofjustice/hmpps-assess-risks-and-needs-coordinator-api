@@ -33,10 +33,10 @@ class MergeTest : IntegrationTestBase() {
   fun `it successfully merges two pairs of OASys PKs`() {
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(id = 1L, oasysAssessmentPk = "101", entityType = EntityType.PLAN),
-        OasysAssociation(id = 2L, oasysAssessmentPk = "101", entityType = EntityType.ASSESSMENT),
-        OasysAssociation(id = 3L, oasysAssessmentPk = "102", entityType = EntityType.PLAN),
-        OasysAssociation(id = 4L, oasysAssessmentPk = "102", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = "101", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "101", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = "102", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "102", entityType = EntityType.ASSESSMENT),
       ),
     )
 
@@ -70,10 +70,10 @@ class MergeTest : IntegrationTestBase() {
   fun `it returns a 409 when an association already exists for the new OASys PK`() {
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(id = 1L, oasysAssessmentPk = "103", entityType = EntityType.PLAN),
-        OasysAssociation(id = 2L, oasysAssessmentPk = "203", entityType = EntityType.PLAN),
-        OasysAssociation(id = 3L, oasysAssessmentPk = "104", entityType = EntityType.PLAN),
-        OasysAssociation(id = 4L, oasysAssessmentPk = "204", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "103", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "203", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "104", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "204", entityType = EntityType.PLAN),
       ),
     )
 
@@ -194,10 +194,10 @@ class MergeTest : IntegrationTestBase() {
   fun `log message does not contain crlf characters`(output: CapturedOutput) {
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(id = 1L, oasysAssessmentPk = "101", entityType = EntityType.PLAN),
-        OasysAssociation(id = 2L, oasysAssessmentPk = "101", entityType = EntityType.ASSESSMENT),
-        OasysAssociation(id = 3L, oasysAssessmentPk = "102", entityType = EntityType.PLAN),
-        OasysAssociation(id = 4L, oasysAssessmentPk = "102", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = "106", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "106", entityType = EntityType.ASSESSMENT),
+        OasysAssociation(oasysAssessmentPk = "107", entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = "107", entityType = EntityType.ASSESSMENT),
       ),
     )
 
@@ -207,8 +207,8 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = "101", newOasysAssessmentPK = "201"),
-            OasysTransferAssociation(oldOasysAssessmentPK = "102", newOasysAssessmentPK = "202"),
+            OasysTransferAssociation(oldOasysAssessmentPK = "106", newOasysAssessmentPK = "206"),
+            OasysTransferAssociation(oldOasysAssessmentPK = "107", newOasysAssessmentPK = "207"),
           ),
           userDetails = OasysUserDetails(id = "\r\nForged the log\r\n", name = "Test Name"),
         ),
@@ -216,6 +216,6 @@ class MergeTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isOk
 
-    assertThat(output.out).contains("Forged the log : From 101 to 201, From 102 to 202")
+    assertThat(output.out).contains("Forged the log : From 106 to 206, From 107 to 207")
   }
 }

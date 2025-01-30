@@ -108,13 +108,11 @@ class CreateTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 3000L,
           oasysAssessmentPk = previousOasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
         OasysAssociation(
-          id = 3001L,
           oasysAssessmentPk = previousOasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"),

@@ -36,14 +36,12 @@ class UndeleteTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 699L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("4fa85f64-5717-4562-b3fc-2c963f66afa6"),
           deleted = true,
         ),
         OasysAssociation(
-          id = 700L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -86,7 +84,6 @@ class UndeleteTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -120,7 +117,6 @@ class UndeleteTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 601L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -153,7 +149,6 @@ class UndeleteTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 401L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),

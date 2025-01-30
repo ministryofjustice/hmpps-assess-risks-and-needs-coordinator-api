@@ -40,7 +40,6 @@ class SoftDeleteTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = "198",
           entityType = EntityType.PLAN,
@@ -48,7 +47,6 @@ class SoftDeleteTest : IntegrationTestBase() {
           baseVersion = 1,
         ),
         OasysAssociation(
-          id = 2L,
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = "198",
           entityType = EntityType.ASSESSMENT,
@@ -56,14 +54,12 @@ class SoftDeleteTest : IntegrationTestBase() {
           baseVersion = 2,
         ),
         OasysAssociation(
-          id = 3L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = planUuid,
           baseVersion = 2,
         ),
         OasysAssociation(
-          id = 4L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = assessmentUuid,
