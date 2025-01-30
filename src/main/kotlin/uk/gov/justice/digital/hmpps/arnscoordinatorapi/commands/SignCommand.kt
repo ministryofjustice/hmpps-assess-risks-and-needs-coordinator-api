@@ -12,11 +12,7 @@ class SignCommand(
   private val signData: SignData,
 ) : Command {
 
-  override fun execute(): OperationResult<VersionedEntity> {
-    return strategy.sign(signData, entityUuid)
-  }
+  override fun execute(): OperationResult<VersionedEntity> = strategy.sign(signData, entityUuid)
 
-  fun rollback(): OperationResult<Unit> {
-    return OperationResult.Failure("Rollback has not been implemented for sign")
-  }
+  fun rollback(): OperationResult<Unit> = OperationResult.Failure("Rollback has not been implemented for sign")
 }

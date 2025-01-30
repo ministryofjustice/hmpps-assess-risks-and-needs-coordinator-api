@@ -11,11 +11,7 @@ class RollbackCommand(
   private val entityUuid: UUID,
   private val request: OasysRollbackRequest,
 ) : Command {
-  override fun execute(): OperationResult<VersionedEntity> {
-    return strategy.rollback(request, entityUuid)
-  }
+  override fun execute(): OperationResult<VersionedEntity> = strategy.rollback(request, entityUuid)
 
-  fun rollback(): OperationResult<Unit> {
-    return OperationResult.Failure("Rollback has not been implemented for rollback")
-  }
+  fun rollback(): OperationResult<Unit> = OperationResult.Failure("Rollback has not been implemented for rollback")
 }

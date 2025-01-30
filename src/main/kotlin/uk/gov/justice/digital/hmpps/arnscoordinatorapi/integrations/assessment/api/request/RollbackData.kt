@@ -8,9 +8,8 @@ data class RollbackData(
   val userDetails: UserDetails,
 ) {
   companion object {
-    fun from(request: OasysRollbackRequest) =
-      request.sanVersionNumber
-        ?.let { RollbackData(it, request.userDetails.intoUserDetails()) }
-        ?: throw Exception("Unable to construct rollback request data. Missing sanVersionNumber.")
+    fun from(request: OasysRollbackRequest) = request.sanVersionNumber
+      ?.let { RollbackData(it, request.userDetails.intoUserDetails()) }
+      ?: throw Exception("Unable to construct rollback request data. Missing sanVersionNumber.")
   }
 }

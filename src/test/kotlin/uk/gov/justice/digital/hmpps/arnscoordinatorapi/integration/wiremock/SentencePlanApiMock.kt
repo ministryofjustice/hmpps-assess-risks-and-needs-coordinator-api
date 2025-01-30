@@ -189,7 +189,10 @@ class SentencePlanApiMock : WireMockServer(8091) {
   }
 }
 
-class SentencePlanApiMockExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
+class SentencePlanApiMockExtension :
+  BeforeAllCallback,
+  AfterAllCallback,
+  BeforeEachCallback {
   companion object {
     @JvmField
     val sentencePlanApiMock = SentencePlanApiMock()

@@ -12,16 +12,12 @@ class CreateCommand(
 
   lateinit var createdEntity: VersionedEntity
 
-  override fun execute(): OperationResult<VersionedEntity> {
-    return when (val result = strategy.create(createData)) {
-      is OperationResult.Success -> {
-        result.also { createdEntity = it.data }
-      }
-      else -> result
+  override fun execute(): OperationResult<VersionedEntity> = when (val result = strategy.create(createData)) {
+    is OperationResult.Success -> {
+      result.also { createdEntity = it.data }
     }
+    else -> result
   }
 
-  fun rollback(): OperationResult<Unit> {
-    return OperationResult.Failure("Rollback has not been implemented")
-  }
+  fun rollback(): OperationResult<Unit> = OperationResult.Failure("Rollback has not been implemented")
 }

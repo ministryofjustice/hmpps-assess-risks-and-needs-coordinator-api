@@ -61,16 +61,14 @@ class EntityController(
     @PathVariable
     @Pattern(regexp = "ASSESSMENT|PLAN")
     @Valid entityType: String,
-  ): ResponseEntity<*> {
-    return when (val result = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))) {
-      is OasysCoordinatorService.GetOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))) {
+    is OasysCoordinatorService.GetOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.GetOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+    is OasysCoordinatorService.GetOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
 
-      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
-    }
+    is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
   }
 }

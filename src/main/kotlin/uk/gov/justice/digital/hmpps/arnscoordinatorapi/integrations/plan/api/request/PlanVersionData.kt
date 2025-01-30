@@ -8,9 +8,8 @@ data class PlanVersionData(
   val userDetails: UserDetails,
 ) {
   companion object {
-    fun from(request: OasysRollbackRequest) =
-      request.sentencePlanVersionNumber
-        ?.let { PlanVersionData(it, request.userDetails.intoUserDetails()) }
-        ?: throw Exception("Unable to construct rollback request data. Missing sentencePlanVersionNumber.")
+    fun from(request: OasysRollbackRequest) = request.sentencePlanVersionNumber
+      ?.let { PlanVersionData(it, request.userDetails.intoUserDetails()) }
+      ?: throw Exception("Unable to construct rollback request data. Missing sentencePlanVersionNumber.")
   }
 }

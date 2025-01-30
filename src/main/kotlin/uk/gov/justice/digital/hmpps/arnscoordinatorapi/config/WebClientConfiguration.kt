@@ -25,8 +25,7 @@ class WebClientConfiguration(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,
     @Value("\${app.services.strengths-and-needs-api.base-url}") sanApiBaseUri: String,
-  ): WebClient =
-    builder.authorisedWebClient(authorizedClientManager, registrationId = "san-api", url = sanApiBaseUri, timeout)
+  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "san-api", url = sanApiBaseUri, timeout)
 
   @Bean
   @ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
@@ -34,6 +33,5 @@ class WebClientConfiguration(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,
     @Value("\${app.services.sentence-plan-api.base-url}") sentencePlanApiBaseUri: String,
-  ): WebClient =
-    builder.authorisedWebClient(authorizedClientManager, registrationId = "sentence-plan-api", url = sentencePlanApiBaseUri, timeout)
+  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "sentence-plan-api", url = sentencePlanApiBaseUri, timeout)
 }

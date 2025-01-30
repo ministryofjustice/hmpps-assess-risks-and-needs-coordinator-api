@@ -10,20 +10,13 @@ import java.util.UUID
 class OasysAssociationsService(
   private val oasysAssociationRepository: OasysAssociationRepository,
 ) {
-  fun findAssociations(oasysAssessmentPk: String): List<OasysAssociation> {
-    return oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
-  }
+  fun findAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
 
-  fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> {
-    return oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
-  }
+  fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
 
-  fun findOasysPkByEntityId(entityUuid: UUID): String? {
-    return oasysAssociationRepository.findAllByEntityUuid(entityUuid).maxByOrNull { it.createdAt }?.oasysAssessmentPk
-  }
+  fun findOasysPkByEntityId(entityUuid: UUID): String? = oasysAssociationRepository.findAllByEntityUuid(entityUuid).maxByOrNull { it.createdAt }?.oasysAssessmentPk
 
-  fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> =
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
+  fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 
   fun ensureNoExistingAssociation(oasysAssessmentPk: String): OperationResult<Unit> {
     val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
@@ -36,12 +29,10 @@ class OasysAssociationsService(
     }
   }
 
-  fun storeAssociation(association: OasysAssociation): OperationResult<Unit> {
-    return try {
-      oasysAssociationRepository.save(association)
-      OperationResult.Success(Unit)
-    } catch (ex: Exception) {
-      OperationResult.Failure("Failed to store association: ${ex.message}", cause = ex)
-    }
+  fun storeAssociation(association: OasysAssociation): OperationResult<Unit> = try {
+    oasysAssociationRepository.save(association)
+    OperationResult.Success(Unit)
+  } catch (ex: Exception) {
+    OperationResult.Failure("Failed to store association: ${ex.message}", cause = ex)
   }
 }

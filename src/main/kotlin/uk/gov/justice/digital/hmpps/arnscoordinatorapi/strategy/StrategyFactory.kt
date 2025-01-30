@@ -9,17 +9,13 @@ class StrategyFactory(
   private val planStrategy: PlanStrategy?,
 ) {
 
-  fun getStrategy(entityType: EntityType): EntityStrategy {
-    return when (entityType) {
-      EntityType.ASSESSMENT -> assessmentStrategy ?: throw IllegalStateException("Assessment strategy is disabled")
-      EntityType.PLAN -> planStrategy ?: throw IllegalStateException("Plan strategy is disabled")
-    }
+  fun getStrategy(entityType: EntityType): EntityStrategy = when (entityType) {
+    EntityType.ASSESSMENT -> assessmentStrategy ?: throw IllegalStateException("Assessment strategy is disabled")
+    EntityType.PLAN -> planStrategy ?: throw IllegalStateException("Plan strategy is disabled")
   }
 
-  fun getStrategies(): List<EntityStrategy> {
-    return listOfNotNull(
-      assessmentStrategy,
-      planStrategy,
-    )
-  }
+  fun getStrategies(): List<EntityStrategy> = listOfNotNull(
+    assessmentStrategy,
+    planStrategy,
+  )
 }

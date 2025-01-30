@@ -50,12 +50,10 @@ data class OasysAssociation(
   @Column(nullable = false)
   var baseVersion: Long = 0,
 ) {
-  fun clone(oasysAssessmentPk: String?): OasysAssociation {
-    return OasysAssociation(
-      oasysAssessmentPk = oasysAssessmentPk,
-      entityType = entityType,
-      entityUuid = entityUuid,
-      regionPrisonCode = regionPrisonCode,
-    )
-  }
+  fun clone(oasysAssessmentPk: String?): OasysAssociation = OasysAssociation(
+    oasysAssessmentPk = oasysAssessmentPk,
+    entityType = entityType,
+    entityUuid = entityUuid,
+    regionPrisonCode = regionPrisonCode,
+  )
 }
