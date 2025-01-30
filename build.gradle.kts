@@ -14,7 +14,7 @@ configurations {
 dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.1.1")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.wiremock:wiremock-standalone:3.9.2")
   runtimeOnly("org.postgresql:postgresql")
