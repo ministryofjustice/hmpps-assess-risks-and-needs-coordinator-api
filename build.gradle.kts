@@ -4,7 +4,7 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "7.0.0"
-  kotlin("plugin.spring") version "2.0.21"
+  kotlin("plugin.spring") version "2.1.10"
 }
 
 configurations {
@@ -16,15 +16,15 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-  implementation("org.wiremock:wiremock-standalone:3.9.2")
+  implementation("org.wiremock:wiremock-standalone:3.10.0")
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
-  implementation("org.flywaydb:flyway-core:11.2.0")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.2.0")
+  implementation("org.flywaydb:flyway-core:11.3.0")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.3.0")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.1.1")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.23") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.25") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("com.h2database:h2")
