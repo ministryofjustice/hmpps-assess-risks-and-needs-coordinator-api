@@ -14,18 +14,14 @@ class LockCommand(
 
   lateinit var createdEntity: VersionedEntity
 
-  override fun execute(): OperationResult<VersionedEntity> {
-    return when (val result = strategy.lock(lockData, entityUuid)) {
-      is OperationResult.Success -> {
-        result.also { createdEntity = it.data }
-      }
-      is OperationResult.Failure -> {
-        result
-      }
+  override fun execute(): OperationResult<VersionedEntity> = when (val result = strategy.lock(lockData, entityUuid)) {
+    is OperationResult.Success -> {
+      result.also { createdEntity = it.data }
+    }
+    is OperationResult.Failure -> {
+      result
     }
   }
 
-  fun rollback(): OperationResult<Unit> {
-    return OperationResult.Failure("Rollback has not been implemented for lock")
-  }
+  fun rollback(): OperationResult<Unit> = OperationResult.Failure("Rollback has not been implemented for lock")
 }

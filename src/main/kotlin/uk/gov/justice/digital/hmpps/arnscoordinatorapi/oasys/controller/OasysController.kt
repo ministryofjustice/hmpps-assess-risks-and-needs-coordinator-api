@@ -66,17 +66,15 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
-  ): ResponseEntity<*> {
-    return when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
-      is OasysCoordinatorService.GetOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
+    is OasysCoordinatorService.GetOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.GetOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+    is OasysCoordinatorService.GetOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
 
-      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
-    }
+    is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
   }
 
   @RequestMapping(path = ["/create"], method = [RequestMethod.POST])
@@ -170,35 +168,33 @@ class OasysController(
   )
   fun merge(
     @RequestBody @Valid request: OasysMergeRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.merge(request)) {
-      is OasysCoordinatorService.MergeOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.merge(request)) {
+    is OasysCoordinatorService.MergeOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.MergeOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.MergeOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.MergeOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.MergeOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.MergeOperationResult.Conflict ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.MergeOperationResult.Conflict ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/sign"], method = [RequestMethod.POST])
@@ -235,35 +231,33 @@ class OasysController(
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysSignRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.sign(request, oasysAssessmentPK)) {
-      is OasysCoordinatorService.SignOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.sign(request, oasysAssessmentPK)) {
+    is OasysCoordinatorService.SignOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.SignOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.SignOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.SignOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.SignOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.SignOperationResult.Conflict ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.SignOperationResult.Conflict ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/counter-sign"], method = [RequestMethod.POST])
@@ -296,34 +290,32 @@ class OasysController(
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysCounterSignRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.counterSign(oasysAssessmentPK, request)) {
-      is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
-
-      is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
-
-      is OasysCoordinatorService.CounterSignOperationResult.Success -> ResponseEntity.status(HttpStatus.OK)
-        .body(result.data)
-
-      is OasysCoordinatorService.CounterSignOperationResult.Conflict -> ResponseEntity.status(HttpStatus.CONFLICT).body(
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.counterSign(oasysAssessmentPK, request)) {
+    is OasysCoordinatorService.CounterSignOperationResult.Failure -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+      .body(
         ErrorResponse(
-          status = HttpStatus.CONFLICT,
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
           userMessage = result.errorMessage,
         ),
       )
-    }
+
+    is OasysCoordinatorService.CounterSignOperationResult.NoAssociations -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+      .body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
+
+    is OasysCoordinatorService.CounterSignOperationResult.Success -> ResponseEntity.status(HttpStatus.OK)
+      .body(result.data)
+
+    is OasysCoordinatorService.CounterSignOperationResult.Conflict -> ResponseEntity.status(HttpStatus.CONFLICT).body(
+      ErrorResponse(
+        status = HttpStatus.CONFLICT,
+        userMessage = result.errorMessage,
+      ),
+    )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/lock"], method = [RequestMethod.POST])
@@ -358,35 +350,33 @@ class OasysController(
     oasysAssessmentPK: String,
     @RequestBody @Valid
     request: OasysGenericRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.lock(request, oasysAssessmentPK)) {
-      is OasysCoordinatorService.LockOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.lock(request, oasysAssessmentPK)) {
+    is OasysCoordinatorService.LockOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.LockOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.LockOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.LockOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.LockOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.LockOperationResult.Conflict ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.LockOperationResult.Conflict ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/rollback"], method = [RequestMethod.POST])
@@ -420,35 +410,33 @@ class OasysController(
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid
     request: OasysRollbackRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.rollback(request, oasysAssessmentPK)) {
-      is OasysCoordinatorService.RollbackOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.rollback(request, oasysAssessmentPK)) {
+    is OasysCoordinatorService.RollbackOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.RollbackOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.RollbackOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.RollbackOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.RollbackOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.RollbackOperationResult.Conflict ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.RollbackOperationResult.Conflict ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/soft-delete"], method = [RequestMethod.POST])
@@ -481,35 +469,33 @@ class OasysController(
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPK)) {
-      is OasysCoordinatorService.SoftDeleteOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPK)) {
+    is OasysCoordinatorService.SoftDeleteOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.SoftDeleteOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.SoftDeleteOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.SoftDeleteOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.SoftDeleteOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.SoftDeleteOperationResult.Conflict ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.SoftDeleteOperationResult.Conflict ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/undelete"], method = [RequestMethod.POST])
@@ -542,35 +528,33 @@ class OasysController(
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestBody @Valid request: OasysGenericRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.undelete(request, oasysAssessmentPK)) {
-      is OasysCoordinatorService.UndeleteOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.undelete(request, oasysAssessmentPK)) {
+    is OasysCoordinatorService.UndeleteOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
 
-      is OasysCoordinatorService.UndeleteOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.UndeleteOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.UndeleteOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.UndeleteOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.UndeleteOperationResult.Conflict ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.UndeleteOperationResult.Conflict ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/{oasysAssessmentPK}/associations"], method = [RequestMethod.GET])
@@ -601,16 +585,14 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {
-      is OasysCoordinatorService.GetOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {
+    is OasysCoordinatorService.GetOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
 
-      is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
+    is OasysCoordinatorService.GetOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
 
-      is OasysCoordinatorService.GetOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.OK).body(result.data)
-    }
+    is OasysCoordinatorService.GetOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.OK).body(result.data)
   }
 }

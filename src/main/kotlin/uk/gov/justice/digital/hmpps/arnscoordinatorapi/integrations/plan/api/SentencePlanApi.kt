@@ -30,56 +30,52 @@ class SentencePlanApi(
   val apiProperties: SentencePlanApiProperties,
 ) {
 
-  fun createPlan(createData: CreatePlanData): ApiOperationResult<VersionedEntity> {
-    return try {
-      val result = sentencePlanApiWebClient.post()
-        .uri(apiProperties.endpoints.create)
-        .body(BodyInserters.fromValue(createData))
-        .retrieve()
-        .bodyToMono(CreatePlanResponse::class.java)
-        .map {
-          VersionedEntity(
-            id = it.sentencePlanId,
-            version = it.sentencePlanVersion,
-            entityType = EntityType.PLAN,
-          )
-        }
-        .block()
+  fun createPlan(createData: CreatePlanData): ApiOperationResult<VersionedEntity> = try {
+    val result = sentencePlanApiWebClient.post()
+      .uri(apiProperties.endpoints.create)
+      .body(BodyInserters.fromValue(createData))
+      .retrieve()
+      .bodyToMono(CreatePlanResponse::class.java)
+      .map {
+        VersionedEntity(
+          id = it.sentencePlanId,
+          version = it.sentencePlanVersion,
+          entityType = EntityType.PLAN,
+        )
+      }
+      .block()
 
-      result?.let {
-        ApiOperationResult.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during createPlan")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure("HTTP error during create plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during createPlan: ${ex.message}", ex)
-    }
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected error during createPlan")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during create plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during createPlan: ${ex.message}", ex)
   }
 
-  fun clonePlan(createData: CreatePlanData, planUuid: UUID): ApiOperationResult<VersionedEntity> {
-    return try {
-      val result = sentencePlanApiWebClient.post()
-        .uri(apiProperties.endpoints.clone.replace("{uuid}", planUuid.toString()))
-        .body(BodyInserters.fromValue(createData))
-        .retrieve()
-        .bodyToMono(CreatePlanResponse::class.java)
-        .map {
-          VersionedEntity(
-            id = it.sentencePlanId,
-            version = it.sentencePlanVersion,
-            entityType = EntityType.PLAN,
-          )
-        }
-        .block()
+  fun clonePlan(createData: CreatePlanData, planUuid: UUID): ApiOperationResult<VersionedEntity> = try {
+    val result = sentencePlanApiWebClient.post()
+      .uri(apiProperties.endpoints.clone.replace("{uuid}", planUuid.toString()))
+      .body(BodyInserters.fromValue(createData))
+      .retrieve()
+      .bodyToMono(CreatePlanResponse::class.java)
+      .map {
+        VersionedEntity(
+          id = it.sentencePlanId,
+          version = it.sentencePlanVersion,
+          entityType = EntityType.PLAN,
+        )
+      }
+      .block()
 
-      result?.let {
-        ApiOperationResult.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during clonePlan")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure("HTTP error during clone plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during clonePlan: ${ex.message}", ex)
-    }
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected error during clonePlan")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during clone plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during clonePlan: ${ex.message}", ex)
   }
 
   fun signPlan(signData: SignData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
@@ -140,22 +136,20 @@ class SentencePlanApi(
     }
   }
 
-  fun getPlan(planUuid: UUID): ApiOperationResult<GetPlanResponse> {
-    return try {
-      val result = sentencePlanApiWebClient.get()
-        .uri("${apiProperties.endpoints.fetch}/$planUuid")
-        .retrieve()
-        .bodyToMono(GetPlanResponse::class.java)
-        .block()
+  fun getPlan(planUuid: UUID): ApiOperationResult<GetPlanResponse> = try {
+    val result = sentencePlanApiWebClient.get()
+      .uri("${apiProperties.endpoints.fetch}/$planUuid")
+      .retrieve()
+      .bodyToMono(GetPlanResponse::class.java)
+      .block()
 
-      result?.let {
-        ApiOperationResult.Success(it)
-      } ?: throw IllegalStateException("Unexpected null response during getPlan")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure("HTTP error during get plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during getPlan: ${ex.message}", ex)
-    }
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected null response during getPlan")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during get plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during getPlan: ${ex.message}", ex)
   }
 
   fun rollback(data: PlanVersionData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {

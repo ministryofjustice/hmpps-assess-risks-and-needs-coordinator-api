@@ -30,7 +30,7 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully creates a new SP and SAN with no previous oasys PK`() {
-    val oasysAssessmentPk = "1"
+    val oasysAssessmentPk = getRandomOasysPk()
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
@@ -53,10 +53,9 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it returns a conflict status where an association already exists with the oasys PK`() {
-    val oasysAssessmentPk = "2"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.save(
       OasysAssociation(
-        id = 1L,
         oasysAssessmentPk = oasysAssessmentPk,
         entityUuid = UUID.randomUUID(),
         entityType = EntityType.ASSESSMENT,
@@ -78,7 +77,7 @@ class CreateTest : IntegrationTestBase() {
   @Test
   fun `it returns a 500 status where a call to the downstream sentence plan service returns 500`() {
     stubSentencePlanCreate(500)
-    val oasysAssessmentPk = "3"
+    val oasysAssessmentPk = getRandomOasysPk()
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
@@ -102,19 +101,17 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully clones a new SP and SAN when a previous oasys PK is supplied`() {
-    val previousOasysAssessmentPk = "3019"
-    val oasysAssessmentPk = "3020"
+    val previousOasysAssessmentPk = getRandomOasysPk()
+    val oasysAssessmentPk = getRandomOasysPk()
 
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 3000L,
           oasysAssessmentPk = previousOasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
         OasysAssociation(
-          id = 3001L,
           oasysAssessmentPk = previousOasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"),
@@ -145,8 +142,8 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it returns a 404 not found when a previous oasys PK is supplied that does not have an association`() {
-    val previousOasysAssessmentPk = "1019"
-    val oasysAssessmentPk = "2000"
+    val previousOasysAssessmentPk = getRandomOasysPk()
+    val oasysAssessmentPk = getRandomOasysPk()
 
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))

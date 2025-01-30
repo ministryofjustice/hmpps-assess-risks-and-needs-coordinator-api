@@ -24,17 +24,15 @@ class EntityGetTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully gets an ASSESSMENT or SAN or for an oasys PK linked to a given sp id`() {
-    val oasysAssessmentPk = "12345"
+    val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
         OasysAssociation(
-          id = 2L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("2fa85f64-5717-4562-b3fc-2c963f66afa6"),

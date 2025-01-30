@@ -9,7 +9,5 @@ class FetchCommand(
   private val entityUuid: UUID,
 ) : Command {
 
-  override fun execute(): OperationResult<*> {
-    return strategy.fetch(entityUuid)
-  }
+  override fun execute(): OperationResult<*> = strategy.fetch(entityUuid)
 }

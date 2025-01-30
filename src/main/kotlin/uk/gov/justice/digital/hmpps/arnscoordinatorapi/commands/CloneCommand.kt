@@ -12,11 +12,7 @@ class CloneCommand(
   private val entityUuid: UUID,
 ) : Command {
 
-  override fun execute(): OperationResult<VersionedEntity> {
-    return strategy.clone(createData, entityUuid)
-  }
+  override fun execute(): OperationResult<VersionedEntity> = strategy.clone(createData, entityUuid)
 
-  fun rollback(): OperationResult<Unit> {
-    return OperationResult.Failure("Rollback has not been implemented")
-  }
+  fun rollback(): OperationResult<Unit> = OperationResult.Failure("Rollback has not been implemented")
 }

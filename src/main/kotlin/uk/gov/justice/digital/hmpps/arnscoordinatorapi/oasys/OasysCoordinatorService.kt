@@ -44,17 +44,15 @@ class OasysCoordinatorService(
   private val oasysAssociationsService: OasysAssociationsService,
 ) {
 
-  private fun buildCreateData(requestData: OasysCreateRequest): CreateData {
-    return CreateData(
-      plan = CreatePlanData(
-        planType = requestData.planType,
-        userDetails = requestData.userDetails.intoUserDetails(),
-      ),
-      assessment = CreateAssessmentData(
-        userDetails = requestData.userDetails.intoUserDetails(),
-      ),
-    )
-  }
+  private fun buildCreateData(requestData: OasysCreateRequest): CreateData = CreateData(
+    plan = CreatePlanData(
+      planType = requestData.planType,
+      userDetails = requestData.userDetails.intoUserDetails(),
+    ),
+    assessment = CreateAssessmentData(
+      userDetails = requestData.userDetails.intoUserDetails(),
+    ),
+  )
 
   @Transactional
   fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {

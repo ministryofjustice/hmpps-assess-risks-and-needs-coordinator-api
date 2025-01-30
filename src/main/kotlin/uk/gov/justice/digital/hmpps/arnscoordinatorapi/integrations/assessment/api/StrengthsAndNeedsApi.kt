@@ -27,56 +27,52 @@ class StrengthsAndNeedsApi(
   val apiProperties: StrengthsAndNeedsApiProperties,
 ) {
 
-  fun createAssessment(createData: CreateAssessmentData): ApiOperationResult<VersionedEntity> {
-    return try {
-      val result = sanApiWebClient.post()
-        .uri(apiProperties.endpoints.create)
-        .body(BodyInserters.fromValue(createData))
-        .retrieve()
-        .bodyToMono(AssessmentResponse::class.java)
-        .map {
-          VersionedEntity(
-            id = it.metaData.uuid,
-            version = it.metaData.versionNumber,
-            entityType = EntityType.ASSESSMENT,
-          )
-        }
-        .block()
+  fun createAssessment(createData: CreateAssessmentData): ApiOperationResult<VersionedEntity> = try {
+    val result = sanApiWebClient.post()
+      .uri(apiProperties.endpoints.create)
+      .body(BodyInserters.fromValue(createData))
+      .retrieve()
+      .bodyToMono(AssessmentResponse::class.java)
+      .map {
+        VersionedEntity(
+          id = it.metaData.uuid,
+          version = it.metaData.versionNumber,
+          entityType = EntityType.ASSESSMENT,
+        )
+      }
+      .block()
 
-      result?.let {
-        ApiOperationResult.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during createAssessment")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure("HTTP error during create assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
-    }
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected error during createAssessment")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during create assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
   }
 
-  fun cloneAssessment(createData: CreateAssessmentData, assessmentUuid: UUID): ApiOperationResult<VersionedEntity> {
-    return try {
-      val result = sanApiWebClient.post()
-        .uri(apiProperties.endpoints.clone.replace("{uuid}", assessmentUuid.toString()))
-        .body(BodyInserters.fromValue(createData))
-        .retrieve()
-        .bodyToMono(AssessmentResponse::class.java)
-        .map {
-          VersionedEntity(
-            id = it.metaData.uuid,
-            version = it.metaData.versionNumber,
-            entityType = EntityType.ASSESSMENT,
-          )
-        }
-        .block()
+  fun cloneAssessment(createData: CreateAssessmentData, assessmentUuid: UUID): ApiOperationResult<VersionedEntity> = try {
+    val result = sanApiWebClient.post()
+      .uri(apiProperties.endpoints.clone.replace("{uuid}", assessmentUuid.toString()))
+      .body(BodyInserters.fromValue(createData))
+      .retrieve()
+      .bodyToMono(AssessmentResponse::class.java)
+      .map {
+        VersionedEntity(
+          id = it.metaData.uuid,
+          version = it.metaData.versionNumber,
+          entityType = EntityType.ASSESSMENT,
+        )
+      }
+      .block()
 
-      result?.let {
-        ApiOperationResult.Success(it)
-      } ?: throw IllegalStateException("Unexpected error during cloneAssessment")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure("HTTP error during clone assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during cloneAssessment: ${ex.message}", ex)
-    }
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected error during cloneAssessment")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during clone assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during cloneAssessment: ${ex.message}", ex)
   }
 
   fun lockAssessment(lockData: LockData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {
@@ -166,22 +162,20 @@ class StrengthsAndNeedsApi(
     }
   }
 
-  fun getAssessment(assessmentUuid: UUID): ApiOperationResult<AssessmentResponse> {
-    return try {
-      val result = sanApiWebClient.get()
-        .uri("${apiProperties.endpoints.fetch}/$assessmentUuid")
-        .retrieve()
-        .bodyToMono(AssessmentResponse::class.java)
-        .block()
+  fun getAssessment(assessmentUuid: UUID): ApiOperationResult<AssessmentResponse> = try {
+    val result = sanApiWebClient.get()
+      .uri("${apiProperties.endpoints.fetch}/$assessmentUuid")
+      .retrieve()
+      .bodyToMono(AssessmentResponse::class.java)
+      .block()
 
-      result?.let {
-        ApiOperationResult.Success(it)
-      } ?: throw IllegalStateException("Unexpected null response during getAssessment")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure("HTTP error during get assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure(errorMessage = "Unexpected error during getAssessment: ${ex.message}", cause = ex)
-    }
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected null response during getAssessment")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during get assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure(errorMessage = "Unexpected error during getAssessment: ${ex.message}", cause = ex)
   }
 
   fun counterSign(assessmentUuid: UUID, data: CounterSignAssessmentData): ApiOperationResultExtended<VersionedEntity> {

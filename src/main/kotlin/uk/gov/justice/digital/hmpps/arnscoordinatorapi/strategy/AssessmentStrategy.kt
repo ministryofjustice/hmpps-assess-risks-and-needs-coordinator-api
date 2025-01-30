@@ -27,77 +27,59 @@ class AssessmentStrategy(
 
   override val entityType = EntityType.ASSESSMENT
 
-  override fun create(createData: CreateData): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.createAssessment(createData.assessment!!)) {
-      is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
-    }
+  override fun create(createData: CreateData): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.createAssessment(createData.assessment!!)) {
+    is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!, entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
-    }
+  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!, entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.signAssessment(signData, entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
-    }
+  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.signAssessment(signData, entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.lockAssessment(lockData, entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
-    }
+  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.lockAssessment(lockData, entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.rollback(RollbackData.from(request), entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
-    }
+  override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.rollback(RollbackData.from(request), entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun fetch(entityUuid: UUID): OperationResult<AssessmentResponse> {
-    return when (val result = strengthsAndNeedsApi.getAssessment(entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
-    }
+  override fun fetch(entityUuid: UUID): OperationResult<AssessmentResponse> = when (val result = strengthsAndNeedsApi.getAssessment(entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> {
-    return when (val result = strengthsAndNeedsApi.softDelete(softDeleteData, entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
-    }
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = when (val result = strengthsAndNeedsApi.softDelete(softDeleteData, entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
-    return when (val result = strengthsAndNeedsApi.undelete(undeleteData, entityUuid)) {
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
-    }
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.undelete(undeleteData, entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> {
-    return when (
-      val result = strengthsAndNeedsApi.counterSign(
-        entityUuid,
-        CounterSignAssessmentData.from(request),
-      )
-    ) {
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
-      is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
-    }
+  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = when (
+    val result = strengthsAndNeedsApi.counterSign(
+      entityUuid,
+      CounterSignAssessmentData.from(request),
+    )
+  ) {
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
+    is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 }

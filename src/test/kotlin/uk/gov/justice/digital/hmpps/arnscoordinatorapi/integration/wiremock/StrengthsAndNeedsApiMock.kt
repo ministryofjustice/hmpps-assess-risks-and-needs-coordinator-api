@@ -10,7 +10,10 @@ import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 
-class StrengthsAndNeedsApiExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
+class StrengthsAndNeedsApiExtension :
+  BeforeAllCallback,
+  AfterAllCallback,
+  BeforeEachCallback {
   companion object {
     @JvmField
     val sanServer = StrengthsAndNeedsApiMock()
