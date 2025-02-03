@@ -16,7 +16,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-  implementation("org.wiremock:wiremock-standalone:3.10.0")
+  implementation("org.wiremock:wiremock-standalone:3.11.0")
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
