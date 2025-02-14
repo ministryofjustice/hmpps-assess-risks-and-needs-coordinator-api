@@ -73,6 +73,42 @@ class MergeTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `it successfully merges a pair of OASys PKs when the existing PK is soft deleted`() {
+    val existingOasysPk = getRandomOasysPk()
+
+    val newOasysPk = getRandomOasysPk()
+
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.PLAN, deleted = true),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.ASSESSMENT, deleted = true),
+      ),
+    )
+
+    val response = webTestClient.post().uri("/oasys/merge")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysMergeRequest(
+          merge = listOf(
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk, newOasysAssessmentPK = newOasysPk),
+          ),
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(OasysMessageResponse::class.java)
+      .returnResult()
+      .responseBody
+
+    assertThat(response?.message).isEqualTo("Successfully processed all 1 merge elements")
+
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(existingOasysPk)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(newOasysPk).size).isEqualTo(2)
+  }
+
+  @Test
   fun `it returns a 409 when an association already exists for the new OASys PK`() {
     val existingAssociationPk1 = getRandomOasysPk()
     val existingAssociationPk2 = getRandomOasysPk()
@@ -94,8 +130,14 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = existingAssociationPk1, newOasysAssessmentPK = existingAssociationPk2),
-            OasysTransferAssociation(oldOasysAssessmentPK = existingAssociationPk3, newOasysAssessmentPK = existingAssociationPk4),
+            OasysTransferAssociation(
+              oldOasysAssessmentPK = existingAssociationPk1,
+              newOasysAssessmentPK = existingAssociationPk2,
+            ),
+            OasysTransferAssociation(
+              oldOasysAssessmentPK = existingAssociationPk3,
+              newOasysAssessmentPK = existingAssociationPk4,
+            ),
           ),
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
@@ -137,9 +179,18 @@ class MergeTest : IntegrationTestBase() {
       .bodyValue(
         OasysMergeRequest(
           merge = listOf(
-            OasysTransferAssociation(oldOasysAssessmentPK = oasysAssessmentPk, newOasysAssessmentPK = newOasysAssessmentPk),
-            OasysTransferAssociation(oldOasysAssessmentPK = missingOasysAssessmentPk1, newOasysAssessmentPK = newMissingOasysAssessmentPk1),
-            OasysTransferAssociation(oldOasysAssessmentPK = missingOasysAssessmentPk2, newOasysAssessmentPK = newMissingOasysAssessmentPk2),
+            OasysTransferAssociation(
+              oldOasysAssessmentPK = oasysAssessmentPk,
+              newOasysAssessmentPK = newOasysAssessmentPk,
+            ),
+            OasysTransferAssociation(
+              oldOasysAssessmentPK = missingOasysAssessmentPk1,
+              newOasysAssessmentPK = newMissingOasysAssessmentPk1,
+            ),
+            OasysTransferAssociation(
+              oldOasysAssessmentPK = missingOasysAssessmentPk2,
+              newOasysAssessmentPK = newMissingOasysAssessmentPk2,
+            ),
           ),
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
