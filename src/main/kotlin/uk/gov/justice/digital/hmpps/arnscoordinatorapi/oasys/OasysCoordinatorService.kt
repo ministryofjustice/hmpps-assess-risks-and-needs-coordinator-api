@@ -463,15 +463,15 @@ class OasysCoordinatorService(
     val notFoundPKs = mutableListOf<String>()
     val conflictPKs = mutableListOf<String>()
 
-    val oldAssociations = request.merge.map { merge ->
+    val resultsToMerge = request.merge.associate { merge ->
       oasysAssociationsService.findAssociations(merge.newOasysAssessmentPK).run {
         if (isNotEmpty()) conflictPKs.add(merge.newOasysAssessmentPK)
       }
-      merge.newOasysAssessmentPK to oasysAssociationsService.findAssociations(merge.oldOasysAssessmentPK)
+      merge.newOasysAssessmentPK to oasysAssociationsService.findAssociations(merge.oldOasysAssessmentPK, includeDeleted = true)
         .also {
           if (it.isEmpty()) notFoundPKs.add(merge.oldOasysAssessmentPK)
         }
-    }.toMap()
+    }
 
     if (notFoundPKs.isNotEmpty()) {
       return MergeOperationResult.NoAssociations("The following association(s) could not be located: ${notFoundPKs.joinToString()} and the operation has not been actioned.")
@@ -481,17 +481,17 @@ class OasysCoordinatorService(
       return MergeOperationResult.Conflict("Existing association(s) for ${conflictPKs.joinToString()}")
     }
 
-    oldAssociations.map {
-      it.value.map { association ->
-        association.apply { oasysAssessmentPk = it.key }
+    resultsToMerge.map { (newOasysAssessmentPk, existingAssociations) ->
+      existingAssociations.map { association ->
+        association.apply { oasysAssessmentPk = newOasysAssessmentPk }
           .run(oasysAssociationsService::storeAssociation)
-          .onFailure { error ->
+          .onFailure {
             return MergeOperationResult.Failure("Failed to store ${association.entityType?.name} association ${association.uuid}")
           }
       }
     }
 
-    log.info(StringUtils.normalizeSpace("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.map { "From ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }.joinToString()}"))
+    log.info(StringUtils.normalizeSpace("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.joinToString { "From ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }}"))
 
     return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))
   }

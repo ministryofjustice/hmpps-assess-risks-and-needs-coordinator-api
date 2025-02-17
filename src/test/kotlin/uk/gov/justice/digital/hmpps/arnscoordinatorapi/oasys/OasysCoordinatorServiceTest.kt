@@ -11,6 +11,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
@@ -171,7 +172,7 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should return failure when no associations are found`() {
-      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(emptyList())
+      `when`(oasysAssociationsService.findAssociations(anyString(), anyOrNull<Boolean>())).thenReturn(emptyList())
 
       val result = oasysCoordinatorService.get("CY/12ZX56")
 
@@ -191,7 +192,7 @@ class OasysCoordinatorServiceTest {
         oasysAssessmentPk = "CY/12ZX56",
         regionPrisonCode = "111111",
       )
-      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAssociations(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
 
       val result = oasysCoordinatorService.get("CY/12ZX56")
 
@@ -214,7 +215,7 @@ class OasysCoordinatorServiceTest {
       )
       val strategy: EntityStrategy = mock()
 
-      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAssociations(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
       `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
 
       `when`(strategy.fetch(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
@@ -241,7 +242,7 @@ class OasysCoordinatorServiceTest {
       val strategy: EntityStrategy = mock()
       val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.PLAN)
 
-      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAssociations(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
       `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
 
       `when`(strategy.fetch(any())).thenReturn(OperationResult.Success(fetchResponse))
@@ -261,7 +262,7 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should return failure when no associations are found`() {
-      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(emptyList())
+      `when`(oasysAssociationsService.findAssociations(anyString(), anyOrNull<Boolean>())).thenReturn(emptyList())
 
       val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPk)
 
@@ -281,7 +282,7 @@ class OasysCoordinatorServiceTest {
         oasysAssessmentPk = oasysAssessmentPk,
         regionPrisonCode = "111111",
       )
-      `when`(oasysAssociationsService.findAssociations(anyString())).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAssociations(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
 
       val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPk)
 
@@ -303,7 +304,7 @@ class OasysCoordinatorServiceTest {
       )
       val strategy: EntityStrategy = mock()
 
-      `when`(oasysAssociationsService.findAssociations(oasysAssessmentPk)).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAssociations(eq(oasysAssessmentPk), anyOrNull<Boolean>())).thenReturn(listOf(association))
       `when`(oasysAssociationsService.findAllIncludingDeleted(association.entityUuid)).thenReturn(listOf(association))
       `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
 
@@ -358,7 +359,7 @@ class OasysCoordinatorServiceTest {
       val softDeleteResponse = VersionedEntity(entityUuid, 3, EntityType.PLAN)
       `when`(strategy.softDelete(argThat { it: SoftDeleteData -> it.versionFrom == 1L && it.versionTo == 2L }, eq(entityUuid))).thenReturn(OperationResult.Success(softDeleteResponse))
 
-      `when`(oasysAssociationsService.findAssociations(oasysAssessmentPk)).thenReturn(associations.filter { it.oasysAssessmentPk == oasysAssessmentPk })
+      `when`(oasysAssociationsService.findAssociations(eq(oasysAssessmentPk), anyOrNull<Boolean>())).thenReturn(associations.filter { it.oasysAssessmentPk == oasysAssessmentPk })
       `when`(oasysAssociationsService.findAllIncludingDeleted(entityUuid)).thenReturn(associations)
       `when`(oasysAssociationsService.storeAssociation(argThat { it: OasysAssociation -> it.deleted && it.baseVersion == 1L })).then { i -> OperationResult.Success(i.getArgument<OasysAssociation>(0)) }
 

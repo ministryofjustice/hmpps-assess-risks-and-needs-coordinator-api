@@ -10,7 +10,11 @@ import java.util.UUID
 class OasysAssociationsService(
   private val oasysAssociationRepository: OasysAssociationRepository,
 ) {
-  fun findAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
+  fun findAssociations(oasysAssessmentPk: String, includeDeleted: Boolean = false): List<OasysAssociation> = if (includeDeleted) {
+    oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(oasysAssessmentPk)
+  } else {
+    oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
+  }
 
   fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
 
