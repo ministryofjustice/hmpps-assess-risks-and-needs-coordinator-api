@@ -33,7 +33,7 @@ services:
       - ./hmpps-auth-proxy/nginx.conf:/etc/nginx/nginx.conf
 
   api:
-    image: quay.io/hmpps/hmpps-assess-risks-and-needs-coordinator-api:${APP_VERSION:-latest}
+    image: ghcr.io/ministryofjustice/hmpps-assess-risks-and-needs-coordinator-api:${APP_VERSION:-latest}
     build:
       context: ../
     depends_on:
