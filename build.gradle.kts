@@ -20,8 +20,8 @@ dependencies {
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
-  implementation("org.flywaydb:flyway-core:11.6.0")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.6.0")
+  implementation("org.flywaydb:flyway-core:11.7.2")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.7.2")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.4.2")
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.26") {
