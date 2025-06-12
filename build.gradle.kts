@@ -14,9 +14,9 @@ configurations {
 dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.4.6")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-  implementation("org.wiremock:wiremock-standalone:3.13.0")
+  implementation("org.wiremock:wiremock-standalone:3.13.1")
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
