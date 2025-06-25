@@ -6,7 +6,7 @@ import java.util.UUID
 
 typealias VersionDetailsList = List<VersionDetails>
 
-data class VersionDetails (
+data class VersionDetails(
   val uuid: UUID,
   val version: Int,
   val createdAt: LocalDateTime,

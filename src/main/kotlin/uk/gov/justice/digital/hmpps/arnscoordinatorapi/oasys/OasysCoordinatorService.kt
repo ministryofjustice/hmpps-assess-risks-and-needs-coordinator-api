@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SoftDeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponseFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -294,7 +295,7 @@ class OasysCoordinatorService(
     val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
       ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
 
-    val versionsResponse = VersionsResponse()
+    val versionsResponseFactory = VersionsResponseFactory()
 
     val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
@@ -306,11 +307,11 @@ class OasysCoordinatorService(
 
       when (val response = command.execute()) {
         is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity versions, ${response.errorMessage}")
-        is OperationResult.Success -> versionsResponse.addVersions(response.data)
+        is OperationResult.Success -> versionsResponseFactory.addVersions(response.data)
       }
     }
 
-    return GetOperationResult.Success(versionsResponse)
+    return GetOperationResult.Success(versionsResponseFactory.getVersionsResponse())
   }
 
   fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {

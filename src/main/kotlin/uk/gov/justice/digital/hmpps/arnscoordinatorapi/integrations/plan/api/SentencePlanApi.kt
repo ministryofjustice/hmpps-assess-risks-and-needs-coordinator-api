@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -159,7 +160,7 @@ class SentencePlanApi(
     val result = sentencePlanApiWebClient.get()
       .uri(apiProperties.endpoints.fetchVersions.replace("{uuid}", planUuid.toString()))
       .retrieve()
-      .bodyToMono(PlanVersionsResponse::class.java)
+      .bodyToMono(object : ParameterizedTypeReference<PlanVersionsResponse>() {})
       .map { list ->
         list.map {
           VersionDetails(

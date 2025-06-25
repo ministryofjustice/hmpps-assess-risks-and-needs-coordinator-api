@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -185,7 +186,7 @@ class StrengthsAndNeedsApi(
     val result = sanApiWebClient.get()
       .uri(apiProperties.endpoints.fetchVersions.replace("{uuid}", assessmentUuid.toString()))
       .retrieve()
-      .bodyToMono(AssessmentVersionsResponse::class.java)
+      .bodyToMono(object : ParameterizedTypeReference<AssessmentVersionsResponse>() {})
       .map { list ->
         list.map {
           VersionDetails(
