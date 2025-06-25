@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
@@ -56,6 +57,11 @@ class AssessmentStrategy(
   }
 
   override fun fetch(entityUuid: UUID): OperationResult<AssessmentResponse> = when (val result = strengthsAndNeedsApi.getAssessment(entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+  }
+
+  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> = when (val result = strengthsAndNeedsApi.getAssessmentVersions(entityUuid)) {
     is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }

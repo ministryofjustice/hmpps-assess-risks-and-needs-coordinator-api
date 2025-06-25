@@ -14,6 +14,7 @@ data class StrengthsAndNeedsApiProperties(
 
   data class Endpoints(
     var fetch: String = "",
+    var fetchVersions: String = "",
     var create: String = "",
     var clone: String = "",
     var sign: String = "",
@@ -28,6 +29,7 @@ data class StrengthsAndNeedsApiProperties(
   fun init() {
     paths = Endpoints(
       fetch = baseUrl + endpoints.fetch,
+      fetchVersions = baseUrl + endpoints.fetchVersions,
       create = baseUrl + endpoints.create,
       clone = baseUrl + endpoints.clone,
       sign = baseUrl + endpoints.sign,
