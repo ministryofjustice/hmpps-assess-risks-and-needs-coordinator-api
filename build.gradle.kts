@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "8.3.0"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "8.3.1"
   kotlin("plugin.spring") version "2.2.0"
 }
 
@@ -12,7 +12,7 @@ configurations {
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.4.7")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.4.8")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -20,11 +20,11 @@ dependencies {
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
-  implementation("org.flywaydb:flyway-core:11.10.0")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.10.0")
+  implementation("org.flywaydb:flyway-core:11.10.2")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.10.2")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.4.7")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.30") {
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.4.8")
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.31") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("com.h2database:h2")
