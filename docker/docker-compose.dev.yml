@@ -5,7 +5,7 @@ services:
       target: development
     command: gradle --parallel --build-cache --configuration-cache bootRun
     ports:
-      - "5005:5005"
+      - "5007:5005"
     volumes:
       - ..:/app
       - ~/.gradle:/home/gradle/.gradle
