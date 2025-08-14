@@ -11,5 +11,5 @@ data class VersionsOnDate(
 )
 
 data class VersionsResponse(
-  var versions: SortedMap<LocalDate, VersionsOnDate>
+  var versions: SortedMap<LocalDate, VersionsOnDate>,
 )

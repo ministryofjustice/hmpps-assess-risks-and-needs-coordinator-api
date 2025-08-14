@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api
 
-import org.hibernate.usertype.ParameterizedType
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.core.ParameterizedTypeReference

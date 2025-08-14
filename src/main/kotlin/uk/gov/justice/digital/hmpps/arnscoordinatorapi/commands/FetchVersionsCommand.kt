@@ -12,4 +12,3 @@ class FetchVersionsCommand(
 
   override fun execute(): OperationResult<VersionDetailsList> = strategy.fetchVersions(entityUuid)
 }
-

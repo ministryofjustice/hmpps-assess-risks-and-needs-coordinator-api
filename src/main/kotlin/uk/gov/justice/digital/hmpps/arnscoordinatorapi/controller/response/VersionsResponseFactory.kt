@@ -29,12 +29,12 @@ class VersionsResponseFactory {
               else -> "Plan updated"
             },
             assessmentVersions = versionsOnDate.assessmentVersions.ifEmpty { lastAssessment.toMutableList() },
-            planVersions = versionsOnDate.planVersions.ifEmpty { lastPlan.toMutableList() }
+            planVersions = versionsOnDate.planVersions.ifEmpty { lastPlan.toMutableList() },
           )
           lastAssessment = versionsOnDate.assessmentVersions.sortedBy { it.updatedAt }.takeLast(1).ifEmpty { lastAssessment }
           lastPlan = versionsOnDate.planVersions.sortedBy { it.updatedAt }.takeLast(1).ifEmpty { lastPlan }
         }
-      }.run {versionsMap}
+      }.run { versionsMap }
       .toSortedMap(compareByDescending { it }),
   )
 }

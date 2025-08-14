@@ -56,7 +56,7 @@ class EntityController(
     @Parameter(description = "Entity UUID. SAN or SP entity ID", required = true, example = "90a71d16-fecd-4e1a-85b9-98178bf0f8d0")
     @PathVariable
     @Valid entityUuid: UUID,
-  ) : ResponseEntity<*> = when (val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid)) {
+  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid)) {
     is OasysCoordinatorService.GetOperationResult.Success ->
       ResponseEntity.status(HttpStatus.OK).body(result.data)
 

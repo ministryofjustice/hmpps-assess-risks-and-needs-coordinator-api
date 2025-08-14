@@ -3,8 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 import java.time.LocalDateTime
 import java.util.UUID
 
-typealias AssessmentVersionsResponse =  List<AssessmentVersionResponse>
-
+typealias AssessmentVersionsResponse = List<AssessmentVersionResponse>
 
 data class AssessmentVersionResponse(
   val uuid: UUID,
