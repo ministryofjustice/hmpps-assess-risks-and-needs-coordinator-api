@@ -5,6 +5,9 @@ import java.time.LocalDate
 import java.util.SortedMap
 
 data class VersionsOnDate(
+  var countersignedDescription: String? = null,
+  var countersignedAssessmentVersions: MutableList<VersionDetails> = mutableListOf(),
+  var countersignedPlanVersions: MutableList<VersionDetails> = mutableListOf(),
   var description: String? = null,
   var assessmentVersions: MutableList<VersionDetails> = mutableListOf(),
   var planVersions: MutableList<VersionDetails> = mutableListOf(),
