@@ -361,7 +361,7 @@ class VersionsResponseFactoryTest {
               createdAt = planDate.atTime(10, 0),
               updatedAt = planDate.atTime(11, 0),
               entityType = EntityType.PLAN,
-            )
+            ),
           ),
         ),
         assessmentDate to VersionsOnDate(

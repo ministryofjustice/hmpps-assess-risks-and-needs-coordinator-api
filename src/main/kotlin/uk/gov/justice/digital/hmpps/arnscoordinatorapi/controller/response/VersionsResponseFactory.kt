@@ -34,9 +34,8 @@ class VersionsResponseFactory {
           val resultVersionsOnDate = VersionsOnDate()
 
           val countersignedPlans = versionsOnDate.countersignedPlanVersions
-          if(countersignedPlans.isNotEmpty()) {
-
-            val latestCountersignedPlan =  countersignedPlans.maxByOrNull{ it.updatedAt }!!
+          if (countersignedPlans.isNotEmpty()) {
+            val latestCountersignedPlan = countersignedPlans.maxByOrNull { it.updatedAt }!!
             resultVersionsOnDate.countersignedPlanVersions.add(latestCountersignedPlan)
 
             allPlansOnThisDay.removeAll(countersignedPlans)
@@ -46,8 +45,7 @@ class VersionsResponseFactory {
 
           val countersignedAssessments = versionsOnDate.countersignedAssessmentVersions
           if (countersignedAssessments.isNotEmpty()) {
-
-            val latestCountersignedAssessment = countersignedAssessments.maxByOrNull{ it.updatedAt }!!
+            val latestCountersignedAssessment = countersignedAssessments.maxByOrNull { it.updatedAt }!!
             resultVersionsOnDate.countersignedAssessmentVersions.add(latestCountersignedAssessment)
 
             allAssessmentsOnThisDay.removeAll(countersignedAssessments)
@@ -63,18 +61,17 @@ class VersionsResponseFactory {
             resultVersionsOnDate.countersignedDescription = "Plan updated"
           }
 
-          val latestCountersignedPlan = resultVersionsOnDate.countersignedPlanVersions.maxByOrNull{ it.updatedAt }
+          val latestCountersignedPlan = resultVersionsOnDate.countersignedPlanVersions.maxByOrNull { it.updatedAt }
           val hasAssessmentUpdates = (resultVersionsOnDate.countersignedAssessmentVersions.isEmpty() && allAssessmentsOnThisDay.isNotEmpty()) ||
             (resultVersionsOnDate.countersignedAssessmentVersions.isNotEmpty() && allAssessmentsOnThisDay.filter { it.updatedAt.isAfter(resultVersionsOnDate.countersignedAssessmentVersions.maxByOrNull { it.updatedAt }!!.updatedAt) }.isNotEmpty()) ||
-            (resultVersionsOnDate.countersignedAssessmentVersions.isNotEmpty() && latestCountersignedPlan != null && allPlansOnThisDay.any {it.updatedAt.isAfter(latestCountersignedPlan.updatedAt)}) ||
+            (resultVersionsOnDate.countersignedAssessmentVersions.isNotEmpty() && latestCountersignedPlan != null && allPlansOnThisDay.any { it.updatedAt.isAfter(latestCountersignedPlan.updatedAt) }) ||
             (resultVersionsOnDate.countersignedAssessmentVersions.isNotEmpty() && latestCountersignedPlan == null && allPlansOnThisDay.isNotEmpty())
 
-          val latestCountersignedAssessment = resultVersionsOnDate.countersignedAssessmentVersions.maxByOrNull{ it.updatedAt }
+          val latestCountersignedAssessment = resultVersionsOnDate.countersignedAssessmentVersions.maxByOrNull { it.updatedAt }
           val hasPlanUpdates = (resultVersionsOnDate.countersignedPlanVersions.isEmpty() && allPlansOnThisDay.isNotEmpty()) ||
             (resultVersionsOnDate.countersignedPlanVersions.isNotEmpty() && allPlansOnThisDay.filter { it.updatedAt.isAfter(resultVersionsOnDate.countersignedPlanVersions.maxByOrNull { it.updatedAt }!!.updatedAt) }.isNotEmpty()) ||
-            (resultVersionsOnDate.countersignedPlanVersions.isNotEmpty() && latestCountersignedAssessment != null && allAssessmentsOnThisDay.any {it.updatedAt.isAfter(latestCountersignedAssessment.updatedAt)}) ||
+            (resultVersionsOnDate.countersignedPlanVersions.isNotEmpty() && latestCountersignedAssessment != null && allAssessmentsOnThisDay.any { it.updatedAt.isAfter(latestCountersignedAssessment.updatedAt) }) ||
             (resultVersionsOnDate.countersignedPlanVersions.isNotEmpty() && latestCountersignedAssessment == null && allAssessmentsOnThisDay.isNotEmpty())
-
 
           resultVersionsOnDate.description = when {
             hasAssessmentUpdates && hasPlanUpdates -> "Assessment and plan updated"
@@ -83,20 +80,19 @@ class VersionsResponseFactory {
             else -> null
           }
 
-
           if (resultVersionsOnDate.countersignedPlanVersions.isNotEmpty()) {
-            val latestCountersignedPlan = resultVersionsOnDate.countersignedPlanVersions.maxByOrNull{ it.updatedAt }!!
+            val latestCountersignedPlan = resultVersionsOnDate.countersignedPlanVersions.maxByOrNull { it.updatedAt }!!
             val plansAfterCountersigned = allPlansOnThisDay.filter { it.updatedAt.isAfter(latestCountersignedPlan.updatedAt) }
 
             if (plansAfterCountersigned.isNotEmpty()) {
-              val latestPlan = plansAfterCountersigned.maxByOrNull{ it.updatedAt }!!
+              val latestPlan = plansAfterCountersigned.maxByOrNull { it.updatedAt }!!
               resultVersionsOnDate.planVersions.add(latestPlan)
               lastPlan = listOf(latestPlan)
             } else {
               lastPlan = listOf(latestCountersignedPlan)
             }
           } else if (allPlansOnThisDay.isNotEmpty()) {
-            val latestPlan = allPlansOnThisDay.maxByOrNull{ it.updatedAt }!!
+            val latestPlan = allPlansOnThisDay.maxByOrNull { it.updatedAt }!!
             resultVersionsOnDate.planVersions.add(latestPlan)
             lastPlan = listOf(latestPlan)
           } else {
@@ -106,11 +102,11 @@ class VersionsResponseFactory {
           }
 
           if (resultVersionsOnDate.countersignedAssessmentVersions.isNotEmpty()) {
-            val latestCountersignedAssessment = resultVersionsOnDate.countersignedAssessmentVersions.maxByOrNull{ it.updatedAt }!!
+            val latestCountersignedAssessment = resultVersionsOnDate.countersignedAssessmentVersions.maxByOrNull { it.updatedAt }!!
             val assessmentsAfterCountersigned = allAssessmentsOnThisDay.filter { it.updatedAt.isAfter(latestCountersignedAssessment.updatedAt) }
 
             if (assessmentsAfterCountersigned.isNotEmpty()) {
-              val latestAssessment = assessmentsAfterCountersigned.maxByOrNull{ it.updatedAt }!!
+              val latestAssessment = assessmentsAfterCountersigned.maxByOrNull { it.updatedAt }!!
               resultVersionsOnDate.assessmentVersions.add(latestAssessment)
               lastAssessment = listOf(latestAssessment)
             } else {
@@ -119,16 +115,16 @@ class VersionsResponseFactory {
               val shouldAddAssessment = if (resultVersionsOnDate.countersignedPlanVersions.isEmpty()) {
                 allPlansOnThisDay.isNotEmpty()
               } else {
-                val latestCoutersignedPlan = resultVersionsOnDate.countersignedPlanVersions.maxByOrNull{ it.updatedAt }!!
+                val latestCoutersignedPlan = resultVersionsOnDate.countersignedPlanVersions.maxByOrNull { it.updatedAt }!!
                 allPlansOnThisDay.any { it.updatedAt.isAfter(latestCoutersignedPlan.updatedAt) }
               }
 
-              if(shouldAddAssessment) {
+              if (shouldAddAssessment) {
                 resultVersionsOnDate.assessmentVersions.add(latestCountersignedAssessment)
               }
             }
           } else if (allAssessmentsOnThisDay.isNotEmpty()) {
-            val latestAssessment = allAssessmentsOnThisDay.maxByOrNull{ it.updatedAt }!!
+            val latestAssessment = allAssessmentsOnThisDay.maxByOrNull { it.updatedAt }!!
             resultVersionsOnDate.assessmentVersions.add(latestAssessment)
             lastAssessment = listOf(latestAssessment)
           } else {
@@ -136,7 +132,7 @@ class VersionsResponseFactory {
               lastAssessment.forEach { resultVersionsOnDate.assessmentVersions.add(it) }
             }
           }
-          versionsMap[date] =  resultVersionsOnDate
+          versionsMap[date] = resultVersionsOnDate
         }
       }.run { versionsMap }
       .toSortedMap(),
