@@ -57,6 +57,7 @@ app:
       base-url: ${san-api.base-url}
       endpoints:
         fetch: /assessment
+        fetchVersions: /assessment/{uuid}/all
         create: /assessment
         clone: /assessment/{uuid}/clone
         delete: /assessment/{uuid}/delete
@@ -70,6 +71,7 @@ app:
       base-url: ${sp-api.base-url}
       endpoints:
         fetch: /coordinator/plan/
+        fetchVersions: /coordinator/plan/{uuid}/all
         create: /coordinator/plan
         clone: /coordinator/plan/{uuid}/clone
         delete: /coordinator/plan/{uuid}/delete

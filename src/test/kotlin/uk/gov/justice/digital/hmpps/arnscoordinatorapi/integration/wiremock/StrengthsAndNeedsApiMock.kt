@@ -364,6 +364,36 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
     )
   }
 
+  fun stubAssessmentsGetVersions(status: Int = 200) {
+    stubFor(
+      get(WireMock.urlPathMatching("/assessment/.*/all")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              [
+                {
+                  "uuid": "11db45b5-215d-4405-a887-a7efd5216fa2",
+                  "createdAt": "2025-06-23T13:22:54.105Z",
+                  "updatedAt": "2025-06-23T13:22:54.105Z",
+                  "tag": "LOCKED",
+                  "versionNumber": 1
+                },
+                {
+                  "uuid": "61369578-18f5-488c-bc99-7cc6249f39a2",
+                  "createdAt": "2025-05-23T13:22:54.105Z",
+                  "updatedAt": "2025-05-23T13:22:54.105Z",
+                  "tag": "UNSIGNED",
+                  "versionNumber": 0
+                }
+              ]
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
+
   fun stubAssessmentsSoftDelete(status: Int = 200, emptyBody: Boolean = false) {
     stubFor(
       post(WireMock.urlPathMatching("/assessment/(.*)/soft-delete")).willReturn(

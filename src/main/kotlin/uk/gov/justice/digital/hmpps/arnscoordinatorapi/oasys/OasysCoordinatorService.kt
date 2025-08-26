@@ -10,11 +10,14 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CloneCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchVersionsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.RollbackCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SoftDeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponseFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -291,6 +294,29 @@ class OasysCoordinatorService(
     }
 
     return GetOperationResult.Success(oasysGetResponse)
+  }
+
+  fun getVersionsByEntityId(entityUuid: UUID): GetOperationResult<VersionsResponse> {
+    val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
+      ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
+
+    val versionsResponseFactory = VersionsResponseFactory()
+
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+
+    for (association in associations) {
+      val strategy = association.entityType?.let(strategyFactory::getStrategy)
+        ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+
+      val command = FetchVersionsCommand(strategy, association.entityUuid)
+
+      when (val response = command.execute()) {
+        is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity versions, ${response.errorMessage}")
+        is OperationResult.Success -> versionsResponseFactory.addVersions(response.data)
+      }
+    }
+
+    return GetOperationResult.Success(versionsResponseFactory.getVersionsResponse())
   }
 
   fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {
