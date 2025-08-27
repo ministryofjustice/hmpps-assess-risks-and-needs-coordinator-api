@@ -6,14 +6,14 @@ import java.util.Collections.emptySortedMap
 import java.util.SortedMap
 
 data class VersionsOnDate(
-  var assessmentVersions: MutableList<VersionDetails> = mutableListOf(),
-  var planVersions: MutableList<VersionDetails> = mutableListOf(),
+  val assessmentVersions: MutableList<VersionDetails> = mutableListOf(),
+  val planVersions: MutableList<VersionDetails> = mutableListOf(),
 )
 
 data class LastVersionsOnDate(
-  var description: String? = null,
-  var assessmentVersion: VersionDetails? = null,
-  var planVersion: VersionDetails? = null,
+  val description: String? = null,
+  val assessmentVersion: VersionDetails? = null,
+  val planVersion: VersionDetails? = null,
 )
 
 typealias VersionsTable = SortedMap<LocalDate, LastVersionsOnDate>
