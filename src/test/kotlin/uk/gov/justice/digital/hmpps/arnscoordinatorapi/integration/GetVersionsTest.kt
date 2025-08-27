@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsOnDate
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.LastVersionsOnDate
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -65,68 +65,59 @@ class GetVersionsTest : IntegrationTestBase() {
     assertThat(planResponse).isEqualTo(assessmentResponse)
 
     val expectedVersions = sortedMapOf(
-      LocalDate.parse("2025-06-23") to VersionsOnDate(
+      LocalDate.parse("2025-06-23") to LastVersionsOnDate(
         description = "Assessment and plan updated",
-        assessmentVersions = mutableListOf(
-          VersionDetails(
-            uuid = UUID.fromString("11db45b5-215d-4405-a887-a7efd5216fa2"),
-            version = 1,
-            createdAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
-            updatedAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
-            status = "LOCKED",
-            entityType = EntityType.ASSESSMENT,
-          ),
+        assessmentVersion = VersionDetails(
+          uuid = UUID.fromString("11db45b5-215d-4405-a887-a7efd5216fa2"),
+          version = 1,
+          createdAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
+          updatedAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
+          status = "LOCKED",
+          entityType = EntityType.ASSESSMENT,
         ),
-        planVersions = mutableListOf(
-          VersionDetails(
-            uuid = UUID.fromString("4da85f64-5717-4562-b3fc-2c963f66afb8"),
-            version = 1,
-            createdAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
-            updatedAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
-            status = "AWAITING_COUNTERSIGN",
-            entityType = EntityType.PLAN,
-          ),
+        planVersion = VersionDetails(
+          uuid = UUID.fromString("4da85f64-5717-4562-b3fc-2c963f66afb8"),
+          version = 1,
+          createdAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
+          updatedAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
+          status = "AWAITING_COUNTERSIGN",
+          entityType = EntityType.PLAN,
         ),
       ),
-      LocalDate.parse("2025-05-23") to VersionsOnDate(
+      LocalDate.parse("2025-05-23") to LastVersionsOnDate(
         description = "Assessment updated",
-        assessmentVersions = mutableListOf(
-          VersionDetails(
-            uuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2"),
-            version = 0,
-            createdAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
-            updatedAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
-            status = "UNSIGNED",
-            entityType = EntityType.ASSESSMENT,
-          ),
+        assessmentVersion = VersionDetails(
+          uuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2"),
+          version = 0,
+          createdAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
+          updatedAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
+          status = "UNSIGNED",
+          entityType = EntityType.ASSESSMENT,
         ),
-        planVersions = mutableListOf(
-          VersionDetails(
-            uuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
-            version = 0,
-            createdAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
-            updatedAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
-            status = "UNSIGNED",
-            entityType = EntityType.PLAN,
-          ),
+        planVersion = VersionDetails(
+          uuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          version = 0,
+          createdAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
+          updatedAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
+          status = "UNSIGNED",
+          entityType = EntityType.PLAN,
         ),
       ),
-      LocalDate.parse("2025-04-23") to VersionsOnDate(
+      LocalDate.parse("2025-04-23") to LastVersionsOnDate(
         description = "Plan updated",
-        planVersions = mutableListOf(
-          VersionDetails(
-            uuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
-            version = 0,
-            createdAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
-            updatedAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
-            status = "UNSIGNED",
-            entityType = EntityType.PLAN,
-          ),
+        planVersion = VersionDetails(
+          uuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          version = 0,
+          createdAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
+          updatedAt = LocalDateTime.parse("2025-04-23T14:40:53.105"),
+          status = "UNSIGNED",
+          entityType = EntityType.PLAN,
         ),
       ),
     )
 
-    assertThat(assessmentResponse.versions).isEqualTo(expectedVersions)
+    assertThat(assessmentResponse.allVersions).isEqualTo(expectedVersions)
+    assertThat(assessmentResponse.countersignedVersions).isEmpty()
   }
 
   @Test
