@@ -369,11 +369,20 @@ class VersionsResponseFactoryTest {
     val july = LocalDate.of(2025, 7, 24)
     val august = LocalDate.of(2025, 8, 24)
     val september = LocalDate.of(2025, 9, 24)
+    val october = LocalDate.of(2025, 10, 24)
 
     val planUuid = UUID.randomUUID()
     val assessmentUuid = UUID.randomUUID()
 
     val assessmentVersions = listOf(
+      VersionDetails(
+        uuid = assessmentUuid,
+        version = 8,
+        status = "TEST",
+        createdAt = october.atTime(8, 30),
+        updatedAt = october.atTime(9, 0),
+        entityType = EntityType.ASSESSMENT,
+      ),
       VersionDetails(
         uuid = assessmentUuid,
         version = 7,
@@ -593,6 +602,27 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = august.atTime(9, 0),
             updatedAt = august.atTime(10, 0),
+            entityType = EntityType.PLAN,
+          ),
+        ),
+        october to LastVersionsOnDate(
+          // given that both plan and assessment are countersigned on one day, and only assessment is updated on the following day;
+          // verify that the countersigned plan is used as "last plan" alongside the updated assessment
+          description = "Assessment updated",
+          assessmentVersion = VersionDetails(
+            uuid = assessmentUuid,
+            version = 8,
+            status = "TEST",
+            createdAt = october.atTime(8, 30),
+            updatedAt = october.atTime(9, 0),
+            entityType = EntityType.ASSESSMENT,
+          ),
+          planVersion = VersionDetails(
+            uuid = planUuid,
+            version = 7,
+            status = "COUNTERSIGNED",
+            createdAt = september.atTime(9, 0),
+            updatedAt = september.atTime(10, 0),
             entityType = EntityType.PLAN,
           ),
         ),

@@ -46,14 +46,16 @@ class VersionsResponseFactory {
         planVersion = versionsOnDate.planVersions.maxByOrNull { it.updatedAt } ?: acc.lastPlan,
         description = getDescription(versionsOnDate),
       )
+        .also {
+          acc.lastAssessment = it.assessmentVersion
+          acc.lastPlan = it.planVersion
+        }
         .takeUnless {
           it.assessmentVersion?.status?.run(statusesToExclude::contains) ?: true &&
             it.planVersion?.status?.run(statusesToExclude::contains) ?: true
         }
         ?.let {
           acc.versionsTable.put(date, it)
-          acc.lastAssessment = it.assessmentVersion
-          acc.lastPlan = it.planVersion
         }
       acc
     }
