@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
@@ -38,7 +39,7 @@ class EntityController(
       ApiResponse(
         responseCode = "200",
         description = "Entities found",
-        content = arrayOf(Content(schema = Schema(implementation = OasysGetResponse::class))),
+        content = arrayOf(Content(schema = Schema(implementation = VersionsResponse::class))),
       ),
       ApiResponse(
         responseCode = "404",
