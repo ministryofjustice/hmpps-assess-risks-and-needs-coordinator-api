@@ -522,7 +522,8 @@ class VersionsResponseFactoryTest {
     factory.addVersions(planVersions)
 
     val expectedResponse = VersionsResponse(
-      allVersions = sortedMapOf(Comparator.reverseOrder(),
+      allVersions = sortedMapOf(
+        Comparator.reverseOrder(),
         // checking that if there are versions on the same day but after countersigned assessment and plan, these are added on a separate row for 'All versions' table in the UI
         may to LastVersionsOnDate(
           description = "Assessment and plan updated",
@@ -628,7 +629,8 @@ class VersionsResponseFactoryTest {
           ),
         ),
       ),
-      countersignedVersions = sortedMapOf(Comparator.reverseOrder(),
+      countersignedVersions = sortedMapOf(
+        Comparator.reverseOrder(),
         // checking that if there are versions on the same day but after countersigned assessment and plan, these are added on a separate row for 'All versions' table in the UI
         may to LastVersionsOnDate(
           description = "Assessment and plan updated",
@@ -715,6 +717,5 @@ class VersionsResponseFactoryTest {
 
     assertEquals(expectedResponse.allVersions.entries.toList(), actualResponse.allVersions.entries.toList())
     assertEquals(expectedResponse.countersignedVersions.entries.toList(), actualResponse.countersignedVersions.entries.toList())
-
   }
 }
