@@ -14,17 +14,17 @@ configurations {
 dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.5.0")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.wiremock:wiremock-standalone:3.13.1")
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
-  implementation("org.flywaydb:flyway-core:11.11.2")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.11.2")
+  implementation("org.flywaydb:flyway-core:11.12.0")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.12.0")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.5.0")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.32") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.33") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("com.h2database:h2")
