@@ -404,6 +404,7 @@ class VersionsResponseFactoryTest {
         status = "DOUBLE_COUNTERSIGNED",
         createdAt = november.atTime(8, 30),
         updatedAt = november.atTime(9, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -496,6 +497,7 @@ class VersionsResponseFactoryTest {
         status = "DOUBLE_COUNTERSIGNED",
         createdAt = november.atTime(9, 0),
         updatedAt = november.atTime(10, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -792,6 +794,7 @@ class VersionsResponseFactoryTest {
             status = "DOUBLE_COUNTERSIGNED",
             createdAt = november.atTime(8, 30),
             updatedAt = november.atTime(9, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -800,6 +803,7 @@ class VersionsResponseFactoryTest {
             status = "DOUBLE_COUNTERSIGNED",
             createdAt = november.atTime(9, 0),
             updatedAt = november.atTime(10, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
