@@ -392,11 +392,21 @@ class VersionsResponseFactoryTest {
     val august = LocalDate.of(2025, 8, 24)
     val september = LocalDate.of(2025, 9, 24)
     val october = LocalDate.of(2025, 10, 24)
+    val november = LocalDate.of(2025, 11, 24)
 
     val planUuid = UUID.randomUUID()
     val assessmentUuid = UUID.randomUUID()
 
     val assessmentVersions = listOf(
+      VersionDetails(
+        uuid = assessmentUuid,
+        version = 9,
+        status = "DOUBLE_COUNTERSIGNED",
+        createdAt = november.atTime(8, 30),
+        updatedAt = november.atTime(9, 0),
+        planAgreementStatus = null,
+        entityType = EntityType.ASSESSMENT,
+      ),
       VersionDetails(
         uuid = assessmentUuid,
         version = 8,
@@ -481,6 +491,15 @@ class VersionsResponseFactoryTest {
     )
 
     val planVersions = listOf(
+      VersionDetails(
+        uuid = planUuid,
+        version = 8,
+        status = "DOUBLE_COUNTERSIGNED",
+        createdAt = november.atTime(9, 0),
+        updatedAt = november.atTime(10, 0),
+        planAgreementStatus = "TEST",
+        entityType = EntityType.PLAN,
+      ),
       VersionDetails(
         uuid = planUuid,
         version = 7,
@@ -761,6 +780,29 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = september.atTime(9, 0),
             updatedAt = september.atTime(10, 0),
+            planAgreementStatus = "TEST",
+            entityType = EntityType.PLAN,
+          ),
+        ),
+        november to LastVersionsOnDate(
+          // given both assessment and plan versions are "DOUBLE_COUNTERSIGNED"
+          // verify that both are added into countersignedVersions field
+          description = "Assessment and plan updated",
+          assessmentVersion = VersionDetails(
+            uuid = assessmentUuid,
+            version = 9,
+            status = "DOUBLE_COUNTERSIGNED",
+            createdAt = november.atTime(8, 30),
+            updatedAt = november.atTime(9, 0),
+            planAgreementStatus = null,
+            entityType = EntityType.ASSESSMENT,
+          ),
+          planVersion = VersionDetails(
+            uuid = planUuid,
+            version = 8,
+            status = "DOUBLE_COUNTERSIGNED",
+            createdAt = november.atTime(9, 0),
+            updatedAt = november.atTime(10, 0),
             planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
