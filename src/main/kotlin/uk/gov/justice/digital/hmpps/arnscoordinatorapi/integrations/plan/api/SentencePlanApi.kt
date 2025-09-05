@@ -187,6 +187,7 @@ class SentencePlanApi(
             it.createdAt,
             it.updatedAt,
             it.status,
+            it.agreementStatus,
             EntityType.PLAN,
           )
         }

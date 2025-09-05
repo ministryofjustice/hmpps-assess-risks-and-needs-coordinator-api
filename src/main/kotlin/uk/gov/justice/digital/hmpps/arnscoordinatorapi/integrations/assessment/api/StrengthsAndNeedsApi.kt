@@ -213,6 +213,7 @@ class StrengthsAndNeedsApi(
             it.createdAt,
             it.updatedAt,
             it.tag,
+            null,
             EntityType.ASSESSMENT,
           )
         }

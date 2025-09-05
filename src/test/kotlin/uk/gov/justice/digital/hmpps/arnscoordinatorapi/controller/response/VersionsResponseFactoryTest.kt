@@ -20,6 +20,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = null,
       entityType = EntityType.ASSESSMENT,
     )
 
@@ -49,6 +50,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = "TEST",
       entityType = EntityType.PLAN,
     )
 
@@ -78,6 +80,7 @@ class VersionsResponseFactoryTest {
       status = "COUNTERSIGNED",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = "TEST",
       entityType = EntityType.PLAN,
     )
 
@@ -108,6 +111,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = null,
       entityType = EntityType.ASSESSMENT,
     )
 
@@ -117,6 +121,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = "TEST",
       entityType = EntityType.PLAN,
     )
 
@@ -149,6 +154,7 @@ class VersionsResponseFactoryTest {
       status = "COUNTERSIGNED",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = null,
       entityType = EntityType.ASSESSMENT,
     )
 
@@ -158,6 +164,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
+      planAgreementStatus = "TEST",
       entityType = EntityType.PLAN,
     )
 
@@ -198,6 +205,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = assessmentDate.atTime(10, 0),
       updatedAt = assessmentDate.atTime(11, 0),
+      planAgreementStatus = null,
       entityType = EntityType.ASSESSMENT,
     )
 
@@ -207,6 +215,7 @@ class VersionsResponseFactoryTest {
       status = "TEST",
       createdAt = planDate.atTime(10, 0),
       updatedAt = planDate.atTime(11, 0),
+      planAgreementStatus = "TEST",
       entityType = EntityType.PLAN,
     )
 
@@ -247,6 +256,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = assessmentDate2.atTime(10, 0),
         updatedAt = assessmentDate2.atTime(11, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -255,6 +265,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = assessmentDate.atTime(10, 0),
         updatedAt = assessmentDate.atTime(11, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -263,6 +274,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = assessmentDate.atTime(8, 0),
         updatedAt = assessmentDate.atTime(9, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
     )
@@ -274,6 +286,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = planDate.atTime(10, 0),
         updatedAt = planDate.atTime(11, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -282,6 +295,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = planDate.atTime(8, 0),
         updatedAt = planDate.atTime(9, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -290,6 +304,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = assessmentDate.atTime(8, 0),
         updatedAt = assessmentDate.atTime(9, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
     )
@@ -308,6 +323,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = assessmentDate2.atTime(10, 0),
             updatedAt = assessmentDate2.atTime(11, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -316,6 +332,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = planDate.atTime(10, 0),
             updatedAt = planDate.atTime(11, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -327,6 +344,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = assessmentDate.atTime(10, 0),
             updatedAt = assessmentDate.atTime(11, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -335,6 +353,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = planDate.atTime(10, 0),
             updatedAt = planDate.atTime(11, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -346,6 +365,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = assessmentDate.atTime(10, 0),
             updatedAt = assessmentDate.atTime(11, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -354,6 +374,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = assessmentDate.atTime(8, 0),
             updatedAt = assessmentDate.atTime(9, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -382,6 +403,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = october.atTime(8, 30),
         updatedAt = october.atTime(9, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -390,6 +412,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = september.atTime(8, 30),
         updatedAt = september.atTime(9, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -398,6 +421,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = september.atTime(5, 30),
         updatedAt = september.atTime(6, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -406,6 +430,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = august.atTime(8, 30),
         updatedAt = august.atTime(9, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -414,6 +439,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = june.atTime(10, 30),
         updatedAt = june.atTime(11, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -422,6 +448,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = june.atTime(9, 0),
         updatedAt = june.atTime(10, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -430,6 +457,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = may.atTime(11, 30),
         updatedAt = may.atTime(12, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -438,6 +466,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = may.atTime(10, 0),
         updatedAt = may.atTime(11, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
       VersionDetails(
@@ -446,6 +475,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = may.atTime(8, 0),
         updatedAt = may.atTime(9, 0),
+        planAgreementStatus = null,
         entityType = EntityType.ASSESSMENT,
       ),
     )
@@ -457,6 +487,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = september.atTime(9, 0),
         updatedAt = september.atTime(10, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -465,6 +496,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = september.atTime(5, 0),
         updatedAt = september.atTime(6, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -473,6 +505,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = august.atTime(9, 0),
         updatedAt = august.atTime(10, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -481,6 +514,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = july.atTime(10, 30),
         updatedAt = july.atTime(11, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -489,6 +523,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = july.atTime(9, 0),
         updatedAt = july.atTime(10, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -497,6 +532,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = may.atTime(11, 30),
         updatedAt = may.atTime(12, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -505,6 +541,7 @@ class VersionsResponseFactoryTest {
         status = "TEST",
         createdAt = may.atTime(10, 0),
         updatedAt = may.atTime(11, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
       VersionDetails(
@@ -513,6 +550,7 @@ class VersionsResponseFactoryTest {
         status = "COUNTERSIGNED",
         createdAt = may.atTime(8, 0),
         updatedAt = may.atTime(9, 0),
+        planAgreementStatus = "TEST",
         entityType = EntityType.PLAN,
       ),
     )
@@ -533,6 +571,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = may.atTime(11, 30),
             updatedAt = may.atTime(12, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -541,6 +580,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = may.atTime(11, 30),
             updatedAt = may.atTime(12, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -554,6 +594,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = june.atTime(10, 30),
             updatedAt = june.atTime(11, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -562,6 +603,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = may.atTime(11, 30),
             updatedAt = may.atTime(12, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -575,6 +617,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = june.atTime(10, 30),
             updatedAt = june.atTime(11, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -583,6 +626,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = july.atTime(10, 30),
             updatedAt = july.atTime(11, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -596,6 +640,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = august.atTime(8, 30),
             updatedAt = august.atTime(9, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -604,6 +649,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = august.atTime(9, 0),
             updatedAt = august.atTime(10, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -617,6 +663,7 @@ class VersionsResponseFactoryTest {
             status = "TEST",
             createdAt = october.atTime(8, 30),
             updatedAt = october.atTime(9, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -625,6 +672,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = september.atTime(9, 0),
             updatedAt = september.atTime(10, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -640,6 +688,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = may.atTime(8, 0),
             updatedAt = may.atTime(9, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -648,6 +697,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = may.atTime(8, 0),
             updatedAt = may.atTime(9, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -661,6 +711,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = june.atTime(9, 0),
             updatedAt = june.atTime(10, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
         ),
@@ -674,6 +725,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = july.atTime(9, 0),
             updatedAt = july.atTime(10, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),
@@ -687,6 +739,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = august.atTime(8, 30),
             updatedAt = august.atTime(9, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
         ),
@@ -699,6 +752,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = september.atTime(8, 30),
             updatedAt = september.atTime(9, 0),
+            planAgreementStatus = null,
             entityType = EntityType.ASSESSMENT,
           ),
           planVersion = VersionDetails(
@@ -707,6 +761,7 @@ class VersionsResponseFactoryTest {
             status = "COUNTERSIGNED",
             createdAt = september.atTime(9, 0),
             updatedAt = september.atTime(10, 0),
+            planAgreementStatus = "TEST",
             entityType = EntityType.PLAN,
           ),
         ),

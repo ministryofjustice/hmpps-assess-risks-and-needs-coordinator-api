@@ -75,14 +75,16 @@ class SentencePlanApiMock : WireMockServer(8091) {
                   "version": 1,
                   "createdAt": "2025-06-23T14:44:53.105Z",
                   "updatedAt": "2025-06-23T14:44:53.105Z",
-                  "status": "AWAITING_COUNTERSIGN"
+                  "status": "AWAITING_COUNTERSIGN",
+                  "agreementStatus": "TEST"
                 },
                 {
                   "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                   "version": 0,
                   "createdAt": "2025-04-23T14:40:53.105Z",
                   "updatedAt": "2025-04-23T14:40:53.105Z",
-                  "status": "UNSIGNED"
+                  "status": "UNSIGNED",
+                  "agreementStatus": "TEST"
                 }
               ]
             """.trimIndent(),
