@@ -747,7 +747,7 @@ class VersionsResponseFactoryTest {
             updatedAt = november.atTime(10, 0),
             entityType = EntityType.PLAN,
           ),
-        )
+        ),
       ),
     )
 
