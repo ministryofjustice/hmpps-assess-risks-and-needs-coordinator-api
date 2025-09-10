@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.Location
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OasysUserDetailsValidationTest {
@@ -24,7 +25,8 @@ class OasysUserDetailsValidationTest {
   fun `Valid OasysUserDetails validation will have no violations`() {
     val userName = "Test Name"
     val fifteenCharId = "ABCDEFGHIJKLMNO"
-    val oasysUserDetails = OasysUserDetails(id = fifteenCharId, name = userName)
+    val location = Location.PRISON
+    val oasysUserDetails = OasysUserDetails(id = fifteenCharId, name = userName, location = location)
 
     val violations: Set<ConstraintViolation<OasysUserDetails>> = validator.validate(oasysUserDetails)
 

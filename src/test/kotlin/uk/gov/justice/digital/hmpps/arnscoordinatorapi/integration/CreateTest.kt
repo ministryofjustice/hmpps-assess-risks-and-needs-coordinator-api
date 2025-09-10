@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -184,5 +185,31 @@ class CreateTest : IntegrationTestBase() {
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - Must only contain numeric characters")
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - size must be between 1 and 15")
     assertThat(response.responseBody?.developerMessage).doesNotContain("Size.previousOasysAssessmentPk")
+  }
+
+  @Test
+  fun `it returns a 400 status where the userDetails location is invalid`() {
+    val oasysAssessmentPk = getRandomOasysPk()
+    val response = webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_WRITE")))
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(
+        """
+          {
+            "oasysAssessmentPk": "$oasysAssessmentPk",
+            "planType": "INITIAL",
+            "userDetails": {
+              "id": "1",
+              "name": "Test Name",
+              "location": "AN_INVALID_LOCATION"
+          }
+        """.trimIndent(),
+      )
+      .exchange()
+      .expectStatus().isBadRequest
+      .expectBody<ErrorResponse>()
+      .returnResult()
+
+    assertThat(response.responseBody?.userMessage).startsWith("Validation failure: JSON parse error:")
   }
 }
