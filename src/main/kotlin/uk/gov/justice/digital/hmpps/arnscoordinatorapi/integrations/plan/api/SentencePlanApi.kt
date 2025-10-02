@@ -167,7 +167,7 @@ class SentencePlanApi(
             it.uuid,
             it.version,
             it.createdAt,
-            it.updatedAt,
+            it.mostRecentUpdateDate,
             it.status,
             it.agreementStatus,
             EntityType.PLAN,
