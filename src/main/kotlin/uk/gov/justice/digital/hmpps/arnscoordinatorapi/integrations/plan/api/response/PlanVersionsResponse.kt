@@ -12,5 +12,4 @@ data class PlanVersionDetails(
   val updatedAt: LocalDateTime,
   val status: String,
   val agreementStatus: String,
-  val mostRecentUpdateDate: LocalDateTime,
 )
