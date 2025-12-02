@@ -106,7 +106,7 @@ class OasysAssociationsServiceTest {
       `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
         .thenReturn(emptyList())
 
-      val result = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+      val result = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
       assertTrue(result.isEmpty())
       verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
@@ -124,11 +124,46 @@ class OasysAssociationsServiceTest {
       `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
         .thenReturn(listOf(association))
 
-      val result = oasysAssociationsService.findAssociations(oasysAssessmentPk)
+      val result = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
       assertEquals(1, result.size)
       assertEquals(association, result[0])
       verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
+    }
+  }
+
+  @Nested
+  inner class FindAssociationsWithType {
+
+    @Test
+    fun `should return empty list when no associations are found with matching type`() {
+      val oasysAssessmentPk = "test-pk"
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.PLAN)))
+        .thenReturn(emptyList())
+
+      val result = oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
+
+      assertTrue(result.isEmpty())
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.PLAN))
+    }
+
+    @Test
+    fun `should return list of associations when associations are found with type`() {
+      val oasysAssessmentPk = "test-pk"
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.ASSESSMENT,
+        oasysAssessmentPk = oasysAssessmentPk,
+        entityUuid = UUID.randomUUID(),
+      )
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.ASSESSMENT)))
+        .thenReturn(listOf(association))
+
+      val result = oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.ASSESSMENT))
+
+      assertEquals(1, result.size)
+      assertEquals(association, result[0])
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.ASSESSMENT))
     }
   }
 
