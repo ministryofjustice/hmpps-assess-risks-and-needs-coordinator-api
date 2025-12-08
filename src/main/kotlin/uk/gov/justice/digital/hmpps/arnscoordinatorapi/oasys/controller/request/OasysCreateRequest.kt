@@ -37,4 +37,7 @@ data class OasysCreateRequest(
   @Schema(description = "OASys User Details")
   @field:Valid
   val userDetails: OasysUserDetails,
+
+  @Schema(description = "Fail the request if any associations exist for the provided OASys PK")
+  val failOnExistingAssociations: Boolean = true,
 )

@@ -58,8 +58,8 @@ class OasysCoordinatorServiceTest {
     fun `should create entities and associations successfully`() {
       val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
 
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
-        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk))
+        .thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
 
@@ -74,7 +74,7 @@ class OasysCoordinatorServiceTest {
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
       verify(strategyFactory).getStrategies()
-      verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+      verify(oasysAssociationsService).findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk)
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
     }
 
@@ -83,8 +83,8 @@ class OasysCoordinatorServiceTest {
       val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
       val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
 
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
-        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk))
+        .thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(planStrategy, assessmentStrategy))
 
@@ -108,8 +108,8 @@ class OasysCoordinatorServiceTest {
       val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
       val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
 
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
-        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk))
+        .thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(assessmentStrategy, planStrategy))
 
@@ -132,8 +132,8 @@ class OasysCoordinatorServiceTest {
     fun `should rollback on association storage failure`() {
       val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
 
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
-        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk))
+        .thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
 
@@ -152,18 +152,18 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should return conflicting associations result if associations exist`() {
-      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
-        .thenReturn(OperationResult.Failure("Conflicting associations"))
+      `when`(oasysAssociationsService.findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk))
+        .thenReturn(listOf(OasysAssociation(entityType = EntityType.PLAN)))
 
       val result = oasysCoordinatorService.create(oasysCreateRequest)
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations)
       assertEquals(
-        "Cannot create due to conflicting associations: Conflicting associations",
+        "Cannot create due to conflicting associations: PLAN",
         (result as OasysCoordinatorService.CreateOperationResult.ConflictingAssociations).errorMessage,
       )
 
-      verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+      verify(oasysAssociationsService).findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk)
     }
   }
 

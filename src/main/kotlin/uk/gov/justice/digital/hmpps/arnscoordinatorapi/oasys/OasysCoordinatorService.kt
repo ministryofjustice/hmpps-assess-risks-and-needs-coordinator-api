@@ -59,13 +59,19 @@ class OasysCoordinatorService(
 
   @Transactional
   fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
-    oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
+    val existingAssociations = oasysAssociationsService.findAssociationsByPk(requestData.oasysAssessmentPk)
+
+    if (requestData.failOnExistingAssociations && existingAssociations.isNotEmpty()) {
+      val types = existingAssociations.map { it.entityType }.distinct()
+      return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: ${types.joinToString(", ")}")
+    }
 
     val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
     for (strategy in strategyFactory.getStrategies()) {
+      if (existingAssociations.any { it.entityType == strategy.entityType }) continue
+
       val command = CreateCommand(strategy, buildCreateData(requestData))
       val commandResult = command.execute()
 
@@ -97,8 +103,12 @@ class OasysCoordinatorService(
   }
 
   fun clone(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
-    oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      .onFailure { return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, $it.") }
+    val existingAssociations = oasysAssociationsService.findAssociationsByPk(requestData.oasysAssessmentPk)
+
+    if (requestData.failOnExistingAssociations && existingAssociations.isNotEmpty()) {
+      val types = existingAssociations.map { it.entityType }.distinct()
+      return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, ${types.joinToString(", ")}.")
+    }
 
     val associations = oasysAssociationsService.findAssociationsByPk(requestData.previousOasysAssessmentPk!!)
     if (associations.isEmpty()) {
@@ -108,7 +118,9 @@ class OasysCoordinatorService(
     val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
 
-    associations.forEach { association ->
+    for (association in associations) {
+      if (existingAssociations.any { it.entityType == association.entityType }) continue
+
       val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid)
 
       when (val commandResult = command.execute()) {
@@ -399,8 +411,7 @@ class OasysCoordinatorService(
       val versionTo = oasysAssociationsService
         .findAllIncludingDeleted(association.entityUuid)
         .filter { it.createdAt > association.createdAt }
-        .sortedBy { it.createdAt }
-        .firstOrNull()?.baseVersion
+        .minByOrNull { it.createdAt }?.baseVersion
 
       val command = SoftDeleteCommand(
         strategy,
@@ -541,6 +552,19 @@ class OasysCoordinatorService(
     data class ConflictingAssociations<T>(
       val errorMessage: String,
     ) : CreateOperationResult<T>()
+  }
+
+  sealed class CreateMissingOperationResult<out T> {
+    data class Success<T>(val data: T) : CreateMissingOperationResult<T>()
+
+    data class Failure<T>(
+      val errorMessage: String,
+      val cause: Throwable? = null,
+    ) : CreateMissingOperationResult<T>()
+
+    data class NoAssociations<T>(
+      val errorMessage: String,
+    ) : CreateMissingOperationResult<T>()
   }
 
   sealed class GetOperationResult<out T> {

@@ -26,41 +26,6 @@ class OasysAssociationsServiceTest {
   lateinit var oasysAssociationsService: OasysAssociationsService
 
   @Nested
-  inner class EnsureNoExistingAssociation {
-
-    @Test
-    fun `should return success when no existing associations`() {
-      val oasysAssessmentPk = "test-pk"
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
-        .thenReturn(emptyList())
-
-      val result = oasysAssociationsService.ensureNoExistingAssociation(oasysAssessmentPk)
-
-      assertTrue(result is OperationResult.Success)
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
-    }
-
-    @Test
-    fun `should return failure when associations exist`() {
-      val oasysAssessmentPk = "test-pk"
-      val association = OasysAssociation(
-        id = 1L,
-        entityType = EntityType.ASSESSMENT,
-        oasysAssessmentPk = oasysAssessmentPk,
-        entityUuid = UUID.randomUUID(),
-      )
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
-        .thenReturn(listOf(association))
-
-      val result = oasysAssociationsService.ensureNoExistingAssociation(oasysAssessmentPk)
-
-      assertTrue(result is OperationResult.Failure)
-      assertTrue((result as OperationResult.Failure).errorMessage.contains("ASSESSMENT"))
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
-    }
-  }
-
-  @Nested
   inner class StoreAssociation {
 
     @Test

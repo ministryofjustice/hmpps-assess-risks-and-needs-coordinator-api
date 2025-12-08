@@ -25,17 +25,6 @@ class OasysAssociationsService(
 
   fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 
-  fun ensureNoExistingAssociation(oasysAssessmentPk: String): OperationResult<Unit> {
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
-
-    return if (associations.isNotEmpty()) {
-      val types = associations.map { it.entityType }.distinct()
-      OperationResult.Failure("Existing associations found for ${types.joinToString(", ")}")
-    } else {
-      OperationResult.Success(Unit)
-    }
-  }
-
   fun storeAssociation(association: OasysAssociation): OperationResult<Unit> = try {
     oasysAssociationRepository.save(association)
     OperationResult.Success(Unit)
