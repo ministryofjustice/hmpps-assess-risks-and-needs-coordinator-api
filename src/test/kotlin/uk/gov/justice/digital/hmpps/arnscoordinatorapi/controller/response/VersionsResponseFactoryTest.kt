@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.time.LocalDate
-import java.util.Comparator
 import java.util.UUID
 
 class VersionsResponseFactoryTest {
@@ -364,7 +363,7 @@ class VersionsResponseFactoryTest {
   }
 
   @Test
-  fun `addVersions should correctly combine a mixture of multiple countersigned and other assessment and plan versions and return them in the descending order`() {
+  fun `addVersions should correctly combine a mixture of multiple countersigned and other assessment and plan versions`() {
     val may = LocalDate.of(2025, 5, 24)
     val june = LocalDate.of(2025, 6, 24)
     val july = LocalDate.of(2025, 7, 24)
@@ -523,7 +522,6 @@ class VersionsResponseFactoryTest {
 
     val expectedResponse = VersionsResponse(
       allVersions = sortedMapOf(
-        Comparator.reverseOrder(),
         // checking that if there are versions on the same day but after countersigned assessment and plan, these are added on a separate row for 'All versions' table in the UI
         may to LastVersionsOnDate(
           description = "Assessment and plan updated",
@@ -630,7 +628,6 @@ class VersionsResponseFactoryTest {
         ),
       ),
       countersignedVersions = sortedMapOf(
-        Comparator.reverseOrder(),
         // checking that if there are versions on the same day but after countersigned assessment and plan, these are added on a separate row for 'All versions' table in the UI
         may to LastVersionsOnDate(
           description = "Assessment and plan updated",
@@ -713,9 +710,6 @@ class VersionsResponseFactoryTest {
       ),
     )
 
-    val actualResponse = factory.getVersionsResponse()
-
-    assertEquals(expectedResponse.allVersions.entries.toList(), actualResponse.allVersions.entries.toList())
-    assertEquals(expectedResponse.countersignedVersions.entries.toList(), actualResponse.countersignedVersions.entries.toList())
+    assertEquals(expectedResponse, factory.getVersionsResponse())
   }
 }

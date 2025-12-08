@@ -33,7 +33,7 @@ class VersionsResponseFactory {
         ?.let { acc.put(date, it) }
       acc
     }
-    .toSortedMap(Comparator.reverseOrder())
+    .toSortedMap()
 
   private fun getVersionsTable(statusesToExclude: Set<String> = emptySet()): VersionsTable = versions.entries.sortedBy { it.key }
     .fold(object {
@@ -60,7 +60,7 @@ class VersionsResponseFactory {
       acc
     }
     .run { versionsTable }
-    .toSortedMap(Comparator.reverseOrder())
+    .toSortedMap()
 
   private fun getDescription(versionsOnDate: VersionsOnDate): String? = with(versionsOnDate) {
     when {
