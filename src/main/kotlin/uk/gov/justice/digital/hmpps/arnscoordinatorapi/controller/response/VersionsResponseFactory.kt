@@ -18,11 +18,11 @@ class VersionsResponseFactory {
       }.add(versionToAdd)
   }
 
-  private fun getVersionsTableForStatuses(statuses: Set<String>): VersionsTable = versions.entries.sortedBy { it.key }
+  private fun getVersionsTableForStatus(status: String): VersionsTable = versions.entries.sortedBy { it.key }
     .fold(mutableMapOf<LocalDate, LastVersionsOnDate>()) { acc, (date, versionsOnDate) ->
       val filteredVersionsOnDate = VersionsOnDate(
-        assessmentVersions = versionsOnDate.assessmentVersions.filter { it.status in statuses }.toMutableList(),
-        planVersions = versionsOnDate.planVersions.filter { it.status in statuses }.toMutableList(),
+        assessmentVersions = versionsOnDate.assessmentVersions.filter { it.status == status }.toMutableList(),
+        planVersions = versionsOnDate.planVersions.filter { it.status == status }.toMutableList(),
       )
       LastVersionsOnDate(
         assessmentVersion = filteredVersionsOnDate.assessmentVersions.maxByOrNull { it.updatedAt },
@@ -72,7 +72,7 @@ class VersionsResponseFactory {
   }
 
   fun getVersionsResponse() = VersionsResponse(
-    allVersions = getVersionsTable(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),
-    countersignedVersions = getVersionsTableForStatuses(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),
+    allVersions = getVersionsTable(setOf("COUNTERSIGNED")),
+    countersignedVersions = getVersionsTableForStatus("COUNTERSIGNED"),
   )
 }
