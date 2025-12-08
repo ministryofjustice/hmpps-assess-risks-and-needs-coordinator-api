@@ -100,7 +100,7 @@ class OasysCoordinatorService(
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, $it.") }
 
-    val associations = oasysAssociationsService.findAssociationsByPk(requestData.previousOasysAssessmentPk!!)
+    val associations = oasysAssociationsService.findAssociations(requestData.previousOasysAssessmentPk!!)
     if (associations.isEmpty()) {
       return CreateOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
     }
@@ -143,7 +143,7 @@ class OasysCoordinatorService(
     oasysGenericRequest: OasysGenericRequest,
     oasysAssessmentPk: String,
   ): LockOperationResult<OasysVersionedEntityResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return LockOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -177,7 +177,7 @@ class OasysCoordinatorService(
     oasysSignRequest: OasysSignRequest,
     oasysAssessmentPk: String,
   ): SignOperationResult<OasysVersionedEntityResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return SignOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -218,7 +218,7 @@ class OasysCoordinatorService(
     rollbackRequest: OasysRollbackRequest,
     oasysAssessmentPk: String,
   ): RollbackOperationResult<OasysVersionedEntityResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return RollbackOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -248,7 +248,7 @@ class OasysCoordinatorService(
   }
 
   fun get(oasysAssessmentPk: String): GetOperationResult<OasysGetResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return GetOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -273,7 +273,7 @@ class OasysCoordinatorService(
   fun getByEntityId(entityUuid: UUID, entityType: EntityType): GetOperationResult<OasysGetResponse> {
     val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
       ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
-    val association = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val association = oasysAssociationsService.findAssociations(oasysAssessmentPk)
       .firstOrNull { it.entityType == entityType }
       ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid and entityType")
 
@@ -291,17 +291,13 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(oasysGetResponse)
   }
 
-  fun getVersionsByEntityId(entityUuid: UUID, authType: String?): GetOperationResult<VersionsResponse> {
+  fun getVersionsByEntityId(entityUuid: UUID): GetOperationResult<VersionsResponse> {
     val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
       ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
 
     val versionsResponseFactory = VersionsResponseFactory()
 
-    val associations = if (authType == "HMPPS_AUTH") {
-      oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
-    } else {
-      oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
-    }
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     for (association in associations) {
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
@@ -319,7 +315,7 @@ class OasysCoordinatorService(
   }
 
   fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return GetOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -347,7 +343,7 @@ class OasysCoordinatorService(
     oasysAssessmentPk: String,
     request: OasysCounterSignRequest,
   ): CounterSignOperationResult<OasysVersionedEntityResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return CounterSignOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -385,7 +381,7 @@ class OasysCoordinatorService(
     oasysGenericRequest: OasysGenericRequest,
     oasysAssessmentPk: String,
   ): SoftDeleteOperationResult<OasysVersionedEntityResponse> {
-    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val associations = oasysAssociationsService.findAssociations(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
       return SoftDeleteOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
@@ -494,10 +490,10 @@ class OasysCoordinatorService(
     val conflictPKs = mutableListOf<String>()
 
     val resultsToMerge = request.merge.associate { merge ->
-      oasysAssociationsService.findAssociationsByPk(merge.newOasysAssessmentPK).run {
+      oasysAssociationsService.findAssociations(merge.newOasysAssessmentPK).run {
         if (isNotEmpty()) conflictPKs.add(merge.newOasysAssessmentPK)
       }
-      merge.newOasysAssessmentPK to oasysAssociationsService.findAssociationsByPk(merge.oldOasysAssessmentPK, includeDeleted = true)
+      merge.newOasysAssessmentPK to oasysAssociationsService.findAssociations(merge.oldOasysAssessmentPK, includeDeleted = true)
         .also {
           if (it.isEmpty()) notFoundPKs.add(merge.oldOasysAssessmentPK)
         }
