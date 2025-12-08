@@ -12,6 +12,5 @@ data class VersionDetails(
   val createdAt: LocalDateTime,
   val updatedAt: LocalDateTime,
   val status: String,
-  val planAgreementStatus: String?,
   val entityType: EntityType,
 )
