@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
@@ -34,6 +35,11 @@ class AssessmentStrategy(
   }
 
   override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!, entityUuid)) {
+    is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+  }
+
+  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = strengthsAndNeedsApi.deleteAssessment(deleteData.assessment!!, entityUuid)) {
     is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }

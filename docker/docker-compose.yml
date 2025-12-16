@@ -1,13 +1,13 @@
 services:
   postgres:
     image: postgres:16
-    restart: always
-    ports:
-      - "5432:5432"
+    networks:
+      - hmpps
     environment:
-      POSTGRES_DB: arns-coordinator
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: dev
+    tmpfs:
+      - /var/lib/postgresql
 
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:2024-10-02.25761.db2ce3c
@@ -15,24 +15,15 @@ services:
       test: ["CMD", "curl", "-f", "http://hmpps-auth:9090/auth/health"]
       interval: 5s
       retries: 100
-    ports:
-      - "9090:9090"
+    networks:
+      - hmpps
     environment:
       SERVER_PORT: 9090
       SPRING_PROFILES_ACTIVE: dev
       APPLICATION_AUTHENTICATION_UI_ALLOWLIST: 0.0.0.0/0
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
 
-  forward-proxy:
-    image: nginx:latest
-    ports:
-      - "9091:9091"
-    depends_on:
-      - hmpps-auth
-    volumes:
-      - ./hmpps-auth-proxy/nginx.conf:/etc/nginx/nginx.conf
-
-  api:
+  coordinator-api:
     image: ghcr.io/ministryofjustice/hmpps-assess-risks-and-needs-coordinator-api:${APP_VERSION:-latest}
     build:
       context: ../
@@ -41,17 +32,20 @@ services:
       - hmpps-auth
       - forward-proxy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://api:8080/health/ping"]
+      test: ["CMD", "curl", "-f", "http://coordinator-api:8080/health/ping"]
       interval: 5s
       retries: 100
-    ports:
-      - "8080:8080"
+    networks:
+      - hmpps
     environment:
       SERVER_PORT: 8080
       APP_DB_ENDPOINT: postgres:5432
       HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090/auth
-      SAN_API_BASE_URL: http://san-api:3050
-      SP_API_BASE_URL: http://sp-api:3060
+      SAN_API_BASE_URL: http://san-api:8080
+      SP_API_BASE_URL: http://sp-api:8090
       # TODO: Need to get some proper credentials for below
       CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
       CLIENT_SECRET: clientsecret
+
+networks:
+  hmpps:

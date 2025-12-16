@@ -18,6 +18,7 @@ data class SentencePlanApiProperties(
     var create: String = "",
     var clone: String = "",
     var counterSign: String = "",
+    var delete: String = "",
     var sign: String = "",
     var lock: String = "",
     var rollback: String = "",

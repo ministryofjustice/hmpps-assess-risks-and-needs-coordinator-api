@@ -128,14 +128,12 @@ class SoftDeleteTest : IntegrationTestBase() {
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
-          id = 1L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.PLAN,
           entityUuid = planUuid,
           baseVersion = 0,
         ),
         OasysAssociation(
-          id = 2L,
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = assessmentUuid,
