@@ -9,7 +9,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.SentencePlanApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
@@ -53,11 +52,6 @@ class PlanStrategy(
   }
 
   override fun fetch(entityUuid: UUID): OperationResult<GetPlanResponse> = when (val result = sentencePlanApi.getPlan(entityUuid)) {
-    is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-    is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
-  }
-
-  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> = when (val result = sentencePlanApi.getPlanVersions(entityUuid)) {
     is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }

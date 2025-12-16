@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations
 
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
 import java.util.UUID
@@ -11,13 +10,11 @@ import java.util.UUID
 class OasysAssociationsService(
   private val oasysAssociationRepository: OasysAssociationRepository,
 ) {
-  fun findAssociationsByPk(oasysAssessmentPk: String, includeDeleted: Boolean = false): List<OasysAssociation> = if (includeDeleted) {
+  fun findAssociations(oasysAssessmentPk: String, includeDeleted: Boolean = false): List<OasysAssociation> = if (includeDeleted) {
     oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(oasysAssessmentPk)
   } else {
     oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
   }
-
-  fun findAssociationsByPkAndType(oasysAssessmentPk: String, entityTypes: Collection<EntityType>): List<OasysAssociation> = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, entityTypes)
 
   fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
 
