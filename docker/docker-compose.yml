@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   hmpps-auth:
-    image: quay.io/hmpps/hmpps-auth:2024-10-02.25761.db2ce3c
+    image: ghcr.io/ministryofjustice/hmpps-auth
     healthcheck:
       test: ["CMD", "curl", "-f", "http://hmpps-auth:9090/auth/health"]
       interval: 5s
