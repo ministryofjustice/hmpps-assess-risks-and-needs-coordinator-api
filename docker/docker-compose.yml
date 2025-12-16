@@ -10,7 +10,7 @@ services:
       - /var/lib/postgresql
 
   hmpps-auth:
-    image: quay.io/hmpps/hmpps-auth:2024-10-02.25761.db2ce3c
+    image: quay.io/hmpps/hmpps-auth:latest
     healthcheck:
       test: ["CMD", "curl", "-f", "http://hmpps-auth:9090/auth/health"]
       interval: 5s
@@ -42,7 +42,7 @@ services:
       APP_DB_ENDPOINT: postgres:5432
       HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090/auth
       SAN_API_BASE_URL: http://san-api:8080
-      SP_API_BASE_URL: http://sp-api:8090
+      SP_API_BASE_URL: http://sp-api:8080
       # TODO: Need to get some proper credentials for below
       CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
       CLIENT_SECRET: clientsecret
