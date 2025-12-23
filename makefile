@@ -1,7 +1,8 @@
 SHELL = '/bin/bash'
-DEV_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.dev.yml
-LOCAL_COMPOSE_FILES = -f docker/docker-compose.yml
-PROJECT_NAME = hmpps-assess-risks-and-needs-coordinator-api
+DEV_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml -f docker/docker-compose.dev.yml
+TEST_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml -f docker/docker-compose.test.yml
+LOCAL_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml
+PROJECT_NAME = hmpps-assess-risks-and-needs
 
 export COMPOSE_PROJECT_NAME=${PROJECT_NAME}
 
@@ -11,43 +12,62 @@ help: ## The help text you're reading.
 	@grep --no-filename -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 up: ## Starts/restarts the API in a production container.
-	docker compose ${LOCAL_COMPOSE_FILES} down api
-	docker compose ${LOCAL_COMPOSE_FILES} up api --wait --no-recreate
+	docker compose ${LOCAL_COMPOSE_FILES} down coordinator-api
+	docker compose ${LOCAL_COMPOSE_FILES} up coordinator-api --wait --no-recreate
 
 down: ## Stops and removes all containers in the project.
 	docker compose ${DEV_COMPOSE_FILES} down
+	docker compose ${TEST_COMPOSE_FILES} down
 	docker compose ${LOCAL_COMPOSE_FILES} down
 
 build-api: ## Builds a production image of the API.
-	docker-compose -f docker/docker-compose.yml build api
+	docker-compose -f docker/docker-compose.yml build coordinator-api
 
 dev-up: ## Starts/restarts the API in a development container. A remote debugger can be attached on port 5005.
-	docker compose ${DEV_COMPOSE_FILES} down api
-	docker compose ${DEV_COMPOSE_FILES} up --wait --no-recreate api
+	docker compose ${DEV_COMPOSE_FILES} down coordinator-api
+	docker compose ${DEV_COMPOSE_FILES} up --wait --no-recreate coordinator-api
 
 dev-build: ## Builds a development image of the API.
-	docker compose ${DEV_COMPOSE_FILES} build api
+	docker compose ${DEV_COMPOSE_FILES} build coordinator-api
 
 dev-down: ## Stops and removes the API container.
-	docker compose down
+	docker compose ${DEV_COMPOSE_FILES} down
+
+dev-api-token: ## Generates a JWT for authenticating with the local API.
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api \
+		curl --location 'http://hmpps-auth:9090/auth/oauth/token' \
+  	--header 'authorization: Basic aG1wcHMtYXNzZXNzLXJpc2tzLWFuZC1uZWVkcy1vYXN0dWItdWk6Y2xpZW50c2VjcmV0' \
+  	--header 'Content-Type: application/x-www-form-urlencoded' \
+  	--data-urlencode 'grant_type=client_credentials' \
+  	| jq -r '.access_token' \
+  	| xargs printf "\nToken:\n%s\n"
+
+test-up: ## Starts/restarts the API in a development container. A remote debugger can be attached on port 5005.
+	docker compose ${TEST_COMPOSE_FILES} down coordinator-api
+	docker compose ${TEST_COMPOSE_FILES} up --wait --no-recreate coordinator-api
+
+test-build: ## Builds a development image of the API.
+	docker compose ${TEST_COMPOSE_FILES} build coordinator-api
+
+test-down: ## Stops and removes the API container.
+	docker compose ${TEST_COMPOSE_FILES} down
 
 rebuild: ## Re-builds and reloads the API.
-	docker compose ${DEV_COMPOSE_FILES} exec api gradle compileKotlin --parallel --build-cache --configuration-cache
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle compileKotlin --parallel --build-cache --configuration-cache
 
 watch: ## Watches for file changes and live-reloads the API. To be used in conjunction with dev-up e.g. "make dev-up watch"
-	docker compose ${DEV_COMPOSE_FILES} exec api gradle compileKotlin --continuous --parallel --build-cache --configuration-cache
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle compileKotlin --continuous --parallel --build-cache --configuration-cache
 
 test: ## Runs all the test suites.
-	docker compose ${DEV_COMPOSE_FILES} exec api gradle test --parallel
+	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --parallel
 
 lint: ## Runs the Kotlin linter.
-	docker compose ${DEV_COMPOSE_FILES} exec api gradle ktlintCheck --parallel
+	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle ktlintCheck --parallel
 
 lint-fix: ## Runs the Kotlin linter and auto-fixes.
-	docker compose ${DEV_COMPOSE_FILES} exec api gradle ktlintFormat --parallel
+	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle ktlintFormat --parallel
 
-clean: ## Stops and removes all project containers. Deletes local build/cache directories.
-	docker compose down
+clean: down ## Stops and removes all project containers. Deletes local build/cache directories.
 	docker volume ls -qf "dangling=true" | xargs -r docker volume rm
 	rm -rf .gradle build
 

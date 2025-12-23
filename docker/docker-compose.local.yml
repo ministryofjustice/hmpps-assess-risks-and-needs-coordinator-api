@@ -1,0 +1,23 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  hmpps-auth:
+    ports:
+      - "9090:9090"
+
+  coordinator-api:
+    ports:
+      - "8070:8080"
+
+  forward-proxy:
+    image: nginx:latest
+    ports:
+      - "9091:9091"
+    networks:
+      - hmpps
+    depends_on:
+      - hmpps-auth
+    volumes:
+      - ./hmpps-auth-proxy/nginx.conf:/etc/nginx/nginx.conf

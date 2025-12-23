@@ -130,6 +130,14 @@ class SentencePlanApiMock : WireMockServer(8091) {
     )
   }
 
+  fun stubSentencePlanDelete(status: Int = 200) {
+    stubFor(
+      post(urlPathMatching("/coordinator/plan/(.*)/delete")).willReturn(
+        aResponse().withStatus(status),
+      ),
+    )
+  }
+
   fun stubSentencePlanLock(status: Int = 200) {
     stubFor(
       post(urlPathMatching("/coordinator/plan/(.*)/lock")).willReturn(

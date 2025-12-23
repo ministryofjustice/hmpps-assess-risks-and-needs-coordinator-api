@@ -90,6 +90,9 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isEqualTo(500)
+
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
+    assertThat(associations).isEmpty()
   }
 
   @Test

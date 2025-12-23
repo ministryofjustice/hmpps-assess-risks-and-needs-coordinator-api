@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.MockedStatic
+import org.mockito.Mockito.mockStatic
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -16,6 +18,8 @@ import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
@@ -119,6 +123,10 @@ class OasysCoordinatorServiceTest {
       `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
       `when`(planStrategy.create(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
 
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
       val result = oasysCoordinatorService.create(oasysCreateRequest)
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
@@ -126,6 +134,9 @@ class OasysCoordinatorServiceTest {
         "Failed to create entity for PLAN: Execution failed",
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
+
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
     }
 
     @Test
@@ -141,6 +152,10 @@ class OasysCoordinatorServiceTest {
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Failure("Storage failed"))
 
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
       val result = oasysCoordinatorService.create(oasysCreateRequest)
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
@@ -148,6 +163,9 @@ class OasysCoordinatorServiceTest {
         "Failed saving association for PLAN",
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
+
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
     }
 
     @Test
