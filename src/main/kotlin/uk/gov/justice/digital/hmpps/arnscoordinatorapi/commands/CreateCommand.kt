@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands
 
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
@@ -19,5 +20,5 @@ class CreateCommand(
     else -> result
   }
 
-  fun rollback(): OperationResult<Unit> = OperationResult.Failure("Rollback has not been implemented")
+  fun rollback() = strategy.delete(DeleteData.from(createData), createdEntity.id)
 }

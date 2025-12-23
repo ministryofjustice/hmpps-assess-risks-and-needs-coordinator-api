@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CounterSignAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.DeleteAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -73,6 +74,23 @@ class StrengthsAndNeedsApi(
     ApiOperationResult.Failure("HTTP error during clone assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during cloneAssessment: ${ex.message}", ex)
+  }
+
+  fun deleteAssessment(deleteData: DeleteAssessmentData, assessmentUuid: UUID): ApiOperationResult<Unit> = try {
+    val result = sanApiWebClient.post()
+      .uri(apiProperties.endpoints.delete.replace("{uuid}", assessmentUuid.toString()))
+      .body(BodyInserters.fromValue(deleteData))
+      .retrieve()
+      .toBodilessEntity()
+      .block()
+
+    result?.let {
+      ApiOperationResult.Success(Unit)
+    } ?: throw IllegalStateException("Unexpected error during deleteAssessment")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during deleteAssessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during deleteAssessment: ${ex.message}", ex)
   }
 
   fun lockAssessment(lockData: LockData, assessmentUuid: UUID): ApiOperationResultExtended<VersionedEntity> {

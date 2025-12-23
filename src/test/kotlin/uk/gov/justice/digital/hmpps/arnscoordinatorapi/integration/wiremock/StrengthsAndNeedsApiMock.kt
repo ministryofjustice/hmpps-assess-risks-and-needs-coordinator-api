@@ -122,6 +122,14 @@ class StrengthsAndNeedsApiMock : WireMockServer(8092) {
     )
   }
 
+  fun stubAssessmentsDelete(status: Int = 200) {
+    stubFor(
+      post(WireMock.urlPathMatching("/assessment/(.*)/delete")).willReturn(
+        aResponse().withStatus(status),
+      ),
+    )
+  }
+
   fun stubAssessmentsSign(status: Int = 200) {
     stubFor(
       post(WireMock.urlPathMatching("/assessment/(.*)/sign")).willReturn(

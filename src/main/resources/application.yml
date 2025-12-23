@@ -57,6 +57,7 @@ app:
         fetch: /assessment
         create: /assessment
         clone: /assessment/{uuid}/clone
+        delete: /assessment/{uuid}/delete
         sign: /assessment/{uuid}/sign
         counterSign: /assessment/{uuid}/counter-sign
         lock: /assessment/{uuid}/lock
@@ -69,6 +70,7 @@ app:
         fetch: /coordinator/plan/
         create: /coordinator/plan
         clone: /coordinator/plan/{uuid}/clone
+        delete: /coordinator/plan/{uuid}/delete
         sign: /coordinator/plan/{uuid}/sign
         counterSign: /coordinator/plan/{uuid}/countersign
         lock: /coordinator/plan/{uuid}/lock
@@ -83,12 +85,12 @@ app:
     plan: true
     assessment: true
   db:
-    name: arns-coordinator
+    name: postgres
     endpoint: localhost:5432
     schema:
       name: coordinator
-    username: postgres
-    password: postgres
+    username: root
+    password: dev
   client:
     id: ${CLIENT_ID}
     secret: ${CLIENT_SECRET}

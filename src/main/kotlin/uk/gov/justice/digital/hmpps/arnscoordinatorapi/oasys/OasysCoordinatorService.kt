@@ -1,10 +1,11 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
-import jakarta.transaction.Transactional
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CloneCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
@@ -70,21 +71,25 @@ class OasysCoordinatorService(
         is OperationResult.Success -> successfullyExecutedCommands.add(command)
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { it.rollback() }
+          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
           return CreateOperationResult.Failure("Failed to create entity for ${strategy.entityType}: ${commandResult.errorMessage}")
         }
       }
 
-      when (
-        OasysAssociation(
-          oasysAssessmentPk = requestData.oasysAssessmentPk,
-          regionPrisonCode = requestData.regionPrisonCode,
-          entityType = strategy.entityType,
-          entityUuid = commandResult.data.id,
-        ).run(oasysAssociationsService::storeAssociation)
-      ) {
-        is OperationResult.Success -> oasysCreateResponse.addVersionedEntity(commandResult.data)
+      val association = OasysAssociation(
+        oasysAssessmentPk = requestData.oasysAssessmentPk,
+        regionPrisonCode = requestData.regionPrisonCode,
+        entityType = strategy.entityType,
+        entityUuid = commandResult.data.id,
+      )
+
+      when (oasysAssociationsService.storeAssociation(association)) {
+        is OperationResult.Success -> {
+          oasysCreateResponse.addVersionedEntity(commandResult.data)
+        }
         is OperationResult.Failure -> {
           successfullyExecutedCommands.forEach { priorCommand -> priorCommand.rollback() }
+          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
           return CreateOperationResult.Failure("Failed saving association for ${strategy.entityType}")
         }
       }

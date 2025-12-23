@@ -21,7 +21,7 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
       listOf(
         Server().url("https://arns-coordinator-api-dev.hmpps.service.justice.gov.uk").description("Development"),
         Server().url("https://arns-coordinator-api-test.hmpps.service.justice.gov.uk").description("Test"),
-        Server().url("http://localhost:8080").description("Local"),
+        Server().url("http://localhost:8070").description("Local"),
       ),
     )
     .info(
@@ -30,11 +30,16 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
     )
     .components(
       Components().addSecuritySchemes(
-        "strengths-and-needs-oasys",
-        SecurityScheme().addBearerJwtRequirement("ROLE_STRENGTHS_AND_NEEDS_OASYS"),
+        "bearer-jwt",
+        SecurityScheme()
+          .type(SecurityScheme.Type.HTTP)
+          .scheme("bearer")
+          .bearerFormat("JWT")
+          .`in`(SecurityScheme.In.HEADER)
+          .name("Authorization"),
       ),
     )
-    .addSecurityItem(SecurityRequirement().addList("template-kotlin-ui-role", listOf("read")))
+    .addSecurityItem(SecurityRequirement().addList("bearer-jwt"))
 }
 
 private fun SecurityScheme.addBearerJwtRequirement(role: String): SecurityScheme = type(SecurityScheme.Type.HTTP)

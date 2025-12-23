@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.DeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.PlanVersionData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.SoftDeletePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.UndeletePlanData
@@ -76,6 +77,23 @@ class SentencePlanApi(
     ApiOperationResult.Failure("HTTP error during clone plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during clonePlan: ${ex.message}", ex)
+  }
+
+  fun deletePlan(deleteData: DeletePlanData, planUuid: UUID): ApiOperationResult<Unit> = try {
+    val result = sentencePlanApiWebClient.post()
+      .uri(apiProperties.endpoints.delete.replace("{uuid}", planUuid.toString()))
+      .body(BodyInserters.fromValue(deleteData))
+      .retrieve()
+      .toBodilessEntity()
+      .block()
+
+    result?.let {
+      ApiOperationResult.Success(Unit)
+    } ?: throw IllegalStateException("Unexpected error during deletePlan")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during deletePlan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during deletePlan: ${ex.message}", ex)
   }
 
   fun signPlan(signData: SignData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {

@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
@@ -35,6 +36,11 @@ class PlanStrategy(
   }
 
   override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.clonePlan(createData.plan!!, entityUuid)) {
+    is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+  }
+
+  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = sentencePlanApi.deletePlan(deleteData.plan!!, entityUuid)) {
     is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
