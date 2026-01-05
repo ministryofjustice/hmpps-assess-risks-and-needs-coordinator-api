@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -66,7 +67,7 @@ class OasysCoordinatorService(
     val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
-    for (strategy in strategyFactory.getStrategies()) {
+    for (strategy in strategyFactory.getStrategiesForCreate(requestData.planType)) {
       val command = CreateCommand(strategy, buildCreateData(requestData))
       val commandResult = command.execute()
 
@@ -96,6 +97,10 @@ class OasysCoordinatorService(
           return CreateOperationResult.Failure("Failed saving association for ${strategy.entityType}")
         }
       }
+    }
+
+    if (requestData.planType == PlanType.PLAN_ONLY) {
+      oasysCreateResponse.applyDefaultAssessmentValues()
     }
 
     return CreateOperationResult.Success(oasysCreateResponse)
@@ -338,6 +343,10 @@ class OasysCoordinatorService(
         }
 
         EntityType.PLAN -> oasysAssociationsResponse.apply {
+          sentencePlanId = it.entityUuid
+        }
+
+        EntityType.AAP_PLAN -> oasysAssociationsResponse.apply {
           sentencePlanId = it.entityUuid
         }
 

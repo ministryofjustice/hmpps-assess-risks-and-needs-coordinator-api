@@ -65,7 +65,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+      `when`(strategyFactory.getStrategiesForCreate(any())).thenReturn(listOf(strategy))
 
       `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 
@@ -77,7 +77,7 @@ class OasysCoordinatorServiceTest {
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
-      verify(strategyFactory).getStrategies()
+      verify(strategyFactory).getStrategiesForCreate(PlanType.INITIAL)
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
     }
@@ -90,7 +90,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(planStrategy, assessmentStrategy))
+      `when`(strategyFactory.getStrategiesForCreate(any())).thenReturn(listOf(planStrategy, assessmentStrategy))
 
       `when`(planStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
       `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
@@ -103,7 +103,7 @@ class OasysCoordinatorServiceTest {
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
-      verify(strategyFactory).getStrategies()
+      verify(strategyFactory).getStrategiesForCreate(PlanType.INITIAL)
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
     }
 
@@ -115,7 +115,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(assessmentStrategy, planStrategy))
+      `when`(strategyFactory.getStrategiesForCreate(any())).thenReturn(listOf(assessmentStrategy, planStrategy))
 
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
@@ -146,7 +146,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+      `when`(strategyFactory.getStrategiesForCreate(any())).thenReturn(listOf(strategy))
 
       `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 
@@ -182,6 +182,42 @@ class OasysCoordinatorServiceTest {
       )
 
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+    }
+
+    @Test
+    fun `should route PLAN_ONLY request to AAP strategy only`() {
+      val aapPlanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val aapVersionedEntity = VersionedEntity(UUID.randomUUID(), 0, EntityType.AAP_PLAN)
+
+      val planOnlyRequest = OasysCreateRequest(
+        oasysAssessmentPk = "CY/12ZX56",
+        regionPrisonCode = "111111",
+        planType = PlanType.PLAN_ONLY,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      `when`(strategyFactory.getStrategiesForCreate(PlanType.PLAN_ONLY)).thenReturn(listOf(aapPlanStrategy))
+
+      `when`(aapPlanStrategy.create(any())).thenReturn(OperationResult.Success(aapVersionedEntity))
+
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(planOnlyRequest)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(aapVersionedEntity.id, response.sentencePlanId)
+      assertEquals(aapVersionedEntity.version, response.sentencePlanVersion)
+      assertEquals(UUID.fromString("00000000-0000-0000-0000-000000000000"), response.sanAssessmentId)
+      assertEquals(0L, response.sanAssessmentVersion)
+
+      verify(strategyFactory).getStrategiesForCreate(PlanType.PLAN_ONLY)
+      verify(oasysAssociationsService, times(1)).storeAssociation(
+        argThat { association -> association.entityType == EntityType.AAP_PLAN },
+      )
     }
   }
 

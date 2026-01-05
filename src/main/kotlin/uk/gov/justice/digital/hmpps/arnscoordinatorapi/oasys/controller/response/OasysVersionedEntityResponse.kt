@@ -15,7 +15,7 @@ open class OasysVersionedEntityResponse(
 
   open fun addVersionedEntity(versionedEntity: VersionedEntity) {
     when (versionedEntity.entityType) {
-      EntityType.PLAN -> {
+      EntityType.PLAN, EntityType.AAP_PLAN -> {
         this.sentencePlanId = versionedEntity.id
         this.sentencePlanVersion = versionedEntity.version
       }
@@ -24,5 +24,14 @@ open class OasysVersionedEntityResponse(
         this.sanAssessmentVersion = versionedEntity.version
       }
     }
+  }
+
+  fun applyDefaultAssessmentValues() {
+    this.sanAssessmentId = NULL_UUID
+    this.sanAssessmentVersion = 0
+  }
+
+  companion object {
+    val NULL_UUID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
   }
 }
