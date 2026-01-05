@@ -13,6 +13,8 @@ app:
       base-url: http://localhost:8091
     strengths-and-needs-api:
       base-url: http://localhost:8092
+    aap-api:
+      base-url: http://localhost:8093
   client:
     id: test
     secret: test
