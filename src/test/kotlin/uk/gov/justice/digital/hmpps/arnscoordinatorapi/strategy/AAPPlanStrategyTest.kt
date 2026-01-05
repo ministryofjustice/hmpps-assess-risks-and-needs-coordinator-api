@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -12,20 +11,12 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import java.util.UUID
 
 class AAPPlanStrategyTest {

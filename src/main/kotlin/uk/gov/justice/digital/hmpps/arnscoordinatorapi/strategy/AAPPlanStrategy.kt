@@ -25,39 +25,28 @@ class AAPPlanStrategy(
 
   override val entityType = EntityType.AAP_PLAN
 
-  override fun create(createData: CreateData): OperationResult<VersionedEntity> =
-    when (val result = aapApi.createAssessment(createData.plan!!)) {
-      is AAPApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
-      is AAPApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
-    }
+  override fun create(createData: CreateData): OperationResult<VersionedEntity> = when (val result = aapApi.createAssessment(createData.plan!!)) {
+    is AAPApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
+    is AAPApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
+  }
 
-  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun fetch(entityUuid: UUID): OperationResult<*> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun fetch(entityUuid: UUID): OperationResult<*> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = throw UnsupportedOperationException("Implement me please!")
 
-  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> =
-    throw UnsupportedOperationException("Implement me please!")
+  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = throw UnsupportedOperationException("Implement me please!")
 }
