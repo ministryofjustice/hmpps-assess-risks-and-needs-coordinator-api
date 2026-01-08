@@ -18,6 +18,10 @@ app:
   client:
     id: test
     secret: test
+  strategies:
+    plan: true
+    assessment: true
+    aap-plan: true
 
 spring:
   datasource:
@@ -26,3 +30,4 @@ spring:
     create-schemas: true
     default-schema: COORDINATOR
     schemas: COORDINATOR
+    locations: classpath:db/migration/h2

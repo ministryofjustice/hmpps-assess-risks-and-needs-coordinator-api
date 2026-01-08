@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
@@ -45,6 +46,7 @@ class OasysCoordinatorServiceTest {
     oasysAssessmentPk = "CY/12ZX56",
     regionPrisonCode = "111111",
     planType = PlanType.INITIAL,
+    assessmentType = AssessmentType.SAN_SP,
     userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
 
@@ -65,7 +67,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+      `when`(strategyFactory.getStrategiesFor(any())).thenReturn(listOf(strategy))
 
       `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 
@@ -77,7 +79,7 @@ class OasysCoordinatorServiceTest {
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
-      verify(strategyFactory).getStrategies()
+      verify(strategyFactory).getStrategiesFor(any())
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
     }
@@ -90,7 +92,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(planStrategy, assessmentStrategy))
+      `when`(strategyFactory.getStrategiesFor(any())).thenReturn(listOf(planStrategy, assessmentStrategy))
 
       `when`(planStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
       `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
@@ -103,7 +105,7 @@ class OasysCoordinatorServiceTest {
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
       assertEquals(versionedEntity.id, response.sentencePlanId)
 
-      verify(strategyFactory).getStrategies()
+      verify(strategyFactory).getStrategiesFor(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
     }
 
@@ -115,7 +117,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(assessmentStrategy, planStrategy))
+      `when`(strategyFactory.getStrategiesFor(any())).thenReturn(listOf(assessmentStrategy, planStrategy))
 
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
@@ -146,7 +148,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+      `when`(strategyFactory.getStrategiesFor(any())).thenReturn(listOf(strategy))
 
       `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
 

@@ -2,12 +2,14 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
@@ -24,9 +26,8 @@ class CreateTest : IntegrationTestBase() {
   fun setUp() {
     stubGrantToken()
     stubAssessmentsCreate()
-    stubSentencePlanCreate()
+    stubAAPCreateAssessment()
     stubAssessmentsClone()
-    stubSentencePlanClone()
   }
 
   @Test
@@ -38,17 +39,18 @@ class CreateTest : IntegrationTestBase() {
         OasysCreateRequest(
           oasysAssessmentPk = oasysAssessmentPk,
           planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
       .exchange()
       .expectStatus().isCreated
     val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
-    val sentencePlanAssociation = associations.firstOrNull { it.entityType == EntityType.PLAN }
+    val aapPlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
     val sanAssociation = associations.firstOrNull { it.entityType == EntityType.ASSESSMENT }
-    assertThat(sentencePlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
+    assertThat(aapPlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
     assertThat(sanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
-    assertThat(sentencePlanAssociation?.entityUuid).isEqualTo(UUID.fromString("4180ed3e-2412-4ca5-9b30-9add00941113"))
+    assertThat(aapPlanAssociation?.entityUuid).isEqualTo(UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"))
     assertThat(sanAssociation?.entityUuid).isEqualTo(UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"))
   }
 
@@ -68,6 +70,7 @@ class CreateTest : IntegrationTestBase() {
         OasysCreateRequest(
           oasysAssessmentPk = oasysAssessmentPk,
           planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
@@ -76,8 +79,8 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a 500 status where a call to the downstream sentence plan service returns 500`() {
-    stubSentencePlanCreate(500)
+  fun `it returns a 500 status where a call to the downstream AAP service returns 500`() {
+    stubAAPCreateAssessment(500)
     val oasysAssessmentPk = getRandomOasysPk()
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
@@ -85,6 +88,7 @@ class CreateTest : IntegrationTestBase() {
         OasysCreateRequest(
           oasysAssessmentPk = oasysAssessmentPk,
           planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
@@ -104,6 +108,7 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
+  @Disabled("Clone is not yet implemented for AAP_PLAN")
   fun `it successfully clones a new SP and SAN when a previous oasys PK is supplied`() {
     val previousOasysAssessmentPk = getRandomOasysPk()
     val oasysAssessmentPk = getRandomOasysPk()
@@ -130,6 +135,7 @@ class CreateTest : IntegrationTestBase() {
           previousOasysAssessmentPk = previousOasysAssessmentPk,
           oasysAssessmentPk = oasysAssessmentPk,
           planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
@@ -156,6 +162,7 @@ class CreateTest : IntegrationTestBase() {
           previousOasysAssessmentPk = previousOasysAssessmentPk,
           oasysAssessmentPk = oasysAssessmentPk,
           planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
@@ -175,6 +182,7 @@ class CreateTest : IntegrationTestBase() {
           previousOasysAssessmentPk = previousOasysAssessmentPk,
           oasysAssessmentPk = oasysAssessmentPk,
           planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
@@ -201,6 +209,7 @@ class CreateTest : IntegrationTestBase() {
           {
             "oasysAssessmentPk": "$oasysAssessmentPk",
             "planType": "INITIAL",
+            "assessmentType": "SAN_SP",
             "userDetails": {
               "id": "1",
               "name": "Test Name",

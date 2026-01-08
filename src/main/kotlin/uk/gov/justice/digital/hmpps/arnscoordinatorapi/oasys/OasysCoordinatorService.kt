@@ -29,6 +29,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.req
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
@@ -66,7 +67,7 @@ class OasysCoordinatorService(
     val oasysCreateResponse = OasysVersionedEntityResponse()
     val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
 
-    for (strategy in strategyFactory.getStrategies()) {
+    for (strategy in strategyFactory.getStrategiesFor(requestData.assessmentType)) {
       val command = CreateCommand(strategy, buildCreateData(requestData))
       val commandResult = command.execute()
 
@@ -98,6 +99,10 @@ class OasysCoordinatorService(
       }
     }
 
+    if (requestData.assessmentType == AssessmentType.SP) {
+      oasysCreateResponse.sanAssessmentId = NIL_UUID
+    }
+
     return CreateOperationResult.Success(oasysCreateResponse)
   }
 
@@ -106,6 +111,8 @@ class OasysCoordinatorService(
       .onFailure { return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, $it.") }
 
     val associations = oasysAssociationsService.findAssociationsByPk(requestData.previousOasysAssessmentPk!!)
+      .filter { it.entityType in requestData.assessmentType.entityTypes }
+
     if (associations.isEmpty()) {
       return CreateOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
     }
@@ -138,6 +145,10 @@ class OasysCoordinatorService(
           return CreateOperationResult.Failure("Failed to clone entity for ${association.entityType}: ${commandResult.errorMessage}")
         }
       }
+    }
+
+    if (requestData.assessmentType == AssessmentType.SP) {
+      oasysCreateResponse.sanAssessmentId = NIL_UUID
     }
 
     return CreateOperationResult.Success(oasysCreateResponse)
@@ -337,7 +348,7 @@ class OasysCoordinatorService(
           sanAssessmentId = it.entityUuid
         }
 
-        EntityType.PLAN -> oasysAssociationsResponse.apply {
+        EntityType.PLAN, EntityType.AAP_PLAN -> oasysAssociationsResponse.apply {
           sentencePlanId = it.entityUuid
         }
 
@@ -404,8 +415,7 @@ class OasysCoordinatorService(
       val versionTo = oasysAssociationsService
         .findAllIncludingDeleted(association.entityUuid)
         .filter { it.createdAt > association.createdAt }
-        .sortedBy { it.createdAt }
-        .firstOrNull()?.baseVersion
+        .minByOrNull { it.createdAt }?.baseVersion
 
       val command = SoftDeleteCommand(
         strategy,
@@ -682,5 +692,6 @@ class OasysCoordinatorService(
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
+    private val NIL_UUID = UUID(0, 0)
   }
 }

@@ -43,7 +43,7 @@ class AAPApiTest {
     @Test
     fun `should return success when AAP API returns a valid response`() {
       val assessmentUuid = UUID.randomUUID()
-      val createPlanData = CreatePlanData(PlanType.PLAN_ONLY, UserDetails("user-id", "User Name"))
+      val createPlanData = CreatePlanData(PlanType.INITIAL, UserDetails("user-id", "User Name"))
       val response = CreateAssessmentCommandResult(
         type = "CreateAssessmentCommandResult",
         assessmentUuid = assessmentUuid.toString(),
@@ -66,7 +66,7 @@ class AAPApiTest {
 
     @Test
     fun `should return failure when AAP API returns HTTP error`() {
-      val createPlanData = CreatePlanData(PlanType.PLAN_ONLY, UserDetails("user-id", "User Name"))
+      val createPlanData = CreatePlanData(PlanType.INITIAL, UserDetails("user-id", "User Name"))
 
       `when`(webClient.post()).thenReturn(requestBodyUriSpec)
       `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
@@ -84,7 +84,7 @@ class AAPApiTest {
 
     @Test
     fun `should return failure when unexpected exception occurs`() {
-      val createPlanData = CreatePlanData(PlanType.PLAN_ONLY, UserDetails("user-id", "User Name"))
+      val createPlanData = CreatePlanData(PlanType.INITIAL, UserDetails("user-id", "User Name"))
 
       `when`(webClient.post()).thenReturn(requestBodyUriSpec)
       `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)

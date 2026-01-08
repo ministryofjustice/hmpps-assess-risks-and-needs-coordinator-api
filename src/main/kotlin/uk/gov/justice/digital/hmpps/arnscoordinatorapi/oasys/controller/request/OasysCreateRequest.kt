@@ -34,6 +34,9 @@ data class OasysCreateRequest(
   @Schema(description = "Sentence plan type", example = "INITIAL")
   val planType: PlanType,
 
+  @Schema(description = "Assessment type", example = "SAN_SP")
+  val assessmentType: AssessmentType,
+
   @Schema(description = "OASys User Details")
   @field:Valid
   val userDetails: OasysUserDetails,
