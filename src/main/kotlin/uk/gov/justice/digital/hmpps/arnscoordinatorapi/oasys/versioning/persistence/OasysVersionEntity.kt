@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.SQLRestriction
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import java.time.LocalDateTime
 import java.util.UUID
@@ -21,14 +22,15 @@ enum class OasysEvent {
   DOUBLE_COUNTERSIGNED,
   LOCKED,
   REJECTED,
-  ROLLBACK,
+  ROLLED_BACK,
   SELF_SIGNED,
   SOFT_DELETE,
   UNDELETE,
 }
 
 @Entity
-@Table(name = "oasys_version")
+@Table(name = "oasys_version", schema = "coordinator")
+@SQLRestriction("deleted IS FALSE")
 class OasysVersionEntity(
   @Id
   @Column(name = "id")
@@ -53,4 +55,7 @@ class OasysVersionEntity(
 
   @Column(name = "entity_uuid", nullable = false)
   var entityUuid: UUID,
+
+  @Column(name = "deleted")
+  var deleted: Boolean = false,
 )

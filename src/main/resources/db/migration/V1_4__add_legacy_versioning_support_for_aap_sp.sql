@@ -7,6 +7,7 @@ CREATE TABLE coordinator.oasys_version
     updated_at  TIMESTAMPTZ                             NOT NULL,
     version     BIGINT                                  NOT NULL,
     entity_uuid UUID                                    NOT NULL,
+    deleted     BOOLEAN DEFAULT false                   NOT NULL,
     CONSTRAINT pk_oasys_version PRIMARY KEY (id),
     CONSTRAINT uq_version_entity_uuid UNIQUE (version, entity_uuid)
 );

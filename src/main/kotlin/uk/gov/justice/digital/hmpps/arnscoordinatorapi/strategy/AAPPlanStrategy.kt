@@ -37,6 +37,7 @@ import java.util.UUID
 class AAPPlanStrategy(
   private val aapApi: AAPApi,
   private val oasysVersionService: OasysVersionService,
+  private val clock: Clock,
 ) : EntityStrategy {
 
   override val entityType = EntityType.AAP_PLAN
@@ -59,7 +60,7 @@ class AAPPlanStrategy(
 
   override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = Success(Unit)
 
-  override fun fetch(entityUuid: UUID): OperationResult<*> = aapApi.fetchAssessment(entityUuid, Clock.now())
+  override fun fetch(entityUuid: UUID): OperationResult<*> = aapApi.fetchAssessment(entityUuid, clock.now())
     .let { result ->
       when (result) {
         is AAPApi.ApiOperationResult.Success<AssessmentVersionQueryResult> -> {
@@ -68,9 +69,9 @@ class AAPPlanStrategy(
             val response = GetPlanResponse(
               sentencePlanId = entityUuid,
               sentencePlanVersion = version,
-              planComplete = (result.data.properties.get("PLAN_COMPLETE") as SingleValue?)
+              planComplete = (result.data.properties.get("PLAN_STATE") as SingleValue?)
                 ?.let { PlanState.valueOf(it.value) }
-                ?: throw Error("Unable to parse value for PLAN_COMPLETE"),
+                ?: throw Error("Unable to parse value for PLAN_STATE"),
               planType = (result.data.properties.get("PLAN_TYPE") as SingleValue?)
                 ?.let { PlanType.valueOf(it.value) }
                 ?: throw Error("Unable to parse value for PLAN_TYPE"),
@@ -97,39 +98,79 @@ class AAPPlanStrategy(
   override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
 
   override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> = request.sentencePlanVersionNumber
-    ?.let { version -> oasysVersionService.updateVersion(OasysEvent.ROLLBACK, entityUuid, version) }
+    ?.let { version ->
+      try {
+        oasysVersionService.updateVersion(OasysEvent.ROLLED_BACK, entityUuid, version)
+      } catch (_: Exception) {
+        return Failure("Failed to update version for entity $entityUuid")
+      }
+    }
     ?.toOperationResult()
     ?: Failure("Unable to find version '${request.sentencePlanVersionNumber}' for entity $entityUuid")
 
-  // TODO: Soft delete from the version table, verify expected behaviour of AAP
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = oasysVersionService.createVersionFor(OasysEvent.SOFT_DELETE, entityUuid).toOperationResult()
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = // TODO: Soft delete from the version table, verify expected behaviour of AAP
+    try {
+      softDeleteData.let { request ->
+        oasysVersionService.softDeleteVersions(entityUuid, request.versionFrom, request.versionTo)
+          .run {
+            Success(
+              VersionedEntity(
+                id = entityUuid,
+                version = version,
+                entityType = EntityType.AAP_PLAN,
+              ),
+            )
+          }
+      }
+    } catch (_: Exception) {
+      Failure("Something went wrong while deleting versions for entity $entityUuid")
+    }
 
-  // TODO: Undelete from the version table, verify expected behaviour of AAP
-  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.UNDELETE, entityUuid).toOperationResult()
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = // TODO: Undelete from the version table, verify expected behaviour of AAP
+    try {
+      undeleteData.let { request ->
+        oasysVersionService.undeleteVersions(entityUuid, request.versionFrom, request.versionTo)
+          .run {
+            Success(
+              VersionedEntity(
+                id = entityUuid,
+                version = version,
+                entityType = EntityType.AAP_PLAN,
+              ),
+            )
+          }
+      }
+    } catch (_: Exception) {
+      Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+    }
 
   override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = // TODO: Check if we are required to validate the OASys state transition
     request.sentencePlanVersionNumber
       ?.let { version ->
-        when (request.outcome) {
-          CounterSignOutcome.COUNTERSIGNED -> oasysVersionService.updateVersion(
-            OasysEvent.COUNTERSIGNED,
-            entityUuid,
-            version,
-          )
+        try {
+          when (request.outcome) {
+            CounterSignOutcome.COUNTERSIGNED -> oasysVersionService.updateVersion(
+              OasysEvent.COUNTERSIGNED,
+              entityUuid,
+              version,
+            )
 
-          CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> oasysVersionService.updateVersion(
-            OasysEvent.AWAITING_DOUBLE_COUNTERSIGN,
-            entityUuid,
-            version,
-          )
+            CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> oasysVersionService.updateVersion(
+              OasysEvent.AWAITING_DOUBLE_COUNTERSIGN,
+              entityUuid,
+              version,
+            )
 
-          CounterSignOutcome.DOUBLE_COUNTERSIGNED -> oasysVersionService.updateVersion(
-            OasysEvent.DOUBLE_COUNTERSIGNED,
-            entityUuid,
-            version,
-          )
+            CounterSignOutcome.DOUBLE_COUNTERSIGNED -> oasysVersionService.updateVersion(
+              OasysEvent.DOUBLE_COUNTERSIGNED,
+              entityUuid,
+              version,
+            )
 
-          CounterSignOutcome.REJECTED -> oasysVersionService.updateVersion(OasysEvent.REJECTED, entityUuid, version)
+            CounterSignOutcome.REJECTED -> oasysVersionService.updateVersion(OasysEvent.REJECTED, entityUuid, version)
+          }
+        } catch (_: Exception) {
+          return Failure("Unable to countersign version for entity $entityUuid")
         }
       }
       ?.toOperationResult()

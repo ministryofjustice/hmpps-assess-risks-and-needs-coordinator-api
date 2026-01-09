@@ -22,10 +22,23 @@ interface OasysVersionRepository : JpaRepository<OasysVersionEntity, Long> {
     """
         SELECT COALESCE(MAX(v.version), 0)
         FROM OasysVersionEntity v
-        WHERE v.entityUuid = :assessmentUuid
+        WHERE v.entityUuid = :entityUuid
     """,
   )
   fun findLatestVersionForEntityUuid(
     @Param("entityUuid") entityUuid: UUID,
   ): Long
+
+  @Query(
+    """
+    SELECT e
+    FROM coordinator.oasys_version e
+    WHERE e.entity_uuid = :entityUuid
+    AND e.version BETWEEN :fromVersion AND :toVersion
+    AND e.deleted
+  """,
+    nativeQuery = true,
+  )
+  fun findAllDeletedByEntityUuidAndVersionBetween(entityUuid: UUID, fromVersion: Long, toVersion: Long): List<OasysVersionEntity>
+  fun findAllByEntityUuidAndVersionBetween(entityUuid: UUID, fromVersion: Long, toVersion: Long): List<OasysVersionEntity>
 }

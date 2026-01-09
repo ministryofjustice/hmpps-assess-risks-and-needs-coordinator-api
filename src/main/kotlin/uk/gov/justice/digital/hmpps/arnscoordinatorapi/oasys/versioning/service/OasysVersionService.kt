@@ -28,6 +28,26 @@ class OasysVersionService(
     }
     ?.run(repository::save)
 
+  fun softDeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity = repository.findAllByEntityUuidAndVersionBetween(
+    entityUuid,
+    from,
+    to ?: getLatestVersionNumberForEntityUuid(entityUuid),
+  )
+    .ifEmpty { throw Error("No versions found for entity $entityUuid between $from to $to") }
+    .map { it.apply { deleted = true } }
+    .let { updatedVersions -> repository.saveAll(updatedVersions) }
+    .last()
+
+  fun undeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity = repository.findAllDeletedByEntityUuidAndVersionBetween(
+    entityUuid,
+    from,
+    to ?: getLatestVersionNumberForEntityUuid(entityUuid),
+  )
+    .ifEmpty { throw Error("No versions found for entity $entityUuid between $from to $to") }
+    .map { it.apply { deleted = false } }
+    .let { updatedVersions -> repository.saveAll(updatedVersions) }
+    .last()
+
   fun fetchAllForEntityUuid(entityUuid: UUID) = repository.findAllByEntityUuid(entityUuid)
   fun getLatestVersionNumberForEntityUuid(entityUuid: UUID) = repository.findLatestVersionForEntityUuid(entityUuid)
 }
