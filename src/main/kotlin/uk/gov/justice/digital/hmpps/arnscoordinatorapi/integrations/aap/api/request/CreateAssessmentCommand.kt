@@ -12,8 +12,3 @@ data class PropertyValue(
   val type: String,
   val value: String,
 )
-
-data class AAPUser(
-  val id: String,
-  val name: String,
-)
