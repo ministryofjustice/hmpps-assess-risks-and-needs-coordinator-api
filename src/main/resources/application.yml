@@ -9,7 +9,9 @@ spring:
     max-in-memory-size: 10MB
 
   datasource:
-    url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&user=${app.db.username}&password=${app.db.password}&stringtype=unspecified
+    url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&stringtype=unspecified
+    username: ${app.db.username}
+    password: ${app.db.password}
 
   flyway:
     schemas: ${app.db.schema.name}
