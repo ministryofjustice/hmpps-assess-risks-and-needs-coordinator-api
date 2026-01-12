@@ -10,8 +10,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&stringtype=unspecified
-    username: ${app.db.username}
-    password: ${app.db.password}
+    username: ${app.db.username:root}
+    password: ${app.db.password:dev}
 
   flyway:
     schemas: ${app.db.schema.name}
