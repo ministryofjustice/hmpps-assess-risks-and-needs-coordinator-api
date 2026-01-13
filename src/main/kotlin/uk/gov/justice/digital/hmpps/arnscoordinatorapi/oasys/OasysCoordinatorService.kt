@@ -54,6 +54,7 @@ class OasysCoordinatorService(
     plan = CreatePlanData(
       planType = requestData.planType,
       userDetails = requestData.userDetails.intoUserDetails(),
+      subjectDetails = requestData.subjectDetails,
     ),
     assessment = CreateAssessmentData(
       userDetails = requestData.userDetails.intoUserDetails(),

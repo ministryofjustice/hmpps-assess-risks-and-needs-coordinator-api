@@ -8,6 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CreateAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.IdentifierType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
@@ -22,9 +23,12 @@ class AAPApi(
 ) {
 
   fun createAssessment(createData: CreatePlanData): ApiOperationResult<VersionedEntity> = try {
+    val identifiers = buildIdentifiers(createData)
+
     val command = CreateAssessmentCommand(
       assessmentType = "SENTENCE_PLAN",
       formVersion = "", // note: we leave this empty and then set it when the user gets into AAPxSP
+      identifiers = identifiers,
       user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
     )
 
@@ -49,6 +53,15 @@ class AAPApi(
     ApiOperationResult.Failure("HTTP error during create AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
+  }
+
+  private fun buildIdentifiers(createData: CreatePlanData): Map<IdentifierType, String>? {
+    val identifiers = mutableMapOf<IdentifierType, String>()
+
+    createData.subjectDetails?.crn?.let { identifiers[IdentifierType.CRN] = it }
+    createData.subjectDetails?.nomisId?.let { identifiers[IdentifierType.NOMIS_ID] = it }
+
+    return identifiers.ifEmpty { null }
   }
 
   sealed class ApiOperationResult<out T> {

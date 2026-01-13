@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
 data class OasysCreateRequest(
   @Schema(
@@ -49,6 +50,10 @@ data class OasysCreateRequest(
   @Schema(description = "OASys User Details")
   @field:Valid
   val userDetails: OasysUserDetails,
+
+  @Schema(description = "Subject (offender) identification details")
+  @field:Valid
+  val subjectDetails: SubjectDetails? = null,
 
   @Schema(
     description = "Indicates if this is a new period of supervision for the offender. " +
