@@ -16,6 +16,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
@@ -252,9 +254,106 @@ class AAPPlanStrategyTest {
   }
 
   @Nested
-  inner class CounterSign {
-    private val entityUuid = UUID.randomUUID()
+  inner class Sign {
+    val versionedEntity = OasysVersionEntity(
+      createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+      entityUuid = UUID.randomUUID(),
+      version = 3,
+    )
 
+    @Test
+    fun `should return success when the plan is self signed successfully`() {
+      whenever(
+        oasysVersionService.createVersionFor(
+          OasysEvent.SELF_SIGNED,
+          versionedEntity.entityUuid,
+        ),
+      ).thenReturn(
+        versionedEntity,
+      )
+
+      val result = planStrategy.sign(
+        signData = SignData(
+          signType = SignType.SELF,
+          userDetails = UserDetails("id", "name"),
+        ),
+        versionedEntity.entityUuid,
+      )
+
+      verify(oasysVersionService).createVersionFor(
+        OasysEvent.SELF_SIGNED,
+        versionedEntity.entityUuid,
+      )
+      assertTrue(result is OperationResult.Success)
+      (result as OperationResult.Success).data
+        .let {
+          assertEquals(it.version, versionedEntity.version)
+          assertEquals(it.id, versionedEntity.entityUuid)
+        }
+    }
+
+    @Test
+    fun `should return success when the plan is sent to countersign successfully`() {
+      whenever(
+        oasysVersionService.createVersionFor(
+          OasysEvent.AWAITING_COUNTERSIGN,
+          versionedEntity.entityUuid,
+        ),
+      ).thenReturn(
+        versionedEntity,
+      )
+
+      val result = planStrategy.sign(
+        signData = SignData(
+          signType = SignType.COUNTERSIGN,
+          userDetails = UserDetails("id", "name"),
+        ),
+        versionedEntity.entityUuid,
+      )
+
+      verify(oasysVersionService).createVersionFor(
+        OasysEvent.AWAITING_COUNTERSIGN,
+        versionedEntity.entityUuid,
+      )
+      assertTrue(result is OperationResult.Success)
+      (result as OperationResult.Success).data
+        .let {
+          assertEquals(it.version, versionedEntity.version)
+          assertEquals(it.id, versionedEntity.entityUuid)
+        }
+    }
+
+    @Test
+    fun `should return failure when countersign plan fails`() {
+      whenever(
+        oasysVersionService.createVersionFor(
+          OasysEvent.AWAITING_COUNTERSIGN,
+          versionedEntity.entityUuid,
+        ),
+      ).thenThrow(RuntimeException("Error occurred"))
+
+      val result = planStrategy.sign(
+        signData = SignData(
+          signType = SignType.COUNTERSIGN,
+          userDetails = UserDetails("id", "name"),
+        ),
+        versionedEntity.entityUuid,
+      )
+
+      verify(oasysVersionService).createVersionFor(
+        OasysEvent.AWAITING_COUNTERSIGN,
+        versionedEntity.entityUuid,
+      )
+      assertTrue(result is OperationResult.Failure)
+      assertEquals(
+        "Failed to sign the plan for entity ${versionedEntity.entityUuid}",
+        (result as OperationResult.Failure).errorMessage,
+      )
+    }
+  }
+
+  @Nested
+  inner class CounterSign {
     val versionedEntity = OasysVersionEntity(
       createdBy = OasysEvent.AWAITING_COUNTERSIGN,
       entityUuid = UUID.randomUUID(),

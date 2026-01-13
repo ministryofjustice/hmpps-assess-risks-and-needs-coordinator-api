@@ -89,10 +89,14 @@ class AAPPlanStrategy(
 
   override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> = oasysVersionService.fetchAllForEntityUuid(entityUuid).toVersionDetailsResult()
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = when (signData.signType) {
-    SignType.SELF -> oasysVersionService.createVersionFor(OasysEvent.SELF_SIGNED, entityUuid).toOperationResult()
-    SignType.COUNTERSIGN -> oasysVersionService.createVersionFor(OasysEvent.AWAITING_COUNTERSIGN, entityUuid)
-      .toOperationResult()
+  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = try {
+    when (signData.signType) {
+      SignType.SELF -> oasysVersionService.createVersionFor(OasysEvent.SELF_SIGNED, entityUuid).toOperationResult()
+      SignType.COUNTERSIGN -> oasysVersionService.createVersionFor(OasysEvent.AWAITING_COUNTERSIGN, entityUuid)
+        .toOperationResult()
+    }
+  } catch (_: Exception) {
+    Failure("Failed to sign the plan for entity $entityUuid")
   }
 
   override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
