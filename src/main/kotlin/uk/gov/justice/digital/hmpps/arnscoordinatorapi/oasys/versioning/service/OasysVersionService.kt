@@ -10,6 +10,7 @@ import java.util.UUID
 @Service
 class OasysVersionService(
   private val repository: OasysVersionRepository,
+  private val clock: Clock,
 ) {
   fun createVersionFor(event: OasysEvent, entityUuid: UUID): OasysVersionEntity {
     val previous = repository.findTopByEntityUuidOrderByVersionDesc(entityUuid)
@@ -21,12 +22,13 @@ class OasysVersionService(
     ).run(repository::save)
   }
 
-  fun updateVersion(event: OasysEvent, entityUuid: UUID, version: Long): OasysVersionEntity? = repository.findByEntityUuidAndVersion(entityUuid, version)
+  fun updateVersion(event: OasysEvent, entityUuid: UUID, version: Long): OasysVersionEntity = repository.findByEntityUuidAndVersion(entityUuid, version)
     ?.apply {
       createdBy = event
-      updatedAt = Clock.now()
+      updatedAt = clock.now()
     }
     ?.run(repository::save)
+    ?: throw Error("Unable to update version, no previous version found for $entityUuid")
 
   fun softDeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity = repository.findAllByEntityUuidAndVersionBetween(
     entityUuid,
