@@ -22,8 +22,10 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
@@ -46,6 +48,7 @@ class AAPPlanStrategyTest {
   private lateinit var planStrategy: AAPPlanStrategy
 
   private val now = LocalDateTime.parse("2026-01-09T12:00:00")
+  private val entityType = EntityType.AAP_PLAN
 
   @BeforeEach
   fun setup() {
@@ -66,7 +69,7 @@ class AAPPlanStrategyTest {
       val createData = CreateData(
         plan = CreatePlanData(PlanType.INITIAL, UserDetails("id", "name")),
       )
-      val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
+      val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, entityType)
 
       whenever(aapApi.createAssessment(any())).thenReturn(
         AAPApi.ApiOperationResult.Success(versionedEntity),
@@ -103,6 +106,33 @@ class AAPPlanStrategyTest {
       assertTrue(result is OperationResult.Failure)
       assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).createAssessment(any())
+    }
+  }
+
+  @Nested
+  inner class Clone {
+
+    @Test
+    fun `should return success when a cloned version is created successfully`() {
+      val createData = CreateData(
+        plan = CreatePlanData(PlanType.INITIAL, UserDetails("id", "name")),
+      )
+      val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, entityType)
+
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CLONED, versionedEntity.id))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            entityUuid = versionedEntity.id,
+            version = versionedEntity.version,
+          ),
+        )
+
+      val result = planStrategy.clone(createData, entityUuid = versionedEntity.id)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(versionedEntity, (result as OperationResult.Success).data)
+      verify(oasysVersionService).createVersionFor(OasysEvent.CLONED, versionedEntity.id)
     }
   }
 
@@ -289,6 +319,66 @@ class AAPPlanStrategyTest {
       assertTrue(result is OperationResult.Failure)
       assertEquals("Fetch error occurred", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).fetchAssessment(entityUuid, now)
+    }
+  }
+
+  @Nested
+  inner class FetchVersions {
+
+    @Test
+    fun `should return success and return all versions for a given entity`() {
+      val entityUuid = UUID.randomUUID()
+      val versions = listOf(
+        OasysVersionEntity(
+          uuid = UUID.randomUUID(),
+          createdAt = LocalDateTime.parse("2026-01-13T12:00:00"),
+          createdBy = OasysEvent.CREATED,
+          updatedAt = LocalDateTime.parse("2026-01-13T12:30:00"),
+          version = 1,
+          entityUuid = entityUuid,
+          deleted = false,
+        ),
+        OasysVersionEntity(
+          uuid = UUID.randomUUID(),
+          createdAt = LocalDateTime.parse("2026-01-13T12:45:00"),
+          createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+          updatedAt = LocalDateTime.parse("2026-01-13T12:45:00"),
+          version = 2,
+          entityUuid = entityUuid,
+          deleted = false,
+        ),
+      )
+
+      whenever(oasysVersionService.fetchAllForEntityUuid(entityUuid)).thenReturn(versions)
+
+      val result = planStrategy.fetchVersions(entityUuid)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals((result as OperationResult.Success).data.size, 2)
+      assertEquals(
+        result.data,
+        listOf(
+          VersionDetails(
+            uuid = versions[0].uuid,
+            version = versions[0].version.toInt(),
+            createdAt = versions[0].createdAt,
+            updatedAt = versions[0].updatedAt,
+            status = versions[0].createdBy.name,
+            planAgreementStatus = "",
+            entityType = entityType,
+          ),
+          VersionDetails(
+            uuid = versions[1].uuid,
+            version = versions[1].version.toInt(),
+            createdAt = versions[1].createdAt,
+            updatedAt = versions[1].updatedAt,
+            status = versions[1].createdBy.name,
+            planAgreementStatus = "",
+            entityType = entityType,
+          ),
+        ),
+      )
+      verify(oasysVersionService).fetchAllForEntityUuid(entityUuid)
     }
   }
 
@@ -671,6 +761,52 @@ class AAPPlanStrategyTest {
         OperationResult.Failure<VersionedEntity?>("Something went wrong while deleting versions for entity ${versionedEntity.entityUuid}"),
       )
       verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, 2)
+    }
+  }
+
+  @Nested
+  inner class Undelete {
+    val undeleteData = UndeleteData(
+      UserDetails("id", "name", UserType.OASYS),
+      versionFrom = 1,
+      versionTo = 2,
+    )
+    val versionedEntity = OasysVersionEntity(
+      createdBy = OasysEvent.LOCKED,
+      entityUuid = UUID.randomUUID(),
+      version = 2,
+      deleted = true,
+    )
+
+    @Test
+    fun `should return success when undelete is successful`() {
+      whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2)).thenReturn(
+        versionedEntity,
+      )
+
+      val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+      assertTrue(result is OperationResult.Success)
+      (result as OperationResult.Success).data.let {
+        assertEquals(it.id, versionedEntity.entityUuid)
+        assertEquals(it.version, versionedEntity.version)
+      }
+      verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
+    }
+
+    @Test
+    fun `should return failure when undelete fails`() {
+      whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2))
+        .thenThrow(RuntimeException("No versions found for entity ${versionedEntity.entityUuid} between ${undeleteData.versionFrom} to ${undeleteData.versionTo}"))
+
+      val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals(
+        result,
+        OperationResult.Failure<VersionedEntity?>("Something went wrong while un-deleting versions for entity ${versionedEntity.entityUuid}"),
+      )
+      verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
     }
   }
 }

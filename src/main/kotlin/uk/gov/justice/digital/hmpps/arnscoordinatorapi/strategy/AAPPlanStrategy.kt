@@ -141,7 +141,7 @@ class AAPPlanStrategy(
             VersionedEntity(
               id = entityUuid,
               version = version,
-              entityType = EntityType.AAP_PLAN,
+              entityType = entityType,
             ),
           )
         }
@@ -183,26 +183,26 @@ class AAPPlanStrategy(
 
   // TODO: Speak with team about implementing a new command to 'reset' the state of a AAP Plan
   override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = Failure("AAP Plan reset is not yet implemented")
+
+  private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
+
+  private fun List<OasysVersionEntity>.toVersionDetailsResult(): OperationResult<VersionDetailsList> = this.map { oasysVersion ->
+    VersionDetails(
+      oasysVersion.uuid,
+      oasysVersion.version.toInt(),
+      createdAt = oasysVersion.createdAt,
+      updatedAt = oasysVersion.updatedAt,
+      status = oasysVersion.createdBy.name,
+      planAgreementStatus = "",
+      entityType = entityType,
+    )
+  }.let { Success(it) }
+
+  private fun Map<String, Any>.planStateOrNull(): PlanState? = (this["PLAN_STATE"] as? SingleValue)
+    ?.value
+    ?.let(PlanState::valueOf)
+
+  private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
+    ?.value
+    ?.let(PlanType::valueOf)
 }
-
-private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, EntityType.AAP_PLAN))
-
-private fun List<OasysVersionEntity>.toVersionDetailsResult(): OperationResult<VersionDetailsList> = this.map { oasysVersion ->
-  VersionDetails(
-    oasysVersion.entityUuid,
-    oasysVersion.version.toInt(),
-    createdAt = oasysVersion.createdAt,
-    updatedAt = oasysVersion.updatedAt,
-    status = oasysVersion.createdBy.name,
-    planAgreementStatus = "",
-    entityType = EntityType.AAP_PLAN,
-  )
-}.let { Success(it) }
-
-private fun Map<String, Any>.planStateOrNull(): PlanState? = (this["PLAN_STATE"] as? SingleValue)
-  ?.value
-  ?.let(PlanState::valueOf)
-
-private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
-  ?.value
-  ?.let(PlanType::valueOf)
