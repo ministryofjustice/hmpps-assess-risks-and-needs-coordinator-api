@@ -7,14 +7,14 @@ spring:
     name: hmpps-assess-risks-and-needs-coordinator-api
   codec:
     max-in-memory-size: 10MB
-
   datasource:
     url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&stringtype=unspecified
     username: ${app.db.username:root}
     password: ${app.db.password:dev}
+    driver-class-name: org.postgresql.Driver
 
   flyway:
-    schemas: ${app.db.schema.name}
+    schemas: ${app.db.schema.name:coordinator}
     locations: classpath:/db/migration
     enabled: true
     validate-on-migrate: true
