@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.interceptor.TransactionAspectSupport
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CloneCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
@@ -25,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -59,99 +59,150 @@ class OasysCoordinatorService(
     ),
   )
 
+  private fun linkExistingEntity(
+    previousPk: String,
+    newPk: String,
+    entityType: EntityType,
+    regionPrisonCode: String?,
+  ): EntityResult {
+    val existingAssociation = oasysAssociationsService
+      .findAssociationsByPkAndType(previousPk, listOf(entityType))
+      .firstOrNull()
+      ?: return EntityResult.NotFound("No $entityType association found for PK $previousPk")
+
+    val newAssociation = OasysAssociation(
+      oasysAssessmentPk = newPk,
+      entityType = entityType,
+      entityUuid = existingAssociation.entityUuid,
+      baseVersion = existingAssociation.baseVersion,
+      regionPrisonCode = regionPrisonCode,
+    )
+
+    return when (oasysAssociationsService.storeAssociation(newAssociation)) {
+      is OperationResult.Success -> EntityResult.Success(
+        VersionedEntity(
+          id = existingAssociation.entityUuid,
+          version = existingAssociation.baseVersion,
+          entityType = entityType,
+        ),
+      )
+      is OperationResult.Failure -> EntityResult.Failure("Failed to store $entityType association")
+    }
+  }
+
+  private fun createNewEntity(
+    request: OasysCreateRequest,
+    entityType: EntityType,
+    successfulCommands: MutableList<CreateCommand>,
+  ): EntityResult {
+    val strategy = strategyFactory.getStrategy(entityType)
+    val command = CreateCommand(strategy, buildCreateData(request))
+
+    return when (val result = command.execute()) {
+      is OperationResult.Success -> {
+        successfulCommands.add(command)
+
+        val association = OasysAssociation(
+          oasysAssessmentPk = request.oasysAssessmentPk,
+          entityType = entityType,
+          entityUuid = result.data.id,
+          regionPrisonCode = request.regionPrisonCode,
+        )
+
+        when (oasysAssociationsService.storeAssociation(association)) {
+          is OperationResult.Success -> EntityResult.Success(result.data)
+          is OperationResult.Failure -> EntityResult.Failure("Failed to store $entityType association")
+        }
+      }
+      is OperationResult.Failure -> EntityResult.Failure("Failed to create $entityType: ${result.errorMessage}")
+    }
+  }
+
+  private fun handleSanEntity(
+    request: OasysCreateRequest,
+    successfulCommands: MutableList<CreateCommand>,
+  ): EntityResult = if (request.previousOasysSanPk != null) {
+    linkExistingEntity(
+      previousPk = request.previousOasysSanPk,
+      newPk = request.oasysAssessmentPk,
+      entityType = EntityType.ASSESSMENT,
+      regionPrisonCode = request.regionPrisonCode,
+    )
+  } else {
+    createNewEntity(
+      request = request,
+      entityType = EntityType.ASSESSMENT,
+      successfulCommands = successfulCommands,
+    )
+  }
+
+  private fun handleSpEntity(
+    request: OasysCreateRequest,
+    successfulCommands: MutableList<CreateCommand>,
+  ): EntityResult {
+    val spEntityType = EntityType.AAP_PLAN
+
+    return if (request.previousOasysSpPk != null) {
+      linkExistingEntity(
+        previousPk = request.previousOasysSpPk,
+        newPk = request.oasysAssessmentPk,
+        entityType = spEntityType,
+        regionPrisonCode = request.regionPrisonCode,
+      )
+    } else {
+      createNewEntity(
+        request = request,
+        entityType = spEntityType,
+        successfulCommands = successfulCommands,
+      )
+    }
+  }
+
   @Transactional
   fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    val oasysCreateResponse = OasysVersionedEntityResponse()
-    val successfullyExecutedCommands: MutableList<CreateCommand> = mutableListOf()
+    val response = OasysVersionedEntityResponse()
+    val successfulCommands: MutableList<CreateCommand> = mutableListOf()
 
-    for (strategy in strategyFactory.getStrategiesFor(requestData.assessmentType)) {
-      val command = CreateCommand(strategy, buildCreateData(requestData))
-      val commandResult = command.execute()
-
-      when (commandResult) {
-        is OperationResult.Success -> successfullyExecutedCommands.add(command)
-        is OperationResult.Failure -> {
-          successfullyExecutedCommands.forEach { it.rollback() }
+    // Handle SAN (Assessment) - only if assessmentType includes it
+    if (EntityType.ASSESSMENT in requestData.assessmentType.entityTypes) {
+      when (val sanResult = handleSanEntity(requestData, successfulCommands)) {
+        is EntityResult.Success -> response.addVersionedEntity(sanResult.entity)
+        is EntityResult.Failure -> {
+          successfulCommands.forEach { it.rollback() }
           TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-          return CreateOperationResult.Failure("Failed to create entity for ${strategy.entityType}: ${commandResult.errorMessage}")
+          return CreateOperationResult.Failure(sanResult.message)
+        }
+        is EntityResult.NotFound -> {
+          successfulCommands.forEach { it.rollback() }
+          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+          return CreateOperationResult.NoAssociations(sanResult.message)
         }
       }
+    }
 
-      val association = OasysAssociation(
-        oasysAssessmentPk = requestData.oasysAssessmentPk,
-        regionPrisonCode = requestData.regionPrisonCode,
-        entityType = strategy.entityType,
-        entityUuid = commandResult.data.id,
-      )
-
-      when (oasysAssociationsService.storeAssociation(association)) {
-        is OperationResult.Success -> {
-          oasysCreateResponse.addVersionedEntity(commandResult.data)
-        }
-        is OperationResult.Failure -> {
-          successfullyExecutedCommands.forEach { priorCommand -> priorCommand.rollback() }
-          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-          return CreateOperationResult.Failure("Failed saving association for ${strategy.entityType}")
-        }
+    // Handle SP (Plan) - always included
+    when (val spResult = handleSpEntity(requestData, successfulCommands)) {
+      is EntityResult.Success -> response.addVersionedEntity(spResult.entity)
+      is EntityResult.Failure -> {
+        successfulCommands.forEach { it.rollback() }
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return CreateOperationResult.Failure(spResult.message)
+      }
+      is EntityResult.NotFound -> {
+        successfulCommands.forEach { it.rollback() }
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return CreateOperationResult.NoAssociations(spResult.message)
       }
     }
 
     if (requestData.assessmentType == AssessmentType.SP) {
-      oasysCreateResponse.sanAssessmentId = NIL_UUID
+      response.sanAssessmentId = NIL_UUID
     }
 
-    return CreateOperationResult.Success(oasysCreateResponse)
-  }
-
-  fun clone(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
-    oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
-      .onFailure { return CreateOperationResult.ConflictingAssociations("An association already exists for the provided OASys Assessment PK: ${requestData.oasysAssessmentPk}, $it.") }
-
-    val associations = oasysAssociationsService.findAssociationsByPk(requestData.previousOasysAssessmentPk!!)
-      .filter { it.entityType in requestData.assessmentType.entityTypes }
-
-    if (associations.isEmpty()) {
-      return CreateOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
-    }
-
-    val oasysCreateResponse = OasysVersionedEntityResponse()
-    val successfullyExecutedCommands: MutableList<CloneCommand> = mutableListOf()
-
-    associations.forEach { association ->
-      val command = CloneCommand(strategyFactory.getStrategy(association.entityType!!), buildCreateData(requestData), association.entityUuid)
-
-      when (val commandResult = command.execute()) {
-        is OperationResult.Success -> {
-          successfullyExecutedCommands.add(command)
-
-          OasysAssociation(
-            entityType = commandResult.data.entityType,
-            entityUuid = commandResult.data.id,
-            baseVersion = commandResult.data.version,
-            oasysAssessmentPk = requestData.oasysAssessmentPk,
-            regionPrisonCode = requestData.regionPrisonCode,
-          ).run(oasysAssociationsService::storeAssociation)
-            .onFailure {
-              return CreateOperationResult.Failure("Failed to store association")
-            }
-
-          oasysCreateResponse.addVersionedEntity(commandResult.data)
-        }
-        is OperationResult.Failure -> {
-          successfullyExecutedCommands.forEach { it.rollback() }
-          return CreateOperationResult.Failure("Failed to clone entity for ${association.entityType}: ${commandResult.errorMessage}")
-        }
-      }
-    }
-
-    if (requestData.assessmentType == AssessmentType.SP) {
-      oasysCreateResponse.sanAssessmentId = NIL_UUID
-    }
-
-    return CreateOperationResult.Success(oasysCreateResponse)
+    return CreateOperationResult.Success(response)
   }
 
   @Transactional
@@ -688,6 +739,12 @@ class OasysCoordinatorService(
     data class Conflict<T>(
       val errorMessage: String,
     ) : MergeOperationResult<T>()
+  }
+
+  private sealed class EntityResult {
+    data class Success(val entity: VersionedEntity) : EntityResult()
+    data class Failure(val message: String) : EntityResult()
+    data class NotFound(val message: String) : EntityResult()
   }
 
   private companion object {
