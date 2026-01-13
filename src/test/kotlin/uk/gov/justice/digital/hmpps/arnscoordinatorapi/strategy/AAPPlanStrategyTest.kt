@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
@@ -144,6 +146,132 @@ class AAPPlanStrategyTest {
         ),
         (result as OperationResult.Success).data,
       )
+      verify(aapApi).fetchAssessment(entityUuid, now)
+      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
+    }
+
+    @Test
+    fun `should return failure when unable to parse PLAN_STATE`() {
+      val entityUuid = UUID.randomUUID()
+      val queryResult = AssessmentVersionQueryResult(
+        assessmentUuid = entityUuid,
+        aggregateUuid = UUID.randomUUID(),
+        assessmentType = "PLAN",
+        formVersion = "v1.0",
+        createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+        updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+        answers = emptyMap(),
+        properties = mapOf(
+          "PLAN_STATE" to SingleValue("FOO_VALUE"),
+          "PLAN_TYPE" to SingleValue("INITIAL"),
+        ),
+        collaborators = emptySet(),
+        identifiers = emptyMap(),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
+        AAPApi.ApiOperationResult.Success(queryResult),
+      )
+      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Unable to parse version for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
+      verify(aapApi).fetchAssessment(entityUuid, now)
+      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
+    }
+
+    @Test
+    fun `should return failure when there is no value for PLAN_STATE`() {
+      val entityUuid = UUID.randomUUID()
+      val queryResult = AssessmentVersionQueryResult(
+        assessmentUuid = entityUuid,
+        aggregateUuid = UUID.randomUUID(),
+        assessmentType = "PLAN",
+        formVersion = "v1.0",
+        createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+        updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+        answers = emptyMap(),
+        properties = mapOf(
+          "PLAN_TYPE" to SingleValue("INITIAL"),
+        ),
+        collaborators = emptySet(),
+        identifiers = emptyMap(),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
+        AAPApi.ApiOperationResult.Success(queryResult),
+      )
+      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("No value for PLAN_STATE for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
+      verify(aapApi).fetchAssessment(entityUuid, now)
+      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
+    }
+
+    @Test
+    fun `should return failure when unable to parse  PLAN_TYPE`() {
+      val entityUuid = UUID.randomUUID()
+      val queryResult = AssessmentVersionQueryResult(
+        assessmentUuid = entityUuid,
+        aggregateUuid = UUID.randomUUID(),
+        assessmentType = "PLAN",
+        formVersion = "v1.0",
+        createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+        updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+        answers = emptyMap(),
+        properties = mapOf(
+          "PLAN_STATE" to SingleValue("INCOMPLETE"),
+          "PLAN_TYPE" to SingleValue("FOO_VALUE"),
+        ),
+        collaborators = emptySet(),
+        identifiers = emptyMap(),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
+        AAPApi.ApiOperationResult.Success(queryResult),
+      )
+      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Unable to parse version for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
+      verify(aapApi).fetchAssessment(entityUuid, now)
+      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
+    }
+
+    @Test
+    fun `should return failure when there is no value for PLAN_TYPE`() {
+      val entityUuid = UUID.randomUUID()
+      val queryResult = AssessmentVersionQueryResult(
+        assessmentUuid = entityUuid,
+        aggregateUuid = UUID.randomUUID(),
+        assessmentType = "PLAN",
+        formVersion = "v1.0",
+        createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+        updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+        answers = emptyMap(),
+        properties = mapOf(
+          "PLAN_STATE" to SingleValue("INCOMPLETE"),
+        ),
+        collaborators = emptySet(),
+        identifiers = emptyMap(),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
+        AAPApi.ApiOperationResult.Success(queryResult),
+      )
+      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("No value for PLAN_TYPE for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).fetchAssessment(entityUuid, now)
       verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
     }
@@ -427,11 +555,17 @@ class AAPPlanStrategyTest {
       version = 3,
     )
 
-    @Test
-    fun `should return success when countersign plan is successful`() {
+    @ParameterizedTest(name = "{0} maps to {1}")
+    @CsvSource(
+      "COUNTERSIGNED, COUNTERSIGNED",
+      "AWAITING_DOUBLE_COUNTERSIGN, AWAITING_DOUBLE_COUNTERSIGN",
+      "DOUBLE_COUNTERSIGNED, DOUBLE_COUNTERSIGNED",
+      "REJECTED, REJECTED",
+    )
+    fun `should return success when countersign plan is successful`(oasysEvent: OasysEvent, outcome: CounterSignOutcome) {
       whenever(
         oasysVersionService.updateVersion(
-          OasysEvent.COUNTERSIGNED,
+          oasysEvent,
           versionedEntity.entityUuid,
           versionedEntity.version,
         ),
@@ -444,13 +578,13 @@ class AAPPlanStrategyTest {
         OasysCounterSignRequest(
           sanVersionNumber = 3,
           sentencePlanVersionNumber = 3,
-          outcome = CounterSignOutcome.COUNTERSIGNED,
+          outcome = outcome,
           userDetails = OasysUserDetails("1", "OASys User"),
         ),
       )
 
       verify(oasysVersionService).updateVersion(
-        OasysEvent.COUNTERSIGNED,
+        oasysEvent,
         versionedEntity.entityUuid,
         versionedEntity.version,
       )

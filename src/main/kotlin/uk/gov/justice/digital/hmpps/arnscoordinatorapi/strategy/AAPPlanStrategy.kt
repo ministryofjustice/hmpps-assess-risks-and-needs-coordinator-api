@@ -62,28 +62,28 @@ class AAPPlanStrategy(
 
   override fun fetch(entityUuid: UUID): OperationResult<*> = aapApi.fetchAssessment(entityUuid, clock.now())
     .let { result ->
-      when (result) {
+      return when (result) {
         is AAPApi.ApiOperationResult.Success<AssessmentVersionQueryResult> -> {
           val version = oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)
           try {
             val response = GetPlanResponse(
               sentencePlanId = entityUuid,
               sentencePlanVersion = version,
-              planComplete = (result.data.properties.get("PLAN_STATE") as SingleValue?)
-                ?.let { PlanState.valueOf(it.value) }
-                ?: throw Error("Unable to parse value for PLAN_STATE"),
-              planType = (result.data.properties.get("PLAN_TYPE") as SingleValue?)
-                ?.let { PlanType.valueOf(it.value) }
-                ?: throw Error("Unable to parse value for PLAN_TYPE"),
+              planComplete = result.data.properties.planStateOrNull()
+                ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_STATE for entity $entityUuid"),
+              planType = result.data.properties.planTypeOrNull()
+                ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_TYPE for entity $entityUuid"),
               lastUpdatedTimestampSP = result.data.updatedAt,
             )
             Success(response)
-          } catch (e: Exception) {
-            Failure(e.message ?: "Failed to fetch plan for entity $entityUuid")
+          } catch (_: IllegalArgumentException) {
+            Failure("Unable to parse version for entity $entityUuid")
+          } catch (_: Exception) {
+            Failure("Failed to fetch plan for entity $entityUuid")
           }
         }
 
-        is AAPApi.ApiOperationResult.Failure<*> -> Failure(result.errorMessage)
+        is AAPApi.ApiOperationResult.Failure<*> -> Failure<AssessmentVersionQueryResult>(result.errorMessage)
       }
     }
 
@@ -116,73 +116,70 @@ class AAPPlanStrategy(
     ?.toOperationResult()
     ?: Failure("Unable to find version '${request.sentencePlanVersionNumber}' for entity $entityUuid")
 
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = // TODO: Soft delete from the version table, verify expected behaviour of AAP
-    try {
-      softDeleteData.let { request ->
-        oasysVersionService.softDeleteVersions(entityUuid, request.versionFrom, request.versionTo)
-          .run {
-            Success(
-              VersionedEntity(
-                id = entityUuid,
-                version = version,
-                entityType = EntityType.AAP_PLAN,
-              ),
-            )
-          }
-      }
-    } catch (_: Exception) {
-      Failure("Something went wrong while deleting versions for entity $entityUuid")
-    }
-
-  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = // TODO: Undelete from the version table, verify expected behaviour of AAP
-    try {
-      undeleteData.let { request ->
-        oasysVersionService.undeleteVersions(entityUuid, request.versionFrom, request.versionTo)
-          .run {
-            Success(
-              VersionedEntity(
-                id = entityUuid,
-                version = version,
-                entityType = EntityType.AAP_PLAN,
-              ),
-            )
-          }
-      }
-    } catch (_: Exception) {
-      Failure("Something went wrong while un-deleting versions for entity $entityUuid")
-    }
-
-  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = // TODO: Check if we are required to validate the OASys state transition
-    request.sentencePlanVersionNumber
-      ?.let { version ->
-        try {
-          when (request.outcome) {
-            CounterSignOutcome.COUNTERSIGNED -> oasysVersionService.updateVersion(
-              OasysEvent.COUNTERSIGNED,
-              entityUuid,
-              version,
-            )
-
-            CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> oasysVersionService.updateVersion(
-              OasysEvent.AWAITING_DOUBLE_COUNTERSIGN,
-              entityUuid,
-              version,
-            )
-
-            CounterSignOutcome.DOUBLE_COUNTERSIGNED -> oasysVersionService.updateVersion(
-              OasysEvent.DOUBLE_COUNTERSIGNED,
-              entityUuid,
-              version,
-            )
-
-            CounterSignOutcome.REJECTED -> oasysVersionService.updateVersion(OasysEvent.REJECTED, entityUuid, version)
-          }
-        } catch (_: Exception) {
-          return Failure("Unable to countersign version for entity $entityUuid")
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = try {
+    softDeleteData.let { request ->
+      oasysVersionService.softDeleteVersions(entityUuid, request.versionFrom, request.versionTo)
+        .run {
+          Success(
+            VersionedEntity(
+              id = entityUuid,
+              version = version,
+              entityType = EntityType.AAP_PLAN,
+            ),
+          )
         }
+    }
+  } catch (_: Exception) {
+    Failure("Something went wrong while deleting versions for entity $entityUuid")
+  }
+
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = try {
+    undeleteData.let { request ->
+      oasysVersionService.undeleteVersions(entityUuid, request.versionFrom, request.versionTo)
+        .run {
+          Success(
+            VersionedEntity(
+              id = entityUuid,
+              version = version,
+              entityType = EntityType.AAP_PLAN,
+            ),
+          )
+        }
+    }
+  } catch (_: Exception) {
+    Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+  }
+
+  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = request.sentencePlanVersionNumber
+    ?.let { version ->
+      try {
+        when (request.outcome) {
+          CounterSignOutcome.COUNTERSIGNED -> oasysVersionService.updateVersion(
+            OasysEvent.COUNTERSIGNED,
+            entityUuid,
+            version,
+          )
+
+          CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> oasysVersionService.updateVersion(
+            OasysEvent.AWAITING_DOUBLE_COUNTERSIGN,
+            entityUuid,
+            version,
+          )
+
+          CounterSignOutcome.DOUBLE_COUNTERSIGNED -> oasysVersionService.updateVersion(
+            OasysEvent.DOUBLE_COUNTERSIGNED,
+            entityUuid,
+            version,
+          )
+
+          CounterSignOutcome.REJECTED -> oasysVersionService.updateVersion(OasysEvent.REJECTED, entityUuid, version)
+        }
+      } catch (_: Exception) {
+        return Failure("Unable to countersign version for entity $entityUuid")
       }
-      ?.toOperationResult()
-      ?: Failure("Unable to find version '${request.sentencePlanVersionNumber}' for entity $entityUuid")
+    }
+    ?.toOperationResult()
+    ?: Failure("Unable to find version '${request.sentencePlanVersionNumber}' for entity $entityUuid")
 
   // TODO: Speak with team about implementing a new command to 'reset' the state of a AAP Plan
   override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = Failure("AAP Plan reset is not yet implemented")
@@ -201,3 +198,11 @@ private fun List<OasysVersionEntity>.toVersionDetailsResult(): OperationResult<V
     entityType = EntityType.AAP_PLAN,
   )
 }.let { Success(it) }
+
+private fun Map<String, Any>.planStateOrNull(): PlanState? = (this["PLAN_STATE"] as? SingleValue)
+  ?.value
+  ?.let(PlanState::valueOf)
+
+private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
+  ?.value
+  ?.let(PlanType::valueOf)
