@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPA
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
@@ -249,6 +250,72 @@ class AAPPlanStrategyTest {
         OasysEvent.ROLLED_BACK,
         versionedEntity.entityUuid,
         versionedEntity.version,
+      )
+    }
+  }
+
+  @Nested
+  inner class Lock {
+    val versionedEntity = OasysVersionEntity(
+      createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+      entityUuid = UUID.randomUUID(),
+      version = 3,
+    )
+
+    @Test
+    fun `should return success when the plan is locked successfully`() {
+      whenever(
+        oasysVersionService.createVersionFor(
+          OasysEvent.LOCKED,
+          versionedEntity.entityUuid,
+        ),
+      ).thenReturn(
+        versionedEntity,
+      )
+
+      val result = planStrategy.lock(
+        LockData(
+          userDetails = UserDetails("id", "name"),
+        ),
+        versionedEntity.entityUuid,
+      )
+
+      verify(oasysVersionService).createVersionFor(
+        OasysEvent.LOCKED,
+        versionedEntity.entityUuid,
+      )
+      assertTrue(result is OperationResult.Success)
+      (result as OperationResult.Success).data
+        .let {
+          assertEquals(it.version, versionedEntity.version)
+          assertEquals(it.id, versionedEntity.entityUuid)
+        }
+    }
+
+    @Test
+    fun `should return failure when lock plan fails`() {
+      whenever(
+        oasysVersionService.createVersionFor(
+          OasysEvent.LOCKED,
+          versionedEntity.entityUuid,
+        ),
+      ).thenThrow(RuntimeException("Error occurred"))
+
+      val result = planStrategy.lock(
+        LockData(
+          userDetails = UserDetails("id", "name"),
+        ),
+        versionedEntity.entityUuid,
+      )
+
+      verify(oasysVersionService).createVersionFor(
+        OasysEvent.LOCKED,
+        versionedEntity.entityUuid,
+      )
+      assertTrue(result is OperationResult.Failure)
+      assertEquals(
+        "Failed to lock plan for entity ${versionedEntity.entityUuid}",
+        (result as OperationResult.Failure).errorMessage,
       )
     }
   }

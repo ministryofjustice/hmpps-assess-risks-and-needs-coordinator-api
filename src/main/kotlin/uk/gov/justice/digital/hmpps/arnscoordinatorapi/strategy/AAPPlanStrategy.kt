@@ -99,7 +99,11 @@ class AAPPlanStrategy(
     Failure("Failed to sign the plan for entity $entityUuid")
   }
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
+  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = try {
+    oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
+  } catch (_: Exception) {
+    Failure("Failed to lock plan for entity $entityUuid")
+  }
 
   override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> = request.sentencePlanVersionNumber
     ?.let { version ->
