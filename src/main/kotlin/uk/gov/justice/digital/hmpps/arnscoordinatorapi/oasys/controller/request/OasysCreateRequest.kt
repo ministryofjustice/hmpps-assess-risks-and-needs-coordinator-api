@@ -49,4 +49,11 @@ data class OasysCreateRequest(
   @Schema(description = "OASys User Details")
   @field:Valid
   val userDetails: OasysUserDetails,
+
+  @Schema(
+    description = "Indicates if this is a new period of supervision for the offender. " +
+      "When true, any existing Sentence Plan will be reset (e.g. Agree status cleared).",
+    example = "false",
+  )
+  val newPeriodOfSupervision: Boolean = false,
 )

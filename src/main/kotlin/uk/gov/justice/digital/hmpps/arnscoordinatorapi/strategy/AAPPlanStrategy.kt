@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
@@ -49,4 +50,7 @@ class AAPPlanStrategy(
   override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = OperationResult.Failure("AAP Plan undelete is not yet implemented")
 
   override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = OperationResult.Failure("AAP Plan counterSign is not yet implemented")
+
+  // TODO: Speak with team about implementing a new command to 'reset' the state of a AAP Plan
+  override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = OperationResult.Failure("AAP Plan reset is not yet implemented")
 }

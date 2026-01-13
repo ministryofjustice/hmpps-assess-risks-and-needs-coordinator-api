@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
@@ -143,18 +144,46 @@ class OasysCoordinatorService(
     val spEntityType = EntityType.AAP_PLAN
 
     return if (request.previousOasysSpPk != null) {
-      linkExistingEntity(
+      val linkResult = linkExistingEntity(
         previousPk = request.previousOasysSpPk,
         newPk = request.oasysAssessmentPk,
         entityType = spEntityType,
         regionPrisonCode = request.regionPrisonCode,
       )
+
+      if (linkResult is EntityResult.Success && request.newPeriodOfSupervision) {
+        val resetResult = resetLinkedEntity(
+          entityUuid = linkResult.entity.id,
+          entityType = spEntityType,
+          userDetails = request.userDetails.intoUserDetails(),
+        )
+
+        if (resetResult is EntityResult.Failure) {
+          return resetResult
+        }
+      }
+
+      linkResult
     } else {
       createNewEntity(
         request = request,
         entityType = spEntityType,
         successfulCommands = successfulCommands,
       )
+    }
+  }
+
+  private fun resetLinkedEntity(
+    entityUuid: UUID,
+    entityType: EntityType,
+    userDetails: uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails,
+  ): EntityResult {
+    val strategy = strategyFactory.getStrategy(entityType)
+    val resetData = ResetData(userDetails = userDetails)
+
+    return when (val result = strategy.reset(resetData, entityUuid)) {
+      is OperationResult.Success -> EntityResult.Success(result.data)
+      is OperationResult.Failure -> EntityResult.Failure("Failed to reset $entityType: ${result.errorMessage}")
     }
   }
 

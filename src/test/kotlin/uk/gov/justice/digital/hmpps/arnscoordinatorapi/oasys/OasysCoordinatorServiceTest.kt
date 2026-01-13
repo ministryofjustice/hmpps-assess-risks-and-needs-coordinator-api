@@ -436,6 +436,132 @@ class OasysCoordinatorServiceTest {
       verify(strategyFactory, never()).getStrategy(any())
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
     }
+
+    @Test
+    fun `should call reset when linking existing SP with newPeriodOfSupervision true`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val resetVersionedEntity = VersionedEntity(existingSpUuid, 4, EntityType.AAP_PLAN)
+
+      val requestWithReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = true,
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Success(resetVersionedEntity))
+
+      val result = oasysCoordinatorService.create(requestWithReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(existingSpUuid, response.sentencePlanId)
+
+      verify(strategyFactory).getStrategy(EntityType.AAP_PLAN)
+      verify(spStrategy).reset(any(), eq(existingSpUuid))
+    }
+
+    @Test
+    fun `should not call reset when linking existing SP with newPeriodOfSupervision false`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+
+      val requestWithoutReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = false,
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(requestWithoutReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+
+      verify(strategyFactory, never()).getStrategy(any())
+      verify(spStrategy, never()).reset(any(), any())
+    }
+
+    @Test
+    fun `should return failure when reset fails during new period of supervision`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+
+      val requestWithReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = true,
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Failure("Reset failed"))
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(requestWithReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
+      assertEquals(
+        "Failed to reset AAP_PLAN: Reset failed",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
+
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
+    }
   }
 
   @Nested
