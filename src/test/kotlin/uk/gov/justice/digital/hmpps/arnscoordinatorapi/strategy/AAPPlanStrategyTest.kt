@@ -422,7 +422,7 @@ class AAPPlanStrategyTest {
     }
 
     @Test
-    fun `should return failure when unable to find the version to roll back`() {
+    fun `should return failure when there is no plan version on the request`() {
       whenever(
         oasysVersionService.updateVersion(
           OasysEvent.ROLLED_BACK,
@@ -432,17 +432,19 @@ class AAPPlanStrategyTest {
       )
         .thenReturn(null)
 
-      val result = planStrategy.rollback(request, versionedEntity.entityUuid)
+      val result = planStrategy.rollback(
+        OasysRollbackRequest(
+          sanVersionNumber = 1,
+          sentencePlanVersionNumber = null,
+          userDetails = OasysUserDetails("id", "name"),
+        ),
+        versionedEntity.entityUuid,
+      )
 
       assertTrue(result is OperationResult.Failure)
       assertEquals(
-        "Unable to find version '${request.sentencePlanVersionNumber}' for entity ${versionedEntity.entityUuid}",
+        "Plan version does not exist on the request",
         (result as OperationResult.Failure).errorMessage,
-      )
-      verify(oasysVersionService).updateVersion(
-        OasysEvent.ROLLED_BACK,
-        versionedEntity.entityUuid,
-        versionedEntity.version,
       )
     }
 
@@ -461,7 +463,7 @@ class AAPPlanStrategyTest {
 
       assertTrue(result is OperationResult.Failure)
       assertEquals(
-        "Failed to update version for entity ${versionedEntity.entityUuid}",
+        "Unable to update version '${request.sentencePlanVersionNumber}' for entity ${versionedEntity.entityUuid}",
         (result as OperationResult.Failure).errorMessage,
       )
       verify(oasysVersionService).updateVersion(
@@ -713,7 +715,7 @@ class AAPPlanStrategyTest {
       )
       assertTrue(result is OperationResult.Failure)
       assertEquals(
-        "Unable to countersign version for entity ${versionedEntity.entityUuid}",
+        "Unable to countersign version '${versionedEntity.version}' for entity ${versionedEntity.entityUuid}",
         (result as OperationResult.Failure).errorMessage,
       )
     }
