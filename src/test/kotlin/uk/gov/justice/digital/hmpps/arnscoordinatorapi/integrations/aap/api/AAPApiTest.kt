@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.core.publisher.Mono
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
@@ -44,16 +46,19 @@ class AAPApiTest {
     fun `should return success when AAP API returns a valid response`() {
       val assessmentUuid = UUID.randomUUID()
       val createPlanData = CreatePlanData(PlanType.INITIAL, UserDetails("user-id", "User Name"))
-      val response = CreateAssessmentCommandResult(
-        type = "CreateAssessmentCommandResult",
-        assessmentUuid = assessmentUuid.toString(),
+
+      val commandResult = CreateAssessmentCommandResult(assessmentUuid = assessmentUuid)
+      val response = CommandsResponse(
+        commands = listOf(
+          CommandResponse(request = null, result = commandResult),
+        ),
       )
 
       `when`(webClient.post()).thenReturn(requestBodyUriSpec)
       `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
       `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
-      `when`(responseSpec.bodyToMono(CreateAssessmentCommandResult::class.java)).thenReturn(Mono.just(response))
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
 
       val result = aapApi.createAssessment(createPlanData)
 
@@ -72,7 +77,7 @@ class AAPApiTest {
       `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
       `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
-      `when`(responseSpec.bodyToMono(CreateAssessmentCommandResult::class.java))
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
         .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", null, "Error body".toByteArray(), null)))
 
       val result = aapApi.createAssessment(createPlanData)
@@ -90,7 +95,7 @@ class AAPApiTest {
       `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
       `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
-      `when`(responseSpec.bodyToMono(CreateAssessmentCommandResult::class.java))
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
         .thenReturn(Mono.error(RuntimeException("Unexpected error")))
 
       val result = aapApi.createAssessment(createPlanData)

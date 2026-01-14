@@ -7,13 +7,14 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.IdentifierType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import java.util.UUID
 
 @Component
 @ConditionalOnProperty(name = ["app.strategies.aap-plan"], havingValue = "true")
@@ -32,23 +33,28 @@ class AAPApi(
       user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
     )
 
-    val result = aapApiWebClient.post()
+    val request = CommandsRequest.of(command)
+
+    val response = aapApiWebClient.post()
       .uri(apiProperties.endpoints.command)
-      .body(BodyInserters.fromValue(command))
+      .body(BodyInserters.fromValue(request))
       .retrieve()
-      .bodyToMono(CreateAssessmentCommandResult::class.java)
-      .map {
-        VersionedEntity(
-          id = UUID.fromString(it.assessmentUuid),
-          version = 0,
-          entityType = EntityType.AAP_PLAN,
-        )
-      }
+      .bodyToMono(CommandsResponse::class.java)
       .block()
 
-    result?.let {
-      ApiOperationResult.Success(it)
-    } ?: throw IllegalStateException("Unexpected error during createAssessment")
+    val commandResult = response?.commands?.firstOrNull()?.result
+      ?: throw IllegalStateException("No command result returned from AAP API")
+
+    when (commandResult) {
+      is CreateAssessmentCommandResult -> ApiOperationResult.Success(
+        VersionedEntity(
+          id = commandResult.assessmentUuid,
+          version = 0,
+          entityType = EntityType.AAP_PLAN,
+        ),
+      )
+      else -> throw IllegalStateException("Unexpected command result type: ${commandResult::class.simpleName}")
+    }
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure("HTTP error during create AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
   } catch (ex: Exception) {

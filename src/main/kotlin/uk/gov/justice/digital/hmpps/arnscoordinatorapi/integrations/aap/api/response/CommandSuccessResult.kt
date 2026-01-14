@@ -1,9 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response
 
-import java.util.UUID
-
-data class CreateAssessmentCommandResult(
-  val assessmentUuid: UUID,
-  override val message: String = "",
+data class CommandSuccessResult(
+  override val message: String = "Done",
   override val success: Boolean = true,
 ) : CommandResult
