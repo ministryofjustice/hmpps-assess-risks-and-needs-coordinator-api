@@ -30,8 +30,17 @@ class AAPApiMock : WireMockServer(8093) {
           .withBody(
             """
               {
-                "type": "CreateAssessmentCommandResult",
-                "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6"
+                "commands": [
+                  {
+                    "request": null,
+                    "result": {
+                      "type": "CreateAssessmentCommandResult",
+                      "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "message": "Assessment created successfully",
+                      "success": true
+                    }
+                  }
+                ]
               }
             """.trimIndent(),
           )
