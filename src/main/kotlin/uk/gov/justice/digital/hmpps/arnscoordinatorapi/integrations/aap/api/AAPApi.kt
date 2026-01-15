@@ -47,18 +47,18 @@ class AAPApi(
       .bodyToMono(CommandsResponse::class.java)
       .block()
 
-    val commandResult = response?.commands?.firstOrNull()?.result
-      ?: throw IllegalStateException("No command result returned from AAP API")
-
-    when (commandResult) {
-      is CreateAssessmentCommandResult -> ApiOperationResult.Success(
-        VersionedEntity(
-          id = commandResult.assessmentUuid,
-          version = 0,
-          entityType = EntityType.AAP_PLAN,
-        ),
-      )
-      else -> throw IllegalStateException("Unexpected command result type: ${commandResult::class.simpleName}")
+    response?.commands?.firstOrNull()?.result.let {
+      when (it) {
+        is CreateAssessmentCommandResult -> ApiOperationResult.Success(
+          VersionedEntity(
+            id = it.assessmentUuid,
+            version = 0,
+            entityType = EntityType.AAP_PLAN,
+          ),
+        )
+        null -> throw IllegalStateException("No command result returned from AAP API")
+        else -> throw IllegalStateException("Unexpected command result type: ${it::class.simpleName}")
+      }
     }
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure(
