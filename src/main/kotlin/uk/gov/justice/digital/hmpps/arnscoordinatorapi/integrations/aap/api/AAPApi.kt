@@ -7,14 +7,19 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.IdentifierType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import java.time.LocalDateTime
+import java.util.UUID
 
 @Component
 @ConditionalOnProperty(name = ["app.strategies.aap-plan"], havingValue = "true")
@@ -56,9 +61,37 @@ class AAPApi(
       }
     }
   } catch (ex: WebClientResponseException) {
-    ApiOperationResult.Failure("HTTP error during create AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+    ApiOperationResult.Failure(
+      "HTTP error during create AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
+  }
+
+  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> = try {
+    AssessmentVersionQuery(
+      user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
+      assessmentIdentifier = AssessmentIdentifier(entityUuid),
+      timestamp = timestamp,
+    )
+      .let { query ->
+        aapApiWebClient.post()
+          .uri(apiProperties.endpoints.query)
+          .body(BodyInserters.fromValue(query))
+          .retrieve()
+          .bodyToMono(AssessmentVersionQueryResult::class.java)
+          .block()
+      }
+      ?.let { result -> ApiOperationResult.Success(result) }
+      ?: throw IllegalStateException("Unexpected error during fetchAssessment")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
   }
 
   private fun buildIdentifiers(createData: CreatePlanData): Map<IdentifierType, String>? {

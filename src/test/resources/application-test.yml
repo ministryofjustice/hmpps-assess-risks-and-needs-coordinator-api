@@ -22,12 +22,3 @@ app:
     plan: true
     assessment: true
     aap-plan: true
-
-spring:
-  datasource:
-    url: jdbc:h2:mem:./COORDINATOR;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH
-  flyway:
-    create-schemas: true
-    default-schema: COORDINATOR
-    schemas: COORDINATOR
-    locations: classpath:db/migration/h2
