@@ -24,6 +24,7 @@ enum class OasysEvent {
   REJECTED,
   ROLLED_BACK,
   SELF_SIGNED,
+  FETCH,
 }
 
 @Entity
@@ -49,7 +50,7 @@ class OasysVersionEntity(
   var updatedAt: LocalDateTime = Clock.now(),
 
   @Column(name = "version", nullable = false)
-  var version: Long = 0,
+  var version: Long,
 
   @Column(name = "entity_uuid", nullable = false)
   var entityUuid: UUID,

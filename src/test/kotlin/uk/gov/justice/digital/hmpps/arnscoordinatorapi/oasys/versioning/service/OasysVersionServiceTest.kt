@@ -64,21 +64,18 @@ class OasysVersionServiceTest {
       val uuid = UUID.randomUUID()
       val event = OasysEvent.CREATED
 
-      whenever(repository.findTopByEntityUuidOrderByVersionDesc(uuid)).thenReturn(null)
-      // return the entity passed into save (common pattern)
       whenever(repository.save(any())).thenAnswer { it.arguments[0] as OasysVersionEntity }
 
       val saved = service.createVersionFor(event, uuid)
 
       assertEquals(uuid, saved.entityUuid)
-      assertEquals(0L, saved.version)
+      assertEquals(1767960000000, saved.version)
       assertEquals(event, saved.createdBy)
 
-      verify(repository).findTopByEntityUuidOrderByVersionDesc(uuid)
       verify(repository).save(
         check {
           assertEquals(uuid, it.entityUuid)
-          assertEquals(0L, it.version)
+          assertEquals(1767960000000, it.version)
           assertEquals(event, it.createdBy)
         },
       )
@@ -89,15 +86,13 @@ class OasysVersionServiceTest {
     fun `it increments the version when a previous version exists`() {
       val uuid = UUID.randomUUID()
       val event = OasysEvent.AWAITING_COUNTERSIGN
-      val previous = entity(uuid, version = 41L)
 
-      whenever(repository.findTopByEntityUuidOrderByVersionDesc(uuid)).thenReturn(previous)
       whenever(repository.save(any())).thenAnswer { it.arguments[0] as OasysVersionEntity }
 
       val saved = service.createVersionFor(event, uuid)
 
-      assertEquals(42L, saved.version)
-      verify(repository).save(check { assertEquals(42L, it.version) })
+      assertEquals(1767960000000, saved.version)
+      verify(repository).save(check { assertEquals(1767960000000, it.version) })
     }
   }
 
@@ -109,14 +104,14 @@ class OasysVersionServiceTest {
       val uuid = UUID.randomUUID()
       val event = OasysEvent.COUNTERSIGNED
 
-      whenever(repository.findByEntityUuidAndVersion(uuid, 5L)).thenReturn(null)
+      whenever(repository.findByEntityUuidAndVersion(uuid, 1767960000000L)).thenReturn(null)
 
       val ex = assertThrows<Error> {
-        service.updateVersion(event, uuid, 5L)
+        service.updateVersion(event, uuid, 1767960000000L)
       }
 
       assertEquals("Unable to update version, no previous version found for $uuid", ex.message)
-      verify(repository).findByEntityUuidAndVersion(uuid, 5L)
+      verify(repository).findByEntityUuidAndVersion(uuid, 1767960000000L)
       verify(repository, never()).saveAll(anyList())
     }
 
@@ -124,12 +119,12 @@ class OasysVersionServiceTest {
     fun `it carries forward the createdBy timestamp and updates the updatedAt timestamp`() {
       val uuid = UUID.randomUUID()
       val event = OasysEvent.COUNTERSIGNED
-      val existing = entity(uuid, version = 7L, createdBy = OasysEvent.AWAITING_COUNTERSIGN)
+      val existing = entity(uuid, version = 1767960000000L, createdBy = OasysEvent.AWAITING_COUNTERSIGN)
 
-      whenever(repository.findByEntityUuidAndVersion(uuid, 7L)).thenReturn(existing)
+      whenever(repository.findByEntityUuidAndVersion(uuid, 1767960000000L)).thenReturn(existing)
       whenever(repository.save(any())).thenAnswer { it.arguments[0] as OasysVersionEntity }
 
-      val saved = service.updateVersion(event, uuid, 7L)
+      val saved = service.updateVersion(event, uuid, 1767960000000L)
 
       assertNotNull(saved)
       assertEquals(event, saved.createdBy)
@@ -151,30 +146,28 @@ class OasysVersionServiceTest {
     fun `it throws when no versions are found in the provided range`() {
       val uuid = UUID.randomUUID()
 
-      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1L, 3L)).thenReturn(emptyList())
+      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1767956400000L, 1767960000000L)).thenReturn(emptyList())
 
       val ex = assertThrows<Error> {
-        service.softDeleteVersions(uuid, from = 1L, to = 3L)
+        service.softDeleteVersions(uuid, from = 1767956400000L, to = 1767960000000L)
       }
 
-      assertTrue(ex.message!!.contains("No versions found for entity $uuid between 1 to 3"))
-      verify(repository).findAllByEntityUuidAndVersionBetween(uuid, 1L, 3L)
+      assertTrue(ex.message!!.contains("No versions found for entity $uuid between 1767956400000 to 1767960000000"))
+      verify(repository).findAllByEntityUuidAndVersionBetween(uuid, 1767956400000L, 1767960000000L)
       verify(repository, never()).saveAll(anyList())
     }
 
     @Test
     fun `it uses the latest version when the 'to' value is null`() {
       val uuid = UUID.randomUUID()
-      whenever(repository.findLatestVersionForEntityUuid(uuid)).thenReturn(10L)
 
-      val found = listOf(entity(uuid, 8L), entity(uuid, 9L), entity(uuid, 10L))
-      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 8L, 10L)).thenReturn(found)
+      val found = listOf(entity(uuid, 1767952800000), entity(uuid, 1767956400000L), entity(uuid, 1767960000000L))
+      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767960000000L)).thenReturn(found)
       whenever(repository.saveAll(anyList())).thenAnswer { it.arguments[0] as List<*> }
 
-      val last = service.softDeleteVersions(uuid, from = 8L, to = null)
+      val last = service.softDeleteVersions(uuid, from = 1767952800000, to = null)
 
-      verify(repository).findLatestVersionForEntityUuid(uuid)
-      verify(repository).findAllByEntityUuidAndVersionBetween(uuid, 8L, 10L)
+      verify(repository).findAllByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767960000000L)
 
       verify(repository).saveAll(
         check<List<OasysVersionEntity>> {
@@ -182,23 +175,23 @@ class OasysVersionServiceTest {
         },
       )
 
-      assertEquals(10L, last.version)
+      assertEquals(1767960000000L, last.version)
       assertTrue(last.deleted)
     }
 
     @Test
     fun `it marks all returned entities deleted and returns the last version in the saveAll result`() {
       val uuid = UUID.randomUUID()
-      val found = listOf(entity(uuid, 1L), entity(uuid, 2L), entity(uuid, 3L))
-      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1L, 3L)).thenReturn(found)
+      val found = listOf(entity(uuid, 1767952800000), entity(uuid, 1767956400000L), entity(uuid, 1767960000000L))
+      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767960000000L)).thenReturn(found)
 
       val savedList =
-        listOf(entity(uuid, 1L, deleted = true), entity(uuid, 2L, deleted = true), entity(uuid, 3L, deleted = true))
+        listOf(entity(uuid, 1767952800000, deleted = true), entity(uuid, 1767956400000L, deleted = true), entity(uuid, 1767960000000L, deleted = true))
       whenever(repository.saveAll(anyList())).thenReturn(savedList)
 
-      val last = service.softDeleteVersions(uuid, 1L, 3L)
+      val last = service.softDeleteVersions(uuid, 1767952800000, 1767960000000L)
 
-      assertEquals(3L, last.version)
+      assertEquals(1767960000000L, last.version)
       assertTrue(last.deleted)
     }
   }
@@ -209,29 +202,27 @@ class OasysVersionServiceTest {
     @Test
     fun `it throws when no deleted versions found in range`() {
       val uuid = UUID.randomUUID()
-      whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1L, 2L)).thenReturn(emptyList())
+      whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767956400000L)).thenReturn(emptyList())
 
       assertThrows<Error> {
-        service.undeleteVersions(uuid, 1L, 2L)
+        service.undeleteVersions(uuid, 1767952800000, 1767956400000L)
       }
 
-      verify(repository).findAllDeletedByEntityUuidAndVersionBetween(uuid, 1L, 2L)
+      verify(repository).findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767956400000L)
       verify(repository, never()).saveAll(anyList())
     }
 
     @Test
     fun `it uses the latest version when 'to' is null`() {
       val uuid = UUID.randomUUID()
-      whenever(repository.findLatestVersionForEntityUuid(uuid)).thenReturn(4L)
 
-      val found = listOf(entity(uuid, 3L, deleted = true), entity(uuid, 4L, deleted = true))
-      whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 3L, 4L)).thenReturn(found)
-      whenever(repository.saveAll(anyList())).thenAnswer { it.arguments[0] as List<OasysVersionEntity> }
+      val found = listOf(entity(uuid, 1767956400000, deleted = true), entity(uuid, 1767960000000, deleted = true))
+      whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767956400000, 1767960000000)).thenReturn(found)
+      whenever(repository.saveAll(anyList())).thenAnswer { it.arguments[0] as List<*> }
 
-      val last = service.undeleteVersions(uuid, from = 3L, to = null)
+      val last = service.undeleteVersions(uuid, from = 1767956400000, to = null)
 
-      verify(repository).findLatestVersionForEntityUuid(uuid)
-      verify(repository).findAllDeletedByEntityUuidAndVersionBetween(uuid, 3L, 4L)
+      verify(repository).findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767956400000, 1767960000000)
 
       verify(repository).saveAll(
         check<List<OasysVersionEntity>> {
@@ -239,22 +230,22 @@ class OasysVersionServiceTest {
         },
       )
 
-      assertEquals(4L, last.version)
+      assertEquals(1767960000000, last.version)
       assertFalse(last.deleted)
     }
 
     @Test
     fun `marks all returned entities undeleted and returns last the last version in the saveAll result`() {
       val uuid = UUID.randomUUID()
-      val found = listOf(entity(uuid, 1L, deleted = true), entity(uuid, 2L, deleted = true))
-      whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1L, 2L)).thenReturn(found)
+      val found = listOf(entity(uuid, 1767952800000, deleted = true), entity(uuid, 1767956400000L, deleted = true))
+      whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767956400000L)).thenReturn(found)
 
-      val savedList = listOf(entity(uuid, 1L, deleted = false), entity(uuid, 2L, deleted = false))
+      val savedList = listOf(entity(uuid, 1767952800000, deleted = false), entity(uuid, 1767956400000L, deleted = false))
       whenever(repository.saveAll(anyList())).thenReturn(savedList)
 
-      val last = service.undeleteVersions(uuid, 1L, 2L)
+      val last = service.undeleteVersions(uuid, 1767952800000, 1767956400000L)
 
-      assertEquals(2L, last.version)
+      assertEquals(1767956400000L, last.version)
       assertFalse(last.deleted)
     }
   }
@@ -265,7 +256,7 @@ class OasysVersionServiceTest {
     @Test
     fun `it fetches all entities matching the UUID`() {
       val uuid = UUID.randomUUID()
-      val expected = listOf(entity(uuid, 0L), entity(uuid, 1L))
+      val expected = listOf(entity(uuid, 1767956400000L), entity(uuid, 1767960000000L))
 
       whenever(repository.findAllByEntityUuid(uuid)).thenReturn(expected)
 
@@ -281,14 +272,10 @@ class OasysVersionServiceTest {
   inner class GetLatestVersionNumberForEntityUuid {
 
     @Test
-    fun `it gets the latest version number for a given entity UUID`() {
-      val uuid = UUID.randomUUID()
-      whenever(repository.findLatestVersionForEntityUuid(uuid)).thenReturn(123L)
+    fun `it returns the epoch time to use as the version`() {
+      val result = service.getLatestVersionNumber()
 
-      val result = service.getLatestVersionNumberForEntityUuid(uuid)
-
-      assertEquals(123L, result)
-      verify(repository).findLatestVersionForEntityUuid(uuid)
+      assertEquals(1767960000000L, result)
       verifyNoMoreInteractions(repository)
     }
   }

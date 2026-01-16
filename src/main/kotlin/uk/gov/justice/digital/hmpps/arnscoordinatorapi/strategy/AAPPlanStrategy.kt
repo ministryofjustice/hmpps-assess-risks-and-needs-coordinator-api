@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.getOrElse
 
@@ -65,7 +66,7 @@ class AAPPlanStrategy(
     .let { apiResponse ->
       when (apiResponse) {
         is AAPApi.ApiOperationResult.Success<AssessmentVersionQueryResult> -> runCatching {
-          val version = oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)
+          val version = apiResponse.data.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli()
 
           val planState = apiResponse.data.properties.planStateOrNull()
             ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_STATE for entity $entityUuid")
