@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockedStatic
 import org.mockito.Mockito.mockStatic
+import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -27,6 +28,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
@@ -45,6 +47,7 @@ class OasysCoordinatorServiceTest {
     oasysAssessmentPk = "CY/12ZX56",
     regionPrisonCode = "111111",
     planType = PlanType.INITIAL,
+    assessmentType = AssessmentType.SAN_SP,
     userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
 
@@ -60,14 +63,19 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should create entities and associations successfully`() {
-      val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(sanStrategy)
 
-      `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(spVersionedEntity))
+      `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
 
@@ -75,25 +83,30 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
-      assertEquals(versionedEntity.id, response.sentencePlanId)
+      assertEquals(spVersionedEntity.id, response.sentencePlanId)
+      assertEquals(sanVersionedEntity.id, response.sanAssessmentId)
 
-      verify(strategyFactory).getStrategies()
+      verify(strategyFactory).getStrategy(EntityType.AAP_PLAN)
+      verify(strategyFactory).getStrategy(EntityType.ASSESSMENT)
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
-      verify(oasysAssociationsService, times(1)).storeAssociation(any())
+      verify(oasysAssociationsService, times(2)).storeAssociation(any())
     }
 
     @Test
-    fun `should create entities and associations successfully for both PLAN and ASSESSMENT`() {
-      val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
-      val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+    fun `should create entities and associations successfully for both SAN and SP`() {
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(planStrategy, assessmentStrategy))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(sanStrategy)
 
-      `when`(planStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
-      `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(spVersionedEntity))
+      `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
 
@@ -101,27 +114,31 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
-      assertEquals(versionedEntity.id, response.sentencePlanId)
+      assertEquals(spVersionedEntity.id, response.sentencePlanId)
+      assertEquals(sanVersionedEntity.id, response.sanAssessmentId)
 
-      verify(strategyFactory).getStrategies()
+      verify(strategyFactory).getStrategy(EntityType.AAP_PLAN)
+      verify(strategyFactory).getStrategy(EntityType.ASSESSMENT)
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
     }
 
     @Test
     fun `should rollback on command execution failure`() {
-      val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
-      val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(assessmentStrategy, planStrategy))
+      `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(sanStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
 
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(assessmentStrategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
-      `when`(planStrategy.create(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
+      `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
+      `when`(spStrategy.create(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
 
       val transactionStatus: TransactionStatus = mock()
       val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
@@ -131,7 +148,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
       assertEquals(
-        "Failed to create entity for PLAN: Execution failed",
+        "Failed to create AAP_PLAN: Execution failed",
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
@@ -141,14 +158,15 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should rollback on association storage failure`() {
-      val strategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
         .thenReturn(OperationResult.Success(Unit))
 
-      `when`(strategyFactory.getStrategies()).thenReturn(listOf(strategy))
+      `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(sanStrategy)
 
-      `when`(strategy.create(any())).thenReturn(OperationResult.Success(versionedEntity))
+      `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
 
       `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Failure("Storage failed"))
 
@@ -160,7 +178,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
       assertEquals(
-        "Failed saving association for PLAN",
+        "Failed to store ASSESSMENT association",
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
@@ -182,6 +200,367 @@ class OasysCoordinatorServiceTest {
       )
 
       verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+    }
+
+    @Test
+    fun `should link existing SAN and create new SP when previousOasysSanPk is provided`() {
+      val previousSanPk = "previous123"
+      val existingSanUuid = UUID.randomUUID()
+      val existingSanAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSanPk,
+        entityType = EntityType.ASSESSMENT,
+        entityUuid = existingSanUuid,
+        baseVersion = 5,
+      )
+      val requestWithPreviousSan = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSanPk = previousSanPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SAN_SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSanPk), any()))
+        .thenReturn(listOf(existingSanAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(spVersionedEntity))
+
+      val result = oasysCoordinatorService.create(requestWithPreviousSan)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(existingSanUuid, response.sanAssessmentId)
+      assertEquals(spVersionedEntity.id, response.sentencePlanId)
+
+      verify(oasysAssociationsService).findAssociationsByPkAndType(eq(previousSanPk), any())
+      verify(strategyFactory).getStrategy(EntityType.AAP_PLAN)
+      verify(strategyFactory, never()).getStrategy(EntityType.ASSESSMENT)
+      verify(oasysAssociationsService, times(2)).storeAssociation(any())
+    }
+
+    @Test
+    fun `should create new SAN and link existing SP when previousOasysSpPk is provided`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val requestWithPreviousSp = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SAN_SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(sanStrategy)
+      `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
+
+      val result = oasysCoordinatorService.create(requestWithPreviousSp)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(sanVersionedEntity.id, response.sanAssessmentId)
+      assertEquals(existingSpUuid, response.sentencePlanId)
+
+      verify(oasysAssociationsService).findAssociationsByPkAndType(eq(previousSpPk), any())
+      verify(strategyFactory).getStrategy(EntityType.ASSESSMENT)
+      verify(strategyFactory, never()).getStrategy(EntityType.AAP_PLAN)
+      verify(oasysAssociationsService, times(2)).storeAssociation(any())
+    }
+
+    @Test
+    fun `should link both existing SAN and SP when both previous PKs are provided`() {
+      val previousSanPk = "previousSan123"
+      val previousSpPk = "previousSp456"
+      val existingSanUuid = UUID.randomUUID()
+      val existingSpUuid = UUID.randomUUID()
+      val existingSanAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSanPk,
+        entityType = EntityType.ASSESSMENT,
+        entityUuid = existingSanUuid,
+        baseVersion = 5,
+      )
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val requestWithBothPrevious = OasysCreateRequest(
+        oasysAssessmentPk = "new789",
+        previousOasysSanPk = previousSanPk,
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SAN_SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSanPk), any()))
+        .thenReturn(listOf(existingSanAssociation))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(requestWithBothPrevious)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(existingSanUuid, response.sanAssessmentId)
+      assertEquals(existingSpUuid, response.sentencePlanId)
+
+      verify(strategyFactory, never()).getStrategy(any())
+      verify(oasysAssociationsService, times(2)).storeAssociation(any())
+    }
+
+    @Test
+    fun `should return not found when previousOasysSanPk has no association`() {
+      val previousSanPk = "nonexistent123"
+      val requestWithPreviousSan = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSanPk = previousSanPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SAN_SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSanPk), any()))
+        .thenReturn(emptyList())
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(requestWithPreviousSan)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.NoAssociations)
+      assertEquals(
+        "No ASSESSMENT association found for PK $previousSanPk",
+        (result as OasysCoordinatorService.CreateOperationResult.NoAssociations).errorMessage,
+      )
+
+      transactionAspect.close()
+    }
+
+    @Test
+    fun `should return not found when previousOasysSpPk has no association`() {
+      val previousSpPk = "nonexistent123"
+      val requestWithPreviousSp = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(emptyList())
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(requestWithPreviousSp)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.NoAssociations)
+      assertEquals(
+        "No AAP_PLAN association found for PK $previousSpPk",
+        (result as OasysCoordinatorService.CreateOperationResult.NoAssociations).errorMessage,
+      )
+
+      transactionAspect.close()
+    }
+
+    @Test
+    fun `should link existing SP when assessmentType is SP and previousOasysSpPk is provided`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val requestSpOnly = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(requestSpOnly)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(existingSpUuid, response.sentencePlanId)
+      assertEquals(UUID(0, 0), response.sanAssessmentId)
+
+      verify(strategyFactory, never()).getStrategy(any())
+      verify(oasysAssociationsService, times(1)).storeAssociation(any())
+    }
+
+    @Test
+    fun `should call reset when linking existing SP with newPeriodOfSupervision true`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      val resetVersionedEntity = VersionedEntity(existingSpUuid, 4, EntityType.AAP_PLAN)
+
+      val requestWithReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = true,
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Success(resetVersionedEntity))
+
+      val result = oasysCoordinatorService.create(requestWithReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
+      assertEquals(existingSpUuid, response.sentencePlanId)
+
+      verify(strategyFactory).getStrategy(EntityType.AAP_PLAN)
+      verify(spStrategy).reset(any(), eq(existingSpUuid))
+    }
+
+    @Test
+    fun `should not call reset when linking existing SP with newPeriodOfSupervision false`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+
+      val requestWithoutReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = false,
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(requestWithoutReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+
+      verify(strategyFactory, never()).getStrategy(any())
+      verify(spStrategy, never()).reset(any(), any())
+    }
+
+    @Test
+    fun `should return failure when reset fails during new period of supervision`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+
+      val requestWithReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = true,
+      )
+
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
+      `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Failure("Reset failed"))
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(requestWithReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
+      assertEquals(
+        "Failed to reset AAP_PLAN: Reset failed",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
+
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
     }
   }
 
