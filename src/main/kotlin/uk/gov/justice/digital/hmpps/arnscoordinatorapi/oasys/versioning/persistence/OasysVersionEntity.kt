@@ -24,7 +24,6 @@ enum class OasysEvent {
   REJECTED,
   ROLLED_BACK,
   SELF_SIGNED,
-  FETCH,
 }
 
 @Entity
