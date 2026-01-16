@@ -7,14 +7,14 @@ spring:
     name: hmpps-assess-risks-and-needs-coordinator-api
   codec:
     max-in-memory-size: 10MB
-
   datasource:
     url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&stringtype=unspecified
     username: ${app.db.username:root}
     password: ${app.db.password:dev}
+    driver-class-name: org.postgresql.Driver
 
   flyway:
-    schemas: ${app.db.schema.name}
+    schemas: ${app.db.schema.name:coordinator}
     locations: classpath:/db/migration
     enabled: true
     validate-on-migrate: true
@@ -43,6 +43,12 @@ spring:
             authorization-grant-type: client_credentials
             scope: read, write
           sentence-plan-api:
+            provider: hmpps-auth
+            client-id: ${app.client.id}
+            client-secret: ${app.client.secret}
+            authorization-grant-type: client_credentials
+            scope: read, write
+          aap-api:
             provider: hmpps-auth
             client-id: ${app.client.id}
             client-secret: ${app.client.secret}
@@ -81,6 +87,11 @@ app:
         rollback: /coordinator/plan/{uuid}/rollback
         softDelete: /coordinator/plan/{uuid}/soft-delete
         undelete: /coordinator/plan/{uuid}/restore
+    aap-api:
+      base-url: ${aap-api.base-url}
+      endpoints:
+        command: /command
+        query: /query
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
@@ -88,6 +99,7 @@ app:
   strategies:
     plan: true
     assessment: true
+    aap-plan: true
   db:
     name: postgres
     endpoint: localhost:5432

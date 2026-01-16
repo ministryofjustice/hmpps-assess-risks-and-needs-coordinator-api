@@ -14,7 +14,7 @@ data class OasysCreateResponse(
 ) {
   fun addVersionedEntity(versionedEntity: VersionedEntity) {
     when (versionedEntity.entityType) {
-      EntityType.PLAN -> {
+      EntityType.PLAN, EntityType.AAP_PLAN -> {
         this.sentencePlanId = versionedEntity.id
         this.sentencePlanVersion = versionedEntity.version
       }
