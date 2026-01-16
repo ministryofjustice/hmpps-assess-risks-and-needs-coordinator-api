@@ -34,4 +34,12 @@ class WebClientConfiguration(
     builder: WebClient.Builder,
     @Value("\${app.services.sentence-plan-api.base-url}") sentencePlanApiBaseUri: String,
   ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "sentence-plan-api", url = sentencePlanApiBaseUri, timeout)
+
+  @Bean
+  @ConditionalOnProperty(name = ["app.strategies.aap-plan"], havingValue = "true")
+  fun aapApiWebClient(
+    authorizedClientManager: OAuth2AuthorizedClientManager,
+    builder: WebClient.Builder,
+    @Value("\${app.services.aap-api.base-url}") aapApiBaseUri: String,
+  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "aap-api", url = aapApiBaseUri, timeout)
 }

@@ -107,11 +107,7 @@ class OasysController(
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
   ): ResponseEntity<Any> {
-    val result = if (request.previousOasysAssessmentPk === null) {
-      oasysCoordinatorService.create(request)
-    } else {
-      oasysCoordinatorService.clone(request)
-    }
+    val result = oasysCoordinatorService.create(request)
 
     return when (result) {
       is OasysCoordinatorService.CreateOperationResult.Success ->

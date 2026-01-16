@@ -15,6 +15,7 @@ import java.util.UUID
 enum class EntityType {
   ASSESSMENT,
   PLAN,
+  AAP_PLAN,
 }
 
 @Entity

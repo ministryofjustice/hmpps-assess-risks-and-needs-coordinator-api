@@ -3,3 +3,4 @@ wiremock:
   paths:
     strength-and-needs: '/strengths-and-needs'
     sentence-plan: '/sentence-plan'
+    arns-assessment-platform: '/arns-assessment-platform'

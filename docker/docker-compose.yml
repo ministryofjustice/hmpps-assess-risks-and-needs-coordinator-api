@@ -43,6 +43,7 @@ services:
       HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090/auth
       SAN_API_BASE_URL: http://san-api:8080
       SP_API_BASE_URL: http://sp-api:8080
+      AAP_API_BASE_URL: http://aap-api:8080
       # TODO: Need to get some proper credentials for below
       CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
       CLIENT_SECRET: clientsecret
