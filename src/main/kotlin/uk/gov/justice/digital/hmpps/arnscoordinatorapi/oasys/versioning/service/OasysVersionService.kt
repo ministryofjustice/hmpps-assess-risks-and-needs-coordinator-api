@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import java.time.ZoneOffset
 import java.util.UUID
 
 @Service
@@ -12,15 +13,11 @@ class OasysVersionService(
   private val repository: OasysVersionRepository,
   private val clock: Clock,
 ) {
-  fun createVersionFor(event: OasysEvent, entityUuid: UUID): OasysVersionEntity {
-    val previous = repository.findTopByEntityUuidOrderByVersionDesc(entityUuid)
-
-    return OasysVersionEntity(
-      createdBy = event,
-      version = previous?.version?.plus(1) ?: 0,
-      entityUuid = entityUuid,
-    ).run(repository::save)
-  }
+  fun createVersionFor(event: OasysEvent, entityUuid: UUID): OasysVersionEntity = OasysVersionEntity(
+    createdBy = event,
+    version = getLatestVersionNumber(),
+    entityUuid = entityUuid,
+  ).run(repository::save)
 
   fun updateVersion(event: OasysEvent, entityUuid: UUID, version: Long): OasysVersionEntity = repository.findByEntityUuidAndVersion(entityUuid, version)
     ?.apply {
@@ -33,7 +30,7 @@ class OasysVersionService(
   fun softDeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity = repository.findAllByEntityUuidAndVersionBetween(
     entityUuid,
     from,
-    to ?: getLatestVersionNumberForEntityUuid(entityUuid),
+    to ?: getLatestVersionNumber(),
   )
     .ifEmpty { throw Error("No versions found for entity $entityUuid between $from to $to") }
     .map { it.apply { deleted = true } }
@@ -43,7 +40,7 @@ class OasysVersionService(
   fun undeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity = repository.findAllDeletedByEntityUuidAndVersionBetween(
     entityUuid,
     from,
-    to ?: getLatestVersionNumberForEntityUuid(entityUuid),
+    to ?: getLatestVersionNumber(),
   )
     .ifEmpty { throw Error("No versions found for entity $entityUuid between $from to $to") }
     .map { it.apply { deleted = false } }
@@ -51,5 +48,5 @@ class OasysVersionService(
     .last()
 
   fun fetchAllForEntityUuid(entityUuid: UUID) = repository.findAllByEntityUuid(entityUuid)
-  fun getLatestVersionNumberForEntityUuid(entityUuid: UUID) = repository.findLatestVersionForEntityUuid(entityUuid)
+  fun getLatestVersionNumber() = clock.now().toInstant(ZoneOffset.UTC).toEpochMilli()
 }

@@ -161,7 +161,6 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
@@ -169,7 +168,7 @@ class AAPPlanStrategyTest {
       assertEquals(
         GetPlanResponse(
           sentencePlanId = queryResult.assessmentUuid,
-          sentencePlanVersion = 1,
+          sentencePlanVersion = 1767961800000, // updatedAt to epoch
           planComplete = PlanState.INCOMPLETE,
           planType = PlanType.INITIAL,
           lastUpdatedTimestampSP = queryResult.updatedAt,
@@ -177,7 +176,6 @@ class AAPPlanStrategyTest {
         (result as OperationResult.Success).data,
       )
       verify(aapApi).fetchAssessment(entityUuid, now)
-      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
     }
 
     @Test
@@ -202,14 +200,13 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
       assertTrue(result is OperationResult.Failure)
       assertEquals("Unable to parse version for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).fetchAssessment(entityUuid, now)
-      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
     }
 
     @Test
@@ -233,14 +230,13 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
       assertTrue(result is OperationResult.Failure)
       assertEquals("No value for PLAN_STATE for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).fetchAssessment(entityUuid, now)
-      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
     }
 
     @Test
@@ -265,14 +261,13 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
       assertTrue(result is OperationResult.Failure)
       assertEquals("Unable to parse version for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).fetchAssessment(entityUuid, now)
-      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
     }
 
     @Test
@@ -296,14 +291,13 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumberForEntityUuid(entityUuid)).thenReturn(1)
+      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
       assertTrue(result is OperationResult.Failure)
       assertEquals("No value for PLAN_TYPE for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
       verify(aapApi).fetchAssessment(entityUuid, now)
-      verify(oasysVersionService).getLatestVersionNumberForEntityUuid(entityUuid)
     }
 
     @Test
