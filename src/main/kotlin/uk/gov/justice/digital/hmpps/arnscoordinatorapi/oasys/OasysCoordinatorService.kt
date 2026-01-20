@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.req
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
@@ -226,10 +225,6 @@ class OasysCoordinatorService(
         TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
         return CreateOperationResult.NoAssociations(spResult.message)
       }
-    }
-
-    if (requestData.assessmentType == AssessmentType.SP) {
-      response.sanAssessmentId = NIL_UUID
     }
 
     return CreateOperationResult.Success(response)
@@ -779,6 +774,5 @@ class OasysCoordinatorService(
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
-    private val NIL_UUID = UUID(0, 0)
   }
 }

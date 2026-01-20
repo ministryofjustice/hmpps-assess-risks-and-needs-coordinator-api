@@ -156,8 +156,8 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    assertThat(response!!.sanAssessmentId).isNull()
-    assertThat(response.sanAssessmentVersion).isNull()
+    assertThat(response!!.sanAssessmentId).isEqualTo(UUID(0, 0))
+    assertThat(response.sanAssessmentVersion).isEqualTo(0)
     assertThat(response.sentencePlanId).isEqualTo(planUuid)
     assertThat(response.sentencePlanVersion).isEqualTo(3)
 
