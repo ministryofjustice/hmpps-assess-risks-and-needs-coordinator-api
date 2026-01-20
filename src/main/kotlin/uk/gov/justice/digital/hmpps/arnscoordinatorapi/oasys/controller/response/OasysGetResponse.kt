@@ -11,14 +11,14 @@ import java.util.UUID
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class OasysGetResponse(
-  override var sanAssessmentId: UUID? = null,
-  override var sanAssessmentVersion: Long? = null,
+  override var sanAssessmentId: UUID = UUID(0, 0),
+  override var sanAssessmentVersion: Long = 0,
   var sanAssessmentData: Map<*, *>? = null,
   var sanOasysEquivalent: Map<String, *>? = null,
   var lastUpdatedTimestampSAN: LocalDateTime? = null,
 
-  override var sentencePlanId: UUID? = null,
-  override var sentencePlanVersion: Long? = null,
+  override var sentencePlanId: UUID = UUID(0, 0),
+  override var sentencePlanVersion: Long = 0,
   var planComplete: PlanState? = null,
   var planType: PlanType? = null,
   var lastUpdatedTimestampSP: LocalDateTime? = null,
