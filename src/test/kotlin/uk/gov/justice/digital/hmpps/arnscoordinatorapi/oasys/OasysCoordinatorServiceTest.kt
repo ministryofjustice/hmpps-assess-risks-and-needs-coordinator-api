@@ -457,7 +457,7 @@ class OasysCoordinatorServiceTest {
         planType = PlanType.INITIAL,
         assessmentType = AssessmentType.SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
-        newPeriodOfSupervision = true,
+        newPeriodOfSupervision = "Y",
       )
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
@@ -498,7 +498,7 @@ class OasysCoordinatorServiceTest {
         planType = PlanType.INITIAL,
         assessmentType = AssessmentType.SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
-        newPeriodOfSupervision = false,
+        newPeriodOfSupervision = "N",
       )
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
@@ -535,7 +535,7 @@ class OasysCoordinatorServiceTest {
         planType = PlanType.INITIAL,
         assessmentType = AssessmentType.SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
-        newPeriodOfSupervision = true,
+        newPeriodOfSupervision = "Y",
       )
 
       `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))

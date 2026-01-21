@@ -57,8 +57,9 @@ data class OasysCreateRequest(
 
   @Schema(
     description = "Indicates if this is a new period of supervision for the offender. " +
-      "When true, any existing Sentence Plan will be reset (e.g. Agree status cleared).",
-    example = "false",
+      "When 'Y', any existing Sentence Plan will be reset (e.g. Agree status cleared).",
+    example = "N",
   )
-  val newPeriodOfSupervision: Boolean = false,
+  @field:Pattern(regexp = "^[YN]$", message = "Must be 'Y' or 'N'")
+  val newPeriodOfSupervision: String? = null,
 )

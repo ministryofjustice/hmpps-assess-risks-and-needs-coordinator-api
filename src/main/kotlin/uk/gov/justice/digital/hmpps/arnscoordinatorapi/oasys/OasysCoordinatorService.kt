@@ -151,7 +151,7 @@ class OasysCoordinatorService(
         regionPrisonCode = request.regionPrisonCode,
       )
 
-      if (linkResult is EntityResult.Success && request.newPeriodOfSupervision) {
+      if (linkResult is EntityResult.Success && request.newPeriodOfSupervision == "Y") {
         val resetResult = resetLinkedEntity(
           entityUuid = linkResult.entity.id,
           entityType = spEntityType,
