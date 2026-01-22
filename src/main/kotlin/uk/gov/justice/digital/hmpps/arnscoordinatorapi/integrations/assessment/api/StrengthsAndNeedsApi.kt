@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -12,10 +13,13 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.DeleteAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.RollbackData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentVersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
@@ -194,6 +198,35 @@ class StrengthsAndNeedsApi(
     ApiOperationResult.Failure("HTTP error during get assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
   } catch (ex: Exception) {
     ApiOperationResult.Failure(errorMessage = "Unexpected error during getAssessment: ${ex.message}", cause = ex)
+  }
+
+  fun getAssessmentVersions(assessmentUuid: UUID): ApiOperationResult<VersionDetailsList> = try {
+    val result = sanApiWebClient.get()
+      .uri(apiProperties.endpoints.fetchVersions.replace("{uuid}", assessmentUuid.toString()))
+      .retrieve()
+      .bodyToMono(object : ParameterizedTypeReference<AssessmentVersionsResponse>() {})
+      .map { list ->
+        list.map {
+          VersionDetails(
+            it.uuid,
+            it.versionNumber,
+            it.createdAt,
+            it.updatedAt,
+            it.tag,
+            null,
+            EntityType.ASSESSMENT,
+          )
+        }
+      }
+      .block()
+
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected null response during getAssessmentVersions")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during get assessment versions: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure(errorMessage = "Unexpected error during getAssessmentVersions: ${ex.message}", cause = ex)
   }
 
   fun counterSign(assessmentUuid: UUID, data: CounterSignAssessmentData): ApiOperationResultExtended<VersionedEntity> {

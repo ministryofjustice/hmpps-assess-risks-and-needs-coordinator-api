@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -9,6 +10,8 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CounterSignPlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
@@ -20,6 +23,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.res
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.LockPlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.PlanVersionResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.PlanVersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.util.UUID
 import kotlin.jvm.optionals.getOrNull
@@ -168,6 +172,35 @@ class SentencePlanApi(
     ApiOperationResult.Failure("HTTP error during get plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during getPlan: ${ex.message}", ex)
+  }
+
+  fun getPlanVersions(planUuid: UUID): ApiOperationResult<VersionDetailsList> = try {
+    val result = sentencePlanApiWebClient.get()
+      .uri(apiProperties.endpoints.fetchVersions.replace("{uuid}", planUuid.toString()))
+      .retrieve()
+      .bodyToMono(object : ParameterizedTypeReference<PlanVersionsResponse>() {})
+      .map { list ->
+        list.map {
+          VersionDetails(
+            it.uuid,
+            it.version,
+            it.createdAt,
+            it.updatedAt,
+            it.status,
+            it.agreementStatus,
+            EntityType.PLAN,
+          )
+        }
+      }
+      .block()
+
+    result?.let {
+      ApiOperationResult.Success(it)
+    } ?: throw IllegalStateException("Unexpected null response during getPlanVersions")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure("HTTP error during get plan versions: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}", ex)
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during getPlanVersions: ${ex.message}", ex)
   }
 
   fun rollback(data: PlanVersionData, planUuid: UUID): ApiOperationResultExtended<VersionedEntity> {

@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
@@ -23,6 +24,8 @@ interface EntityStrategy {
   fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit>
 
   fun fetch(entityUuid: UUID): OperationResult<*>
+
+  fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList>
 
   fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity>
 

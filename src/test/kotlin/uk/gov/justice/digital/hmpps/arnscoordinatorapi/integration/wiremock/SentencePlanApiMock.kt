@@ -62,6 +62,38 @@ class SentencePlanApiMock : WireMockServer(8091) {
     )
   }
 
+  fun stubSentencePlanGetVersions(status: Int = 200) {
+    stubFor(
+      get(urlPathMatching("/coordinator/plan/.*/all")).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              [
+                {
+                  "uuid": "4da85f64-5717-4562-b3fc-2c963f66afb8",
+                  "version": 1,
+                  "createdAt": "2025-06-23T14:44:53.105Z",
+                  "updatedAt": "2025-06-23T14:44:53.105Z",
+                  "status": "AWAITING_COUNTERSIGN",
+                  "agreementStatus": "TEST"
+                },
+                {
+                  "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "version": 0,
+                  "createdAt": "2025-04-23T14:40:53.105Z",
+                  "updatedAt": "2025-04-23T14:40:53.105Z",
+                  "status": "UNSIGNED",
+                  "agreementStatus": "TEST"
+                }
+              ]
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
+
   fun stubSentencePlanSign(status: Int = 200) {
     stubFor(
       post(urlPathMatching("/coordinator/plan/(.*)/sign")).willReturn(
