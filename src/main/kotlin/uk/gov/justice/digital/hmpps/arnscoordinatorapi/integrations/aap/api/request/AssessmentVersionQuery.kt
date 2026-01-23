@@ -13,4 +13,6 @@ data class AssessmentVersionQuery(
   val user: AAPUser,
   val assessmentIdentifier: AssessmentIdentifier,
   val timestamp: LocalDateTime? = null,
-)
+) {
+  val type: String = "AssessmentVersionQuery"
+}
