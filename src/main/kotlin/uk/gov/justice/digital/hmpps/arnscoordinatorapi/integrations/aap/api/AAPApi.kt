@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.IdentifierType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.QueriesRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
@@ -78,7 +79,7 @@ class AAPApi(
       .let { query ->
         aapApiWebClient.post()
           .uri(apiProperties.endpoints.query)
-          .body(BodyInserters.fromValue(query))
+          .body(BodyInserters.fromValue(QueriesRequest.of(query)))
           .retrieve()
           .bodyToMono(AssessmentVersionQueryResult::class.java)
           .block()
