@@ -29,36 +29,22 @@ jobs:
       environment: ${{ matrix.environments }}
 
   build_docker:
-    name: Build docker image
+    name: Build and publish docker image
+    needs:
+      - validate
+      - helm_lint
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2
     with:
       docker_registry: 'ghcr.io'
       registry_org: 'ministryofjustice'
-      tag_latest: false
-      push: false
-      load: true
-      docker_multiplatform: false
-      upload_image_artifact: true
-      image_artifact_retention_days: 2
-
-  publish_docker:
-    name: Publish docker image
-    needs:
-      - validate
-      - build_docker
-      - helm_lint
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_push.yml@v2
-    with:
-      docker_registry: 'ghcr.io'
-      registry_org: 'ministryofjustice'
-      app_version: ${{ needs.build_docker.outputs.app_version }}
       tag_latest: true
+      push: true
+      docker_multiplatform: true
 
   deploy_dev:
     name: Deploy to the development environment
     needs:
       - build_docker
-      - publish_docker
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2
     secrets: inherit
     with:
