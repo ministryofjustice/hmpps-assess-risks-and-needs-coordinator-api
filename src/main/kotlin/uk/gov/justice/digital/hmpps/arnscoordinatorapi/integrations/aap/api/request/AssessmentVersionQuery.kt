@@ -6,7 +6,7 @@ import java.util.UUID
 data class AssessmentIdentifier(
   val uuid: UUID,
 ) {
-  private val type = "UUID"
+  val type = "UUID"
 }
 
 data class AssessmentVersionQuery(
