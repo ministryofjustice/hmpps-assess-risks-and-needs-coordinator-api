@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.QueriesResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -81,11 +82,12 @@ class AAPApi(
           .uri(apiProperties.endpoints.query)
           .body(BodyInserters.fromValue(QueriesRequest.of(query)))
           .retrieve()
-          .bodyToMono(AssessmentVersionQueryResult::class.java)
+          .bodyToMono(QueriesResponse::class.java)
           .block()
       }
+      ?.queries?.firstOrNull()?.result
       ?.let { result -> ApiOperationResult.Success(result) }
-      ?: throw IllegalStateException("Unexpected error during fetchAssessment")
+      ?: throw IllegalStateException("No query result returned from AAP API")
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure(
       "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
