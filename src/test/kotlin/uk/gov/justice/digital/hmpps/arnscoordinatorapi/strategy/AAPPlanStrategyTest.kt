@@ -15,6 +15,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.Collection
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CollectionItem
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -140,7 +142,7 @@ class AAPPlanStrategyTest {
   inner class Fetch {
 
     @Test
-    fun `should return success when fetch plan is successful`() {
+    fun `should return COMPLETE when latest agreement status is AGREED`() {
       val entityUuid = UUID.randomUUID()
       val queryResult = AssessmentVersionQueryResult(
         assessmentUuid = entityUuid,
@@ -150,9 +152,24 @@ class AAPPlanStrategyTest {
         createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
         updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
         answers = emptyMap(),
-        properties = mapOf(
-          "PLAN_STATE" to SingleValue("INCOMPLETE"),
-          "PLAN_TYPE" to SingleValue("INITIAL"),
+        properties = mapOf("PLAN_TYPE" to SingleValue("INITIAL")),
+        collections = listOf(
+          Collection(
+            uuid = UUID.randomUUID(),
+            createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+            name = "PLAN_AGREEMENTS",
+            items = listOf(
+              CollectionItem(
+                uuid = UUID.randomUUID(),
+                createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+                updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+                answers = emptyMap(),
+                properties = mapOf("status" to SingleValue("AGREED")),
+                collections = emptyList(),
+              ),
+            ),
+          ),
         ),
         collaborators = emptySet(),
         identifiers = emptyMap(),
@@ -168,8 +185,8 @@ class AAPPlanStrategyTest {
       assertEquals(
         GetPlanResponse(
           sentencePlanId = queryResult.assessmentUuid,
-          sentencePlanVersion = 1767961800000, // updatedAt to epoch
-          planComplete = PlanState.INCOMPLETE,
+          sentencePlanVersion = 1767961800000,
+          planComplete = PlanState.COMPLETE,
           planType = PlanType.INITIAL,
           lastUpdatedTimestampSP = queryResult.updatedAt,
         ),
@@ -179,7 +196,7 @@ class AAPPlanStrategyTest {
     }
 
     @Test
-    fun `should return failure when unable to parse PLAN_STATE`() {
+    fun `should return INCOMPLETE when latest agreement status is DRAFT`() {
       val entityUuid = UUID.randomUUID()
       val queryResult = AssessmentVersionQueryResult(
         assessmentUuid = entityUuid,
@@ -189,9 +206,24 @@ class AAPPlanStrategyTest {
         createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
         updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
         answers = emptyMap(),
-        properties = mapOf(
-          "PLAN_STATE" to SingleValue("FOO_VALUE"),
-          "PLAN_TYPE" to SingleValue("INITIAL"),
+        properties = mapOf("PLAN_TYPE" to SingleValue("INITIAL")),
+        collections = listOf(
+          Collection(
+            uuid = UUID.randomUUID(),
+            createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+            name = "PLAN_AGREEMENTS",
+            items = listOf(
+              CollectionItem(
+                uuid = UUID.randomUUID(),
+                createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+                updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+                answers = emptyMap(),
+                properties = mapOf("status" to SingleValue("DRAFT")),
+                collections = emptyList(),
+              ),
+            ),
+          ),
         ),
         collaborators = emptySet(),
         identifiers = emptyMap(),
@@ -200,17 +232,16 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
-      assertTrue(result is OperationResult.Failure)
-      assertEquals("Unable to parse version for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
+      assertTrue(result is OperationResult.Success)
+      assertEquals(PlanState.INCOMPLETE, (result as OperationResult.Success<GetPlanResponse>).data.planComplete)
       verify(aapApi).fetchAssessment(entityUuid, now)
     }
 
     @Test
-    fun `should return failure when there is no value for PLAN_STATE`() {
+    fun `should return INCOMPLETE when no PLAN_AGREEMENTS collection exists`() {
       val entityUuid = UUID.randomUUID()
       val queryResult = AssessmentVersionQueryResult(
         assessmentUuid = entityUuid,
@@ -220,9 +251,8 @@ class AAPPlanStrategyTest {
         createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
         updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
         answers = emptyMap(),
-        properties = mapOf(
-          "PLAN_TYPE" to SingleValue("INITIAL"),
-        ),
+        properties = mapOf("PLAN_TYPE" to SingleValue("INITIAL")),
+        collections = emptyList(),
         collaborators = emptySet(),
         identifiers = emptyMap(),
       )
@@ -230,17 +260,16 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 
-      assertTrue(result is OperationResult.Failure)
-      assertEquals("No value for PLAN_STATE for entity $entityUuid", (result as OperationResult.Failure).errorMessage)
+      assertTrue(result is OperationResult.Success)
+      assertEquals(PlanState.INCOMPLETE, (result as OperationResult.Success<GetPlanResponse>).data.planComplete)
       verify(aapApi).fetchAssessment(entityUuid, now)
     }
 
     @Test
-    fun `should return failure when unable to parse  PLAN_TYPE`() {
+    fun `should use latest agreement by updatedAt when multiple agreements exist`() {
       val entityUuid = UUID.randomUUID()
       val queryResult = AssessmentVersionQueryResult(
         assessmentUuid = entityUuid,
@@ -250,9 +279,32 @@ class AAPPlanStrategyTest {
         createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
         updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
         answers = emptyMap(),
-        properties = mapOf(
-          "PLAN_STATE" to SingleValue("INCOMPLETE"),
-          "PLAN_TYPE" to SingleValue("FOO_VALUE"),
+        properties = mapOf("PLAN_TYPE" to SingleValue("INITIAL")),
+        collections = listOf(
+          Collection(
+            uuid = UUID.randomUUID(),
+            createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+            name = "PLAN_AGREEMENTS",
+            items = listOf(
+              CollectionItem(
+                uuid = UUID.randomUUID(),
+                createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+                updatedAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+                answers = emptyMap(),
+                properties = mapOf("status" to SingleValue("AGREED")),
+                collections = emptyList(),
+              ),
+              CollectionItem(
+                uuid = UUID.randomUUID(),
+                createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+                updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+                answers = emptyMap(),
+                properties = mapOf("status" to SingleValue("DRAFT")),
+                collections = emptyList(),
+              ),
+            ),
+          ),
         ),
         collaborators = emptySet(),
         identifiers = emptyMap(),
@@ -261,7 +313,34 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
+
+      val result = planStrategy.fetch(entityUuid)
+
+      assertTrue(result is OperationResult.Success)
+      assertEquals(PlanState.INCOMPLETE, (result as OperationResult.Success<GetPlanResponse>).data.planComplete)
+      verify(aapApi).fetchAssessment(entityUuid, now)
+    }
+
+    @Test
+    fun `should return failure when unable to parse PLAN_TYPE`() {
+      val entityUuid = UUID.randomUUID()
+      val queryResult = AssessmentVersionQueryResult(
+        assessmentUuid = entityUuid,
+        aggregateUuid = UUID.randomUUID(),
+        assessmentType = "PLAN",
+        formVersion = "v1.0",
+        createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
+        updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
+        answers = emptyMap(),
+        properties = mapOf("PLAN_TYPE" to SingleValue("FOO_VALUE")),
+        collections = emptyList(),
+        collaborators = emptySet(),
+        identifiers = emptyMap(),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
+        AAPApi.ApiOperationResult.Success(queryResult),
+      )
 
       val result = planStrategy.fetch(entityUuid)
 
@@ -281,9 +360,8 @@ class AAPPlanStrategyTest {
         createdAt = LocalDateTime.parse("2026-01-09T12:00:00"),
         updatedAt = LocalDateTime.parse("2026-01-09T12:30:00"),
         answers = emptyMap(),
-        properties = mapOf(
-          "PLAN_STATE" to SingleValue("INCOMPLETE"),
-        ),
+        properties = emptyMap(),
+        collections = emptyList(),
         collaborators = emptySet(),
         identifiers = emptyMap(),
       )
@@ -291,7 +369,6 @@ class AAPPlanStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(queryResult),
       )
-      whenever(oasysVersionService.getLatestVersionNumber()).thenReturn(1)
 
       val result = planStrategy.fetch(entityUuid)
 

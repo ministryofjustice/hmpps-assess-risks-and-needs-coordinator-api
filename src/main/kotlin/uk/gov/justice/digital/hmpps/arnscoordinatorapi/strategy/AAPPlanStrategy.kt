@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CollectionsView
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
@@ -68,15 +69,14 @@ class AAPPlanStrategy(
         is AAPApi.ApiOperationResult.Success<AssessmentVersionQueryResult> -> runCatching {
           val version = apiResponse.data.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli()
 
-          val planState = apiResponse.data.properties.planStateOrNull()
-            ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_STATE for entity $entityUuid")
+          val planComplete = apiResponse.data.collections.derivePlanComplete()
           val planType = apiResponse.data.properties.planTypeOrNull()
             ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_TYPE for entity $entityUuid")
 
           GetPlanResponse(
             sentencePlanId = entityUuid,
             sentencePlanVersion = version,
-            planComplete = planState,
+            planComplete = planComplete,
             planType = planType,
             lastUpdatedTimestampSP = apiResponse.data.updatedAt,
           )
@@ -207,9 +207,16 @@ class AAPPlanStrategy(
     )
   }.let { Success(it) }
 
-  private fun Map<String, Any>.planStateOrNull(): PlanState? = (this["PLAN_STATE"] as? SingleValue)
-    ?.value
-    ?.let(PlanState::valueOf)
+  private fun CollectionsView.derivePlanComplete(): PlanState {
+    val latestAgreement = this
+      .find { it.name == "PLAN_AGREEMENTS" }
+      ?.items
+      ?.maxByOrNull { it.updatedAt }
+      ?: return PlanState.INCOMPLETE
+
+    val status = (latestAgreement.properties["status"] as? SingleValue)?.value
+    return if (status != null && status != "DRAFT") PlanState.COMPLETE else PlanState.INCOMPLETE
+  }
 
   private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
     ?.value

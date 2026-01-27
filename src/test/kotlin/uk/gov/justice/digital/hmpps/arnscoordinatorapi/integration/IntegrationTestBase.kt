@@ -146,4 +146,8 @@ abstract class IntegrationTestBase {
   protected fun stubAAPCreateAssessment(status: Int = 201) {
     aapApiMock.stubCreateAssessment(status)
   }
+
+  protected fun stubAAPQueryAssessment(status: Int = 200) {
+    aapApiMock.stubQueryAssessment(status)
+  }
 }

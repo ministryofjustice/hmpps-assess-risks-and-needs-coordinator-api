@@ -130,6 +130,7 @@ class AAPApiTest {
         updatedAt = now,
         answers = emptyMap(),
         properties = emptyMap(),
+        collections = emptyList(),
         collaborators = emptySet(),
         identifiers = mapOf(IdentifierType.CRN to "X123456"),
       )

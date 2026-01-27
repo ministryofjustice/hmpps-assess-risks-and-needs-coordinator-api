@@ -48,6 +48,41 @@ class AAPApiMock : WireMockServer(8093) {
       ),
     )
   }
+
+  fun stubQueryAssessment(status: Int = 200) {
+    stubFor(
+      post("/query").willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "queries": [
+                  {
+                    "result": {
+                      "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "aggregateUuid": "6fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "assessmentType": "SENTENCE_PLAN",
+                      "formVersion": "1.0",
+                      "createdAt": "2026-01-09T12:00:00",
+                      "updatedAt": "2026-01-09T12:30:00",
+                      "answers": {},
+                      "properties": {
+                        "PLAN_TYPE": { "type": "Single", "value": "INITIAL" }
+                      },
+                      "collections": [],
+                      "collaborators": [],
+                      "identifiers": {}
+                    }
+                  }
+                ]
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
 }
 
 class AAPApiMockExtension :

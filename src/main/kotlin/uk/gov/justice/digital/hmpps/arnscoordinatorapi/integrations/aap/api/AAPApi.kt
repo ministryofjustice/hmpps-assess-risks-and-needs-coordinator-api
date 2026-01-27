@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.IdentifierType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.QueriesRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
@@ -33,9 +34,14 @@ class AAPApi(
   fun createAssessment(createData: CreatePlanData): ApiOperationResult<VersionedEntity> = try {
     val identifiers = buildIdentifiers(createData)
 
+    val properties = mapOf(
+      "PLAN_TYPE" to PropertyValue(type = "Single", value = createData.planType.name),
+    )
+
     val command = CreateAssessmentCommand(
       assessmentType = "SENTENCE_PLAN",
       formVersion = "", // note: we leave this empty and then set it when the user gets into AAPxSP
+      properties = properties,
       identifiers = identifiers,
       user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
     )
