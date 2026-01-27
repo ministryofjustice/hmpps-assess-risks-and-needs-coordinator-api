@@ -39,6 +39,7 @@ data class CollectionItem(
 
 enum class IdentifierType {
   CRN,
+  NOMIS_ID,
 }
 
 data class AssessmentVersionQueryResult(
