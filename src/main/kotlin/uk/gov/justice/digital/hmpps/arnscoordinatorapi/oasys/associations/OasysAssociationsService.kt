@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -40,6 +41,11 @@ class OasysAssociationsService(
     oasysAssociationRepository.save(association)
     OperationResult.Success(Unit)
   } catch (ex: Exception) {
+    log.error("Failed to store association id=${association.id}, entityType=${association.entityType}", ex)
     OperationResult.Failure("Failed to store association: ${ex.message}", cause = ex)
+  }
+
+  private companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
   }
 }

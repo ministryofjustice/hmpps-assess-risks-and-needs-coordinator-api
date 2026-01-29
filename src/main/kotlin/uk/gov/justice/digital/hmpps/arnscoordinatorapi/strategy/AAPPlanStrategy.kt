@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
+import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
@@ -138,7 +139,10 @@ class AAPPlanStrategy(
     )
   }.fold(
     onSuccess = { it },
-    onFailure = { Failure("Something went wrong while deleting versions for entity $entityUuid") },
+    onFailure = { ex ->
+      log.error("Failed to soft-delete versions for entity $entityUuid", ex)
+      Failure("Something went wrong while deleting versions for entity $entityUuid")
+    },
   )
 
   override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
@@ -155,7 +159,8 @@ class AAPPlanStrategy(
         entityType = entityType,
       ),
     )
-  }.getOrElse {
+  }.getOrElse { ex ->
+    log.error("Failed to undelete versions for entity $entityUuid", ex)
     Failure("Something went wrong while un-deleting versions for entity $entityUuid")
   }
 
@@ -221,4 +226,8 @@ class AAPPlanStrategy(
   private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
     ?.value
     ?.let(PlanType::valueOf)
+
+  private companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
 }
