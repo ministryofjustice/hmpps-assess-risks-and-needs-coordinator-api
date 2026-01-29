@@ -19,11 +19,11 @@ interface OasysVersionRepository : JpaRepository<OasysVersionEntity, Long> {
 
   @Query(
     """
-    SELECT e
-    FROM coordinator.oasys_version e
-    WHERE e.entity_uuid = :entityUuid
-    AND e.version BETWEEN :fromVersion AND :toVersion
-    AND e.deleted
+    SELECT *
+    FROM coordinator.oasys_version
+    WHERE entity_uuid = :entityUuid
+    AND version BETWEEN :fromVersion AND :toVersion
+    AND deleted = true
   """,
     nativeQuery = true,
   )
