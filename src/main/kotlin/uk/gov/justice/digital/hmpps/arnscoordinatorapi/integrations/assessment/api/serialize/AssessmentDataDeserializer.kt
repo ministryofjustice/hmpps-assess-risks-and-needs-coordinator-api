@@ -1,12 +1,12 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.serialize
 
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.DeserializationContext
-import com.fasterxml.jackson.databind.JsonDeserializer
-import com.fasterxml.jackson.databind.json.JsonMapper
+import tools.jackson.core.JsonParser
+import tools.jackson.databind.DeserializationContext
+import tools.jackson.databind.ValueDeserializer
+import tools.jackson.databind.json.JsonMapper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentData
 
-class AssessmentDataDeserializer : JsonDeserializer<AssessmentData>() {
+class AssessmentDataDeserializer : ValueDeserializer<AssessmentData>() {
   override fun deserialize(parser: JsonParser, context: DeserializationContext): AssessmentData? = context.readTree(parser).toString()
     .replace("&amp;", "&")
     .replace("&#x27;", "'")
