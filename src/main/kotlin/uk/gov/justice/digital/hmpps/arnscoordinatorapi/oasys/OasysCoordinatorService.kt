@@ -1,5 +1,9 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -40,6 +44,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.util.UUID
 
@@ -65,11 +70,11 @@ class OasysCoordinatorService(
     newPk: String,
     entityType: EntityType,
     regionPrisonCode: String?,
-  ): EntityResult {
+  ): EntityResultWithCommand {
     val existingAssociation = oasysAssociationsService
       .findAssociationsByPkAndType(previousPk, listOf(entityType))
       .firstOrNull()
-      ?: return EntityResult.NotFound("No $entityType association found for PK $previousPk")
+      ?: return EntityResultWithCommand(EntityResult.NotFound("No $entityType association found for PK $previousPk"), null, null)
 
     val newAssociation = OasysAssociation(
       oasysAssessmentPk = newPk,
@@ -79,112 +84,67 @@ class OasysCoordinatorService(
       regionPrisonCode = regionPrisonCode,
     )
 
-    return when (oasysAssociationsService.storeAssociation(newAssociation)) {
-      is OperationResult.Success -> EntityResult.Success(
+    return EntityResultWithCommand(
+      EntityResult.Success(
         VersionedEntity(
           id = existingAssociation.entityUuid,
           version = existingAssociation.baseVersion,
           entityType = entityType,
         ),
-      )
-      is OperationResult.Failure -> EntityResult.Failure("Failed to store $entityType association")
-    }
+      ),
+      null,
+      newAssociation,
+    )
   }
 
   private fun createNewEntity(
     request: OasysCreateRequest,
-    entityType: EntityType,
-    successfulCommands: MutableList<CreateCommand>,
-  ): EntityResult {
-    val strategy = strategyFactory.getStrategy(entityType)
+    strategy: EntityStrategy,
+  ): EntityResultWithCommand {
     val command = CreateCommand(strategy, buildCreateData(request))
 
     return when (val result = command.execute()) {
       is OperationResult.Success -> {
-        successfulCommands.add(command)
-
-        val association = OasysAssociation(
+        val pendingAssociation = OasysAssociation(
           oasysAssessmentPk = request.oasysAssessmentPk,
-          entityType = entityType,
+          entityType = strategy.entityType,
           entityUuid = result.data.id,
           regionPrisonCode = request.regionPrisonCode,
         )
-
-        when (oasysAssociationsService.storeAssociation(association)) {
-          is OperationResult.Success -> EntityResult.Success(result.data)
-          is OperationResult.Failure -> EntityResult.Failure("Failed to store $entityType association")
-        }
+        EntityResultWithCommand(EntityResult.Success(result.data), command, pendingAssociation)
       }
-      is OperationResult.Failure -> EntityResult.Failure("Failed to create $entityType: ${result.errorMessage}")
+      is OperationResult.Failure -> EntityResultWithCommand(EntityResult.Failure("Failed to create ${strategy.entityType}: ${result.errorMessage}"), null, null)
     }
   }
 
-  private fun handleSanEntity(
-    request: OasysCreateRequest,
-    successfulCommands: MutableList<CreateCommand>,
-  ): EntityResult = if (request.previousOasysSanPk != null) {
-    linkExistingEntity(
-      previousPk = request.previousOasysSanPk,
-      newPk = request.oasysAssessmentPk,
-      entityType = EntityType.ASSESSMENT,
-      regionPrisonCode = request.regionPrisonCode,
-    )
-  } else {
-    createNewEntity(
-      request = request,
-      entityType = EntityType.ASSESSMENT,
-      successfulCommands = successfulCommands,
-    )
-  }
+  private fun handleEntity(request: OasysCreateRequest, strategy: EntityStrategy): EntityResultWithCommand {
+    val previousPk = request.previousPkFor(strategy.entityType)
 
-  private fun handleSpEntity(
-    request: OasysCreateRequest,
-    successfulCommands: MutableList<CreateCommand>,
-  ): EntityResult {
-    val spEntityType = EntityType.AAP_PLAN
-
-    return if (request.previousOasysSpPk != null) {
+    if (previousPk != null) {
       val linkResult = linkExistingEntity(
-        previousPk = request.previousOasysSpPk,
+        previousPk = previousPk,
         newPk = request.oasysAssessmentPk,
-        entityType = spEntityType,
+        entityType = strategy.entityType,
         regionPrisonCode = request.regionPrisonCode,
       )
 
-      if (linkResult is EntityResult.Success && request.newPeriodOfSupervision == "Y") {
-        val resetResult = resetLinkedEntity(
-          entityUuid = linkResult.entity.id,
-          entityType = spEntityType,
-          userDetails = request.userDetails.intoUserDetails(),
-        )
+      if (linkResult.result is EntityResult.Success && request.shouldReset(strategy.entityType)) {
+        val resetData = ResetData(userDetails = request.userDetails.intoUserDetails())
 
-        if (resetResult is EntityResult.Failure) {
-          return resetResult
+        when (val resetResult = strategy.reset(resetData, (linkResult.result as EntityResult.Success).entity.id)) {
+          is OperationResult.Failure -> return EntityResultWithCommand(
+            EntityResult.Failure("Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}"),
+            null,
+            null,
+          )
+          is OperationResult.Success -> { }
         }
       }
 
-      linkResult
-    } else {
-      createNewEntity(
-        request = request,
-        entityType = spEntityType,
-        successfulCommands = successfulCommands,
-      )
+      return linkResult
     }
-  }
 
-  private fun resetLinkedEntity(
-    entityUuid: UUID,
-    entityType: EntityType,
-    userDetails: uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails,
-  ): EntityResult {
-    val strategy = strategyFactory.getStrategy(entityType)
-    val resetData = ResetData(userDetails = userDetails)
-
-    return when (val result = strategy.reset(resetData, entityUuid)) {
-      is OperationResult.Success -> EntityResult.Success(result.data)
-      is OperationResult.Failure -> EntityResult.Failure("Failed to reset $entityType: ${result.errorMessage}")
-    }
+    return createNewEntity(request, strategy)
   }
 
   @Transactional
@@ -192,39 +152,49 @@ class OasysCoordinatorService(
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    val response = OasysVersionedEntityResponse()
-    val successfulCommands: MutableList<CreateCommand> = mutableListOf()
+    return runBlocking {
+      val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
+        async(Dispatchers.IO) { handleEntity(requestData, strategy) }
+      }.awaitAll()
 
-    // Handle SAN (Assessment) - only if assessmentType includes it
-    if (EntityType.ASSESSMENT in requestData.assessmentType.entityTypes) {
-      when (val sanResult = handleSanEntity(requestData, successfulCommands)) {
-        is EntityResult.Success -> response.addVersionedEntity(sanResult.entity)
-        is EntityResult.Failure -> {
-          successfulCommands.forEach { it.rollback() }
+      processCreateResults(results)
+    }
+  }
+
+  private fun processCreateResults(
+    results: List<EntityResultWithCommand>,
+  ): CreateOperationResult<OasysVersionedEntityResponse> {
+    val commands = results.mapNotNull { it.command }
+
+    val failure = results.firstOrNull { it.result is EntityResult.Failure }
+    if (failure != null) {
+      commands.forEach { it.rollback() }
+      TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+      return CreateOperationResult.Failure((failure.result as EntityResult.Failure).message)
+    }
+
+    val notFound = results.firstOrNull { it.result is EntityResult.NotFound }
+    if (notFound != null) {
+      commands.forEach { it.rollback() }
+      TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+      return CreateOperationResult.NoAssociations((notFound.result as EntityResult.NotFound).message)
+    }
+
+    val pendingAssociations = results.mapNotNull { it.pendingAssociation }
+    for (association in pendingAssociations) {
+      when (oasysAssociationsService.storeAssociation(association)) {
+        is OperationResult.Failure -> {
+          commands.forEach { it.rollback() }
           TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-          return CreateOperationResult.Failure(sanResult.message)
+          return CreateOperationResult.Failure("Failed to store ${association.entityType} association")
         }
-        is EntityResult.NotFound -> {
-          successfulCommands.forEach { it.rollback() }
-          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-          return CreateOperationResult.NoAssociations(sanResult.message)
-        }
+        is OperationResult.Success -> { }
       }
     }
 
-    // Handle SP (Plan) - always included
-    when (val spResult = handleSpEntity(requestData, successfulCommands)) {
-      is EntityResult.Success -> response.addVersionedEntity(spResult.entity)
-      is EntityResult.Failure -> {
-        successfulCommands.forEach { it.rollback() }
-        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-        return CreateOperationResult.Failure(spResult.message)
-      }
-      is EntityResult.NotFound -> {
-        successfulCommands.forEach { it.rollback() }
-        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-        return CreateOperationResult.NoAssociations(spResult.message)
-      }
+    val response = OasysVersionedEntityResponse()
+    results.forEach { resultWithCommand ->
+      response.addVersionedEntity((resultWithCommand.result as EntityResult.Success).entity)
     }
 
     return CreateOperationResult.Success(response)
@@ -346,16 +316,25 @@ class OasysCoordinatorService(
       return GetOperationResult.NoAssociations("No associations found for the provided OASys Assessment PK")
     }
 
-    val oasysGetResponse = OasysGetResponse()
-    for (association in associations) {
+    val strategies = associations.map { association ->
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return GetOperationResult.Failure("Strategy not initialized for ${association.entityType}")
+      association to strategy
+    }
 
-      val command = FetchCommand(strategy, association.entityUuid)
+    val results = runBlocking {
+      strategies.map { (association, strategy) ->
+        async(Dispatchers.IO) {
+          association.entityType to FetchCommand(strategy, association.entityUuid).execute()
+        }
+      }.awaitAll()
+    }
 
-      when (val response = command.execute()) {
-        is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve ${association.entityType} entity, ${response.errorMessage}")
-        is OperationResult.Success -> oasysGetResponse.addEntityData(response.data!!)
+    val oasysGetResponse = OasysGetResponse()
+    for ((entityType, result) in results) {
+      when (result) {
+        is OperationResult.Failure -> return GetOperationResult.Failure("Failed to retrieve $entityType entity, ${result.errorMessage}")
+        is OperationResult.Success -> oasysGetResponse.addEntityData(result.data!!)
       }
     }
 
@@ -771,6 +750,12 @@ class OasysCoordinatorService(
     data class Failure(val message: String) : EntityResult()
     data class NotFound(val message: String) : EntityResult()
   }
+
+  private data class EntityResultWithCommand(
+    val result: EntityResult,
+    val command: CreateCommand?,
+    val pendingAssociation: OasysAssociation?,
+  )
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

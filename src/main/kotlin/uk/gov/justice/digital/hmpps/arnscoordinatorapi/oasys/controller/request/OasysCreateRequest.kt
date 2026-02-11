@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
@@ -62,4 +63,15 @@ data class OasysCreateRequest(
   )
   @field:Pattern(regexp = "^[YN]$", message = "Must be 'Y' or 'N'")
   val newPeriodOfSupervision: String? = null,
-)
+) {
+
+  fun previousPkFor(entityType: EntityType): String? = when (entityType) {
+    EntityType.ASSESSMENT -> previousOasysSanPk
+    EntityType.PLAN, EntityType.AAP_PLAN -> previousOasysSpPk
+  }
+
+  fun shouldReset(entityType: EntityType): Boolean = when (entityType) {
+    EntityType.PLAN, EntityType.AAP_PLAN -> newPeriodOfSupervision == "Y"
+    else -> false
+  }
+}
