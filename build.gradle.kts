@@ -4,7 +4,7 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.0.3"
-  kotlin("plugin.spring") version "2.3.0"
+  kotlin("plugin.spring") version "2.3.10"
 }
 
 configurations {
@@ -21,8 +21,8 @@ dependencies {
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
-  implementation("org.flywaydb:flyway-core:11.20.2")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.20.2")
+  implementation("org.flywaydb:flyway-core:11.20.3")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.20.3")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.0.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
