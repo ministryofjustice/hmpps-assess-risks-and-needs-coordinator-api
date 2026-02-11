@@ -32,19 +32,7 @@ spring:
             token-uri: ${app.services.hmpps-auth.base-url}/oauth/token
 
         registration:
-          san-api:
-            provider: hmpps-auth
-            client-id: ${app.client.id}
-            client-secret: ${app.client.secret}
-            authorization-grant-type: client_credentials
-            scope: read, write
-          sentence-plan-api:
-            provider: hmpps-auth
-            client-id: ${app.client.id}
-            client-secret: ${app.client.secret}
-            authorization-grant-type: client_credentials
-            scope: read, write
-          aap-api:
+          coordinator-api:
             provider: hmpps-auth
             client-id: ${app.client.id}
             client-secret: ${app.client.secret}
