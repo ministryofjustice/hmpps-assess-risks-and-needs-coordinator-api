@@ -76,6 +76,7 @@ app:
       endpoints:
         command: /command
         query: /query
+        delete: /assessment/{uuid}
   self:
     base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:

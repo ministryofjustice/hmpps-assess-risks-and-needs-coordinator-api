@@ -62,7 +62,11 @@ class AAPPlanStrategy(
 
   override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
 
-  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = Success(Unit)
+  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> =
+    when (val result = aapApi.deleteAssessment(entityUuid)) {
+      is AAPApi.ApiOperationResult.Success -> Success(Unit)
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+    }
 
   override fun fetch(entityUuid: UUID): OperationResult<*> = aapApi.fetchAssessment(entityUuid, clock.now())
     .let { apiResponse ->

@@ -13,5 +13,6 @@ data class AAPApiProperties(
   data class Endpoints(
     var command: String = "/command",
     var query: String = "/query",
+    var delete: String = "/assessment/{uuid}",
   )
 }
