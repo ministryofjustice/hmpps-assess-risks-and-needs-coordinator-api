@@ -22,3 +22,12 @@ app:
     plan: true
     assessment: true
     aap-plan: true
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:./COORDINATOR;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE SCHEMA IF NOT EXISTS COORDINATOR
+    driver-class-name: org.h2.Driver
+  flyway:
+    create-schemas: true
+    default-schema: COORDINATOR
+    schemas: COORDINATOR
