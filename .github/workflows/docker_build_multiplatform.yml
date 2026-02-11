@@ -1,0 +1,28 @@
+name: Multi-platform Docker Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push image to ghcr.io
+        type: boolean
+        default: true
+      tag_latest:
+        description: Tag image as latest
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build_docker:
+    name: Build multi-platform docker image
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2
+    with:
+      docker_registry: 'ghcr.io'
+      registry_org: 'ministryofjustice'
+      tag_latest: ${{ inputs.tag_latest }}
+      push: ${{ inputs.push }}
+      docker_multiplatform: true
