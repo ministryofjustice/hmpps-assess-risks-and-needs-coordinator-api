@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
@@ -55,7 +56,7 @@ class AAPApiTest {
       val commandResult = CreateAssessmentCommandResult(assessmentUuid = assessmentUuid)
       val response = CommandsResponse(
         commands = listOf(
-          CommandResponse(request = null, result = commandResult),
+          CommandResponse(request = mapOf("type" to "CreateAssessmentCommand"), result = commandResult),
         ),
       )
 
@@ -83,7 +84,7 @@ class AAPApiTest {
       `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
-        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", null, "Error body".toByteArray(), null)))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
       val result = aapApi.createAssessment(createPlanData)
 
@@ -166,7 +167,7 @@ class AAPApiTest {
       `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(QueriesResponse::class.java))
-        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.NOT_FOUND.value(), "Not Found", null, "Error body".toByteArray(), null)))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.NOT_FOUND.value(), "Not Found", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
       // Act
       val result = aapApi.fetchAssessment(entityUuid, timestamp)

@@ -5,6 +5,6 @@ data class CommandsResponse(
 )
 
 data class CommandResponse(
-  val request: Map<String, Any>?,
+  val request: Map<String, Any?>,
   val result: CommandResult,
 )
