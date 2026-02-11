@@ -77,6 +77,23 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
   }
 
+  fun deleteAssessment(assessmentUuid: UUID): ApiOperationResult<Unit> = try {
+    aapApiWebClient.delete()
+      .uri(apiProperties.endpoints.delete.replace("{uuid}", assessmentUuid.toString()))
+      .retrieve()
+      .bodyToMono(Void::class.java)
+      .block()
+
+    ApiOperationResult.Success(Unit)
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during delete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during deleteAssessment: ${ex.message}", ex)
+  }
+
   fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> = try {
     AssessmentVersionQuery(
       user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
