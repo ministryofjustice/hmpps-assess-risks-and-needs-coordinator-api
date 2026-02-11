@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface OasysAssociationRepository : JpaRepository<OasysAssociation?, Long?> {
+interface OasysAssociationRepository : JpaRepository<OasysAssociation, Long> {
   fun findAllByOasysAssessmentPk(oasysAssessmentPk: String): List<OasysAssociation>
 
   fun findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk: String, entityTypes: Collection<EntityType>): List<OasysAssociation>

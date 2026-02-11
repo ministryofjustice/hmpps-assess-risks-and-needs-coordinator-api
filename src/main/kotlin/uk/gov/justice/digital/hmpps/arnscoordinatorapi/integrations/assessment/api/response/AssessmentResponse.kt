@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import tools.jackson.databind.annotation.JsonDeserialize
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.serialize.AssessmentDataDeserializer
 import java.time.LocalDateTime
 import java.util.UUID

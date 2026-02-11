@@ -52,9 +52,8 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
   // If both the path parameter and body are invalid, this will also contain the validation errors for the body.
   @ExceptionHandler(HandlerMethodValidationException::class)
   fun handlerMethodNotValidationException(e: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
-    val parsedErrors = e.allValidationResults
-      .map { it.resolvableErrors }
-      .flatMap { it }
+    val parsedErrors = e.parameterValidationResults
+      .flatMap { it.resolvableErrors }
       .map { "${it.codes?.get(0)?.substringAfter("#")?.substringAfter(".")} - ${it.defaultMessage}" }
 
     return ResponseEntity
