@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -14,10 +15,21 @@ import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.Collection
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CollectionItem
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.SingleValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.TimelineQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.Collection
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.CollectionItem
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.PageInfo
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueryResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.TimelineItem
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.TimelineQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
@@ -41,6 +53,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persiste
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 class AAPPlanStrategyTest {
@@ -399,7 +412,8 @@ class AAPPlanStrategyTest {
     @Test
     fun `should return success and return all versions for a given entity`() {
       val entityUuid = UUID.randomUUID()
-      val versions = listOf(
+      val user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User")
+      val oasysVersions = listOf(
         OasysVersionEntity(
           uuid = UUID.randomUUID(),
           createdAt = LocalDateTime.parse("2026-01-13T12:00:00"),
@@ -420,35 +434,134 @@ class AAPPlanStrategyTest {
         ),
       )
 
-      whenever(oasysVersionService.fetchAllForEntityUuid(entityUuid)).thenReturn(versions)
+      val aapDailyVersions = listOf(
+        DailyVersionDetails(
+          createdAt = LocalDateTime.parse("2026-01-13T12:00:00"),
+          updatedAt = LocalDateTime.parse("2026-01-13T12:00:00"),
+          lastTimelineItemUuid = UUID.randomUUID(),
+        ),
+        DailyVersionDetails(
+          createdAt = LocalDateTime.parse("2026-01-14T12:00:00"),
+          updatedAt = LocalDateTime.parse("2026-01-14T12:00:00"),
+          lastTimelineItemUuid = UUID.randomUUID(),
+        ),
+        DailyVersionDetails(
+          createdAt = LocalDateTime.parse("2026-01-15T12:00:00"),
+          updatedAt = LocalDateTime.parse("2026-01-15T12:00:00"),
+          lastTimelineItemUuid = UUID.randomUUID(),
+        ),
+      )
+
+      val aapPlanAgreedTimeline = listOf(
+        TimelineItem(
+          uuid = UUID.randomUUID(),
+          timestamp = LocalDateTime.parse("2026-01-14T13:00:00"),
+          user = user,
+          assessment = entityUuid,
+          event = "AssessmentAnswersUpdated",
+          data = mapOf(),
+          customType = "PLAN_AGREEMENT_STATUS_CHANGED",
+          customData = mapOf("status" to "AGREED"),
+        ),
+      )
+
+      val dailyVersionsQuery = DailyVersionsQuery(
+        user = user,
+        assessmentIdentifier = AssessmentIdentifier(entityUuid),
+      )
+
+      val timelineQuery = TimelineQuery(
+        user = user,
+        assessmentIdentifier = AssessmentIdentifier(entityUuid),
+        pageSize = 99999,
+        includeCustomTypes = setOf("PLAN_AGREEMENT_STATUS_CHANGED"),
+      )
+
+      val queriesResponse = QueriesResponse(
+        queries = listOf(
+          QueryResponse(
+            request = dailyVersionsQuery,
+            result = DailyVersionsQueryResult(
+              versions = aapDailyVersions,
+            ),
+          ),
+          QueryResponse(
+            request = timelineQuery,
+            result = TimelineQueryResult(
+              timeline = aapPlanAgreedTimeline,
+              pageInfo = PageInfo(pageNumber = 0, totalPages = 1),
+            ),
+          ),
+        ),
+      )
+
+      whenever(oasysVersionService.fetchAllForEntityUuid(entityUuid)).thenReturn(oasysVersions)
+      whenever(aapApi.runQueries(dailyVersionsQuery, timelineQuery)).thenReturn(
+        AAPApi.ApiOperationResult.Success(queriesResponse),
+      )
 
       val result = planStrategy.fetchVersions(entityUuid)
 
       assertTrue(result is OperationResult.Success)
-      assertEquals((result as OperationResult.Success).data.size, 2)
-      assertEquals(
-        result.data,
+      assertEquals(6, (result as OperationResult.Success).data.size)
+      assertThat(
         listOf(
           VersionDetails(
-            uuid = versions[0].uuid,
-            version = versions[0].version.toInt(),
-            createdAt = versions[0].createdAt,
-            updatedAt = versions[0].updatedAt,
-            status = versions[0].createdBy.name,
+            uuid = aapDailyVersions[0].lastTimelineItemUuid,
+            version = aapDailyVersions[0].createdAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+            createdAt = LocalDateTime.parse("2026-01-13T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-13T12:00:00"),
+            status = "UNSIGNED",
             planAgreementStatus = "",
             entityType = entityType,
           ),
           VersionDetails(
-            uuid = versions[1].uuid,
-            version = versions[1].version.toInt(),
-            createdAt = versions[1].createdAt,
-            updatedAt = versions[1].updatedAt,
-            status = versions[1].createdBy.name,
+            uuid = oasysVersions[0].uuid,
+            version = oasysVersions[0].version,
+            createdAt = LocalDateTime.parse("2026-01-13T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-13T12:30:00"),
+            status = oasysVersions[0].createdBy.name,
+            planAgreementStatus = "",
+            entityType = entityType,
+          ),
+          VersionDetails(
+            uuid = oasysVersions[1].uuid,
+            version = oasysVersions[1].version,
+            createdAt = LocalDateTime.parse("2026-01-13T12:45:00"),
+            updatedAt = LocalDateTime.parse("2026-01-13T12:45:00"),
+            status = oasysVersions[1].createdBy.name,
+            planAgreementStatus = "",
+            entityType = entityType,
+          ),
+          VersionDetails(
+            uuid = aapDailyVersions[1].lastTimelineItemUuid,
+            version = aapDailyVersions[1].createdAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+            createdAt = LocalDateTime.parse("2026-01-14T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-14T12:00:00"),
+            status = "UNSIGNED",
+            planAgreementStatus = "",
+            entityType = entityType,
+          ),
+          VersionDetails(
+            uuid = aapPlanAgreedTimeline[0].uuid,
+            version = aapPlanAgreedTimeline[0].timestamp.toInstant(ZoneOffset.UTC).toEpochMilli(),
+            createdAt = LocalDateTime.parse("2026-01-14T13:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-14T13:00:00"),
+            status = "UNSIGNED",
+            planAgreementStatus = "AGREED",
+            entityType = entityType,
+          ),
+          VersionDetails(
+            uuid = aapDailyVersions[2].lastTimelineItemUuid,
+            version = aapDailyVersions[2].createdAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+            createdAt = LocalDateTime.parse("2026-01-15T12:00:00"),
+            updatedAt = LocalDateTime.parse("2026-01-15T12:00:00"),
+            status = "UNSIGNED",
             planAgreementStatus = "",
             entityType = entityType,
           ),
         ),
-      )
+      ).containsExactlyInAnyOrderElementsOf(result.data)
       verify(oasysVersionService).fetchAllForEntityUuid(entityUuid)
     }
   }

@@ -6,9 +6,16 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CollectionsView
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.SingleValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.TimelineQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.CollectionsView
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.TimelineQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -98,7 +105,81 @@ class AAPPlanStrategy(
       }
     }
 
-  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> = oasysVersionService.fetchAllForEntityUuid(entityUuid).toVersionDetailsResult()
+  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> {
+    val oasysVersions = oasysVersionService.fetchAllForEntityUuid(entityUuid).map {
+      VersionDetails(
+        uuid = it.uuid,
+        version = it.version,
+        createdAt = it.createdAt,
+        updatedAt = it.updatedAt,
+        status = it.createdBy.name,
+        planAgreementStatus = "",
+        entityType = entityType,
+      )
+    }
+
+    val response = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User")
+      .let { user ->
+        aapApi.runQueries(
+          DailyVersionsQuery(
+            user = user,
+            assessmentIdentifier = AssessmentIdentifier(entityUuid),
+          ),
+          TimelineQuery(
+            user = user,
+            assessmentIdentifier = AssessmentIdentifier(entityUuid),
+            pageSize = 99999,
+            includeCustomTypes = setOf("PLAN_AGREEMENT_STATUS_CHANGED"),
+          ),
+        )
+      }
+
+    val aapVersions = when (response) {
+      is AAPApi.ApiOperationResult.Success<QueriesResponse> -> response.data.queries.flatMap { query ->
+        when (query.request) {
+          is DailyVersionsQuery -> (query.result as DailyVersionsQueryResult).versions.map {
+            VersionDetails(
+              uuid = it.lastTimelineItemUuid,
+              version = it.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+              createdAt = it.createdAt,
+              updatedAt = it.updatedAt,
+              status = "UNSIGNED",
+              planAgreementStatus = "",
+              entityType = EntityType.AAP_PLAN,
+            )
+          }
+          is TimelineQuery -> (query.result as TimelineQueryResult).timeline
+            .filter { it.customData?.get("status") == "AGREED" }
+            .map { timelineItem ->
+              VersionDetails(
+                uuid = timelineItem.uuid,
+                version = timelineItem.timestamp.toInstant(ZoneOffset.UTC).toEpochMilli(),
+                createdAt = timelineItem.timestamp,
+                updatedAt = timelineItem.timestamp,
+                status = "UNSIGNED",
+                planAgreementStatus = "AGREED",
+                entityType = EntityType.AAP_PLAN,
+              )
+            }
+          else -> throw IllegalStateException("Unexpected query type: ${query.request::class.simpleName}")
+        }
+      }
+      is AAPApi.ApiOperationResult.Failure<*> -> return Failure<VersionDetailsList>(response.errorMessage)
+    }
+
+    return (oasysVersions + aapVersions)
+      .groupBy { it.updatedAt }
+      .values
+      .map { versions ->
+        versions.reduce { acc, next ->
+          acc.copy(
+            status = acc.status.ifBlank { next.status },
+            planAgreementStatus = acc.planAgreementStatus?.takeIf { it.isNotBlank() } ?: next.planAgreementStatus,
+          )
+        }
+      }
+      .let { Success(it) }
+  }
 
   override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
     when (signData.signType) {
@@ -202,18 +283,6 @@ class AAPPlanStrategy(
   override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = Failure("AAP Plan reset is not yet implemented")
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
-
-  private fun List<OasysVersionEntity>.toVersionDetailsResult(): OperationResult<VersionDetailsList> = this.map { oasysVersion ->
-    VersionDetails(
-      oasysVersion.uuid,
-      oasysVersion.version.toInt(),
-      createdAt = oasysVersion.createdAt,
-      updatedAt = oasysVersion.updatedAt,
-      status = oasysVersion.createdBy.name,
-      planAgreementStatus = "",
-      entityType = entityType,
-    )
-  }.let { Success(it) }
 
   private fun CollectionsView.derivePlanComplete(): PlanState {
     val latestAgreement = this

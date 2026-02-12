@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
@@ -54,4 +54,4 @@ data class AssessmentVersionQueryResult(
   val collections: CollectionsView,
   val collaborators: CollaboratorsView,
   val identifiers: Map<IdentifierType, String>,
-)
+) : QueryResult

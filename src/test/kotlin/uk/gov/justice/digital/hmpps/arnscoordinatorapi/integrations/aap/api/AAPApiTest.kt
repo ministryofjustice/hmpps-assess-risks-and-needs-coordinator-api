@@ -13,13 +13,17 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.core.publisher.Mono
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.IdentifierType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.QueriesResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.QueryResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CreateAssessmentCommandResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.IdentifierType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -57,7 +61,7 @@ class AAPApiTest {
       val commandResult = CreateAssessmentCommandResult(assessmentUuid = assessmentUuid)
       val response = CommandsResponse(
         commands = listOf(
-          CommandResponse(request = mapOf("type" to "CreateAssessmentCommand"), result = commandResult),
+          CommandResponse(mock<CreateAssessmentCommand>(), result = commandResult),
         ),
       )
 
@@ -184,21 +188,29 @@ class AAPApiTest {
       val aggregateUuid = UUID.randomUUID()
       val now = LocalDateTime.now()
 
-      val queryResult = AssessmentVersionQueryResult(
-        assessmentUuid = assessmentUuid,
-        aggregateUuid = aggregateUuid,
-        assessmentType = "SENTENCE_PLAN",
-        formVersion = "1.0",
-        createdAt = now,
-        updatedAt = now,
-        answers = emptyMap(),
-        properties = emptyMap(),
-        collections = emptyList(),
-        collaborators = emptySet(),
-        identifiers = mapOf(IdentifierType.CRN to "X123456"),
-      )
       val response = QueriesResponse(
-        queries = listOf(QueryResponse(result = queryResult)),
+        queries = listOf(
+          QueryResponse(
+            request = AssessmentVersionQuery(
+              user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
+              assessmentIdentifier = AssessmentIdentifier(assessmentUuid),
+              timestamp = now,
+            ),
+            result = AssessmentVersionQueryResult(
+              assessmentUuid = assessmentUuid,
+              aggregateUuid = aggregateUuid,
+              assessmentType = "SENTENCE_PLAN",
+              formVersion = "1.0",
+              createdAt = now,
+              updatedAt = now,
+              answers = emptyMap(),
+              properties = emptyMap(),
+              collections = emptyList(),
+              collaborators = emptySet(),
+              identifiers = mapOf(IdentifierType.CRN to "X123456"),
+            ),
+          ),
+        ),
       )
 
       `when`(webClient.post()).thenReturn(requestBodyUriSpec)

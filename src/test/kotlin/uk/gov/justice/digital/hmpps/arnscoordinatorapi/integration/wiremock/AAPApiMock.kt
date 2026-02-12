@@ -32,7 +32,12 @@ class AAPApiMock : WireMockServer(8093) {
               {
                 "commands": [
                   {
-                    "request": { "type": "CreateAssessmentCommand" },
+                    "request": {
+                      "type": "CreateAssessmentCommand",
+                      "assessmentType": "SENTENCE_PLAN",
+                      "formVersion": "",
+                      "user": { "id": 1, "name": "Test Name" }
+                    },
                     "result": {
                       "type": "CreateAssessmentCommandResult",
                       "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -59,7 +64,13 @@ class AAPApiMock : WireMockServer(8093) {
               {
                 "queries": [
                   {
+                    "request": {
+                      "type": "AssessmentVersionQuery",
+                      "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                    },
                     "result": {
+                      "type": "AssessmentVersionQueryResult",
                       "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
                       "aggregateUuid": "6fa85f64-5717-4562-b3fc-2c963f66afa6",
                       "assessmentType": "SENTENCE_PLAN",
@@ -73,6 +84,71 @@ class AAPApiMock : WireMockServer(8093) {
                       "collections": [],
                       "collaborators": [],
                       "identifiers": {}
+                    }
+                  }
+                ]
+              }
+            """.trimIndent(),
+          )
+          .withStatus(status),
+      ),
+    )
+  }
+
+  fun stubQueryAssessmentVersions(status: Int = 200) {
+    stubFor(
+      post("/query").willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "queries": [
+                  {
+                    "request": {
+                      "type": "DailyVersionsQuery",
+                      "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                    },
+                    "result": {
+                      "type": "DailyVersionsQueryResult",
+                      "versions": [
+                        {
+                          "createdAt": "2025-04-23T14:40:53.105",
+                          "updatedAt": "2025-04-23T14:40:53.105",
+                          "lastTimelineItemUuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                        },
+                        {
+                          "createdAt": "2025-05-24T14:40:53.105",
+                          "updatedAt": "2025-05-24T14:40:53.105",
+                          "lastTimelineItemUuid": "645951e9-15ed-43a1-ac8b-19e97ae0ddf1"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "request": {
+                      "type": "TimelineQuery",
+                      "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                    },
+                    "result": {
+                      "type": "TimelineQueryResult",
+                      "pageInfo": {
+                        "pageNumber": 0,
+                        "totalPages": 1
+                      },
+                      "timeline": [
+                        {
+                          "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "timestamp": "2025-04-23T14:40:53.105Z",
+                          "user": { "id": 1, "name": "Test User" },
+                          "assessment": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "event": "ASSESSMENT_ANSWERS_UPDATED",
+                          "customType": "PLAN_AGREEMENT_STATUS_CHANGED",
+                          "customData": { "status": "AGREED" }
+                        }
+                      ]
                     }
                   }
                 ]
