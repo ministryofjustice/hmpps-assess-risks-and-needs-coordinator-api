@@ -8,16 +8,17 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentVersionQuery
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CommandsRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.CreateAssessmentCommand
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.IdentifierType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.PropertyValue
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.QueriesRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.AssessmentVersionQueryResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CommandsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.CreateAssessmentCommandResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CommandsRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.IdentifierType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.QueriesRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.Query
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CreateAssessmentCommandResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -109,7 +110,7 @@ class AAPApi(
           .block()
       }
       ?.queries?.firstOrNull()?.result
-      ?.let { result -> ApiOperationResult.Success(result) }
+      ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
       ?: throw IllegalStateException("No query result returned from AAP API")
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure(
@@ -118,6 +119,24 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
+  }
+
+  fun runQueries(vararg queries: Query): ApiOperationResult<QueriesResponse> = try {
+    aapApiWebClient.post()
+      .uri(apiProperties.endpoints.query)
+      .body(BodyInserters.fromValue(QueriesRequest(queries.toList())))
+      .retrieve()
+      .bodyToMono(QueriesResponse::class.java)
+      .block()
+      ?.let { result -> ApiOperationResult.Success(result) }
+      ?: throw IllegalStateException("No query result returned from AAP API")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during fetch AAP versions: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during fetchVersions: ${ex.message}", ex)
   }
 
   private fun buildIdentifiers(createData: CreatePlanData): Map<IdentifierType, String>? {

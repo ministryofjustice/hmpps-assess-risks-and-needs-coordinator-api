@@ -30,7 +30,6 @@ services:
     depends_on:
       - postgres
       - hmpps-auth
-      - forward-proxy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://coordinator-api:8080/health/ping"]
       interval: 5s

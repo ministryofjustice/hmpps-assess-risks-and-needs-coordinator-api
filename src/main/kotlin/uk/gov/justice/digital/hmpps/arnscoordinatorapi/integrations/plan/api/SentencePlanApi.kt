@@ -183,7 +183,7 @@ class SentencePlanApi(
         list.map {
           VersionDetails(
             it.uuid,
-            it.version,
+            it.version.toLong(),
             it.createdAt,
             it.updatedAt,
             it.status,

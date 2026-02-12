@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
