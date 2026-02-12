@@ -22,7 +22,7 @@ class GetTest : IntegrationTestBase() {
   fun setUp() {
     stubGrantToken()
     stubAssessmentsGet()
-    stubSentencePlanGet()
+    stubAAPQueryAssessment()
   }
 
   @Test
@@ -32,8 +32,8 @@ class GetTest : IntegrationTestBase() {
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -55,6 +55,8 @@ class GetTest : IntegrationTestBase() {
     assertThat(response?.sanAssessmentVersion).isEqualTo(1)
     assertThat(response?.sanAssessmentData?.get("q2")).hasFieldOrPropertyWithValue("value", "Question answer &, ', <, >, /, \\, `, \"")
     assertThat(response?.sanOasysEquivalent).isEqualTo(mapOf("q2" to "Question answer &, ', <, >, /, \\, `, \""))
+    assertThat(response?.sentencePlanId).isEqualTo(UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"))
+    assertThat(response?.sentencePlanVersion).isEqualTo(1767961800000L)
   }
 
   @Test

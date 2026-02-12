@@ -10,6 +10,8 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.TestBeanConfig
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension.Companion.aapApiMock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.SentencePlanApiMockExtension
@@ -20,7 +22,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.RandomOasysPk
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.util.UUID
 
-@ExtendWith(HmppsAuthApiExtension::class, StrengthsAndNeedsApiExtension::class, SentencePlanApiMockExtension::class)
+@ExtendWith(HmppsAuthApiExtension::class, StrengthsAndNeedsApiExtension::class, SentencePlanApiMockExtension::class, AAPApiMockExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
@@ -140,5 +142,18 @@ abstract class IntegrationTestBase {
     hmppsAuth.stubHealthPing(status)
     sanServer.stubHealthPing(status)
     sentencePlanApiMock.stubHealthPing(status)
+    aapApiMock.stubHealthPing(status)
+  }
+
+  protected fun stubAAPCreateAssessment(status: Int = 201) {
+    aapApiMock.stubCreateAssessment(status)
+  }
+
+  protected fun stubAAPQueryAssessment(status: Int = 200) {
+    aapApiMock.stubQueryAssessment(status)
+  }
+
+  protected fun stubAAPQueryAssessmentVersions(status: Int = 200) {
+    aapApiMock.stubQueryAssessmentVersions(status)
   }
 }

@@ -209,7 +209,7 @@ class StrengthsAndNeedsApi(
         list.map {
           VersionDetails(
             it.uuid,
-            it.versionNumber,
+            it.versionNumber.toLong(),
             it.createdAt,
             it.updatedAt,
             it.tag,

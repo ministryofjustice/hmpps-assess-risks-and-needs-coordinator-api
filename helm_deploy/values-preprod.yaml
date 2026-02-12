@@ -12,6 +12,7 @@ generic-service:
     HMPPS_AUTH_BASE_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
     SAN_API_BASE_URL: "https://api.strengths-based-needs-preprod.hmpps.service.justice.gov.uk"
     SP_API_BASE_URL: "https://sentence-plan-api-preprod.hmpps.service.justice.gov.uk"
+    AAP_API_BASE_URL: "https://arns-assessment-platform-api-preprod.hmpps.service.justice.gov.uk"
   
   allowlist:
     mod-platform-live-eu-west-2a-nat: 13.41.38.176/32

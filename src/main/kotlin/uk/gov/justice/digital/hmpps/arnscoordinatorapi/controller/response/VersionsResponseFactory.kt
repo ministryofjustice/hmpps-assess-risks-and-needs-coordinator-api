@@ -12,7 +12,7 @@ class VersionsResponseFactory {
     versions.getOrPut(versionToAdd.updatedAt.toLocalDate()) { VersionsOnDate() }
       .let {
         when (versionToAdd.entityType) {
-          EntityType.PLAN -> it.planVersions
+          EntityType.PLAN, EntityType.AAP_PLAN -> it.planVersions
           EntityType.ASSESSMENT -> it.assessmentVersions
         }
       }.add(versionToAdd)

@@ -1,0 +1,27 @@
+name: National Rollout
+
+on:
+  push:
+    branches:
+      - national-rollout
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  build_docker:
+    name: Build and publish docker image
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@parallel-native-builders
+    with:
+      docker_registry: 'ghcr.io'
+      registry_org: 'ministryofjustice'
+      tag_latest: false
+      additional_docker_tag: national-rollout
+      push: true
+      docker_multiplatform: true

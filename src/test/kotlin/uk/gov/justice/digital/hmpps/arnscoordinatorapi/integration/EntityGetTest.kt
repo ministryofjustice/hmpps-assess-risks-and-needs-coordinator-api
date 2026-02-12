@@ -56,13 +56,13 @@ class EntityGetTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    assertThat(assessmentResponse?.sentencePlanId).isNull()
+    assertThat(assessmentResponse?.sentencePlanId).isEqualTo(UUID(0, 0))
     assertThat(assessmentResponse?.sanAssessmentId).isNotNull()
     assertThat(assessmentResponse?.sanAssessmentVersion).isEqualTo(1)
     assertThat(assessmentResponse?.sanAssessmentData?.get("q2")).hasFieldOrPropertyWithValue("value", "Question answer &, ', <, >, /, \\, `, \"")
     assertThat(assessmentResponse?.sanOasysEquivalent).isEqualTo(mapOf("q2" to "Question answer &, ', <, >, /, \\, `, \""))
 
-    assertThat(sentencePlanResponse?.sanAssessmentId).isNull()
+    assertThat(sentencePlanResponse?.sanAssessmentId).isEqualTo(UUID(0, 0))
     assertThat(sentencePlanResponse?.sentencePlanId).isNotNull()
   }
 
