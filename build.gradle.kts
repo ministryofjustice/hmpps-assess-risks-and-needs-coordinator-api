@@ -24,8 +24,8 @@ dependencies {
   runtimeOnly("org.postgresql:postgresql")
 
   // DB Migration (Flyway)
-  implementation("org.flywaydb:flyway-core:11.20.3")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:11.20.3")
+  implementation("org.springframework.boot:spring-boot-starter-flyway")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.0.0")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
