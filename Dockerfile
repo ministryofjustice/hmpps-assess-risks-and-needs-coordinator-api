@@ -17,6 +17,10 @@ LABEL maintainer="HMPPS Digital Studio <info@digital.justice.gov.uk>"
 ARG BUILD_NUMBER
 ENV BUILD_NUMBER=${BUILD_NUMBER:-1_0_0}
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY --from=build --chown=appuser:appgroup /app/build/libs/hmpps-arns-coordinator-api*.jar /app/app.jar
 COPY --from=build --chown=appuser:appgroup /app/build/libs/applicationinsights-agent*.jar /app/agent.jar
