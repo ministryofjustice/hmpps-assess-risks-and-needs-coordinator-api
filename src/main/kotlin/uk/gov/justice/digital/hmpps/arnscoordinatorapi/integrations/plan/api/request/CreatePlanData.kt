@@ -8,4 +8,5 @@ data class CreatePlanData(
   val planType: PlanType,
   val userDetails: UserDetails,
   val subjectDetails: SubjectDetails? = null,
+  val assessmentType: String? = null,
 )
