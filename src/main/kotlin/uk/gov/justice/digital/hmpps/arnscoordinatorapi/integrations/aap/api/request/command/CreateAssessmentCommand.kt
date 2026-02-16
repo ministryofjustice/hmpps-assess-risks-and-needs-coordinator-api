@@ -7,6 +7,7 @@ data class CreateAssessmentCommand(
   val formVersion: String,
   val properties: Map<String, PropertyValue>? = null,
   val identifiers: Map<IdentifierType, String>? = null,
+  val flags: List<String> = emptyList(),
   override val user: AAPUser,
 ) : Command
 

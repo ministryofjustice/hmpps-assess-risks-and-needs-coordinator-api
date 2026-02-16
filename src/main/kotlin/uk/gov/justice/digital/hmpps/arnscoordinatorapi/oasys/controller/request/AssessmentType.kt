@@ -5,4 +5,10 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 enum class AssessmentType(val entityTypes: Set<EntityType>) {
   SAN_SP(setOf(EntityType.ASSESSMENT, EntityType.AAP_PLAN)),
   SP(setOf(EntityType.AAP_PLAN)),
+  ;
+
+  fun toFlags(): List<String> = when (this) {
+    SAN_SP -> listOf("SAN_BETA")
+    SP -> emptyList()
+  }
 }
