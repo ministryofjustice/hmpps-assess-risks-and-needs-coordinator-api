@@ -40,10 +40,11 @@ class AAPApi(
     )
 
     val command = CreateAssessmentCommand(
-      assessmentType = createData.assessmentType ?: "SP",
+      assessmentType = "SENTENCE_PLAN",
       formVersion = "", // note: we leave this empty and then set it when the user gets into AAPxSP
       properties = properties,
       identifiers = identifiers,
+      flags = createData.flags,
       user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
     )
 
