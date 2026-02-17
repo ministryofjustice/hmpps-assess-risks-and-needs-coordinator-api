@@ -33,7 +33,7 @@ class EntityController(
 ) {
   @RequestMapping(path = ["/versions/{entityUuid}", "/versions/{entityUuid}/{authType}"], method = [RequestMethod.GET])
   @Operation(description = "Gets the list of both assessment AND sentence plan versions for a given entity ID")
-  @PreAuthorize("hasAnyRole('ROLE_SENTENCE_PLAN_READ','ROLE_STRENGTHS_AND_NEEDS_READ')")
+  @PreAuthorize("hasAnyRole('ROLE_SENTENCE_PLAN_READ','ROLE_STRENGTHS_AND_NEEDS_READ','ROLE_AAP__FRONTEND_RW')")
   @ApiResponses(
     value = [
       ApiResponse(
@@ -72,7 +72,7 @@ class EntityController(
 
   @RequestMapping(path = ["/{entityUuid}/{entityType}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of the provided entity type associated with the OASys Assessment PK linked to the provided entity id")
-  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ')")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ','ROLE_AAP__FRONTEND_RW')")
   @ApiResponses(
     value = [
       ApiResponse(

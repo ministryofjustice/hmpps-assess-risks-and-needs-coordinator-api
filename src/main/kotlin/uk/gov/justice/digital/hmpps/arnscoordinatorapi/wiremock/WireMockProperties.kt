@@ -14,5 +14,6 @@ data class WireMockProperties(
   data class Paths(
     var strengthAndNeeds: String = "",
     var sentencePlan: String = "",
+    var arnsAssessmentPlatform: String = "",
   )
 }
