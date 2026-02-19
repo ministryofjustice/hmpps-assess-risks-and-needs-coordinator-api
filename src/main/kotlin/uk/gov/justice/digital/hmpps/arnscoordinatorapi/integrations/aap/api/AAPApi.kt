@@ -8,6 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.ResetPlanRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.IdentifierType
@@ -66,6 +67,7 @@ class AAPApi(
             entityType = EntityType.AAP_PLAN,
           ),
         )
+
         null -> throw IllegalStateException("No command result returned from AAP API")
         else -> throw IllegalStateException("Unexpected command result type: ${it::class.simpleName}")
       }
@@ -96,30 +98,50 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during deleteAssessment: ${ex.message}", ex)
   }
 
-  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> = try {
-    AssessmentVersionQuery(
-      user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
-      assessmentIdentifier = AssessmentIdentifier(entityUuid),
-      timestamp = timestamp,
-    )
-      .let { query ->
-        aapApiWebClient.post()
-          .uri(apiProperties.endpoints.query)
-          .body(BodyInserters.fromValue(QueriesRequest.of(query)))
-          .retrieve()
-          .bodyToMono(QueriesResponse::class.java)
-          .block()
-      }
-      ?.queries?.firstOrNull()?.result
-      ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
-      ?: throw IllegalStateException("No query result returned from AAP API")
+  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> =
+    try {
+      AssessmentVersionQuery(
+        user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
+        assessmentIdentifier = AssessmentIdentifier(entityUuid),
+        timestamp = timestamp,
+      )
+        .let { query ->
+          aapApiWebClient.post()
+            .uri(apiProperties.endpoints.query)
+            .body(BodyInserters.fromValue(QueriesRequest.of(query)))
+            .retrieve()
+            .bodyToMono(QueriesResponse::class.java)
+            .block()
+        }
+        ?.queries?.firstOrNull()?.result
+        ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
+        ?: throw IllegalStateException("No query result returned from AAP API")
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure(
+        "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+        ex,
+      )
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
+    }
+
+  fun resetPlan(assessmentUuid: UUID, user: AAPUser): ApiOperationResult<Unit> = try {
+    val request = ResetPlanRequest(user = user, assessmentUuid = assessmentUuid)
+    aapApiWebClient.post()
+      .uri(apiProperties.endpoints.resetPlan)
+      .body(BodyInserters.fromValue(request))
+      .retrieve()
+      .bodyToMono(Void::class.java)
+      .block()
+
+    ApiOperationResult.Success(Unit)
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure(
-      "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      "HTTP error during reset Sentence Plan: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
       ex,
     )
   } catch (ex: Exception) {
-    ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
+    ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
   }
 
   fun runQueries(vararg queries: Query): ApiOperationResult<QueriesResponse> = try {

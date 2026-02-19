@@ -279,8 +279,14 @@ class AAPPlanStrategy(
     },
   )
 
-  // TODO: Speak with team about implementing a new command to 'reset' the state of a AAP Plan
-  override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = Failure("AAP Plan reset is not yet implemented")
+  override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    val user = AAPUser(id = resetData.userDetails.id, name = resetData.userDetails.name)
+
+    return when (val result = aapApi.resetPlan(entityUuid, user)) {
+      is AAPApi.ApiOperationResult.Success -> Success(VersionedEntity(id = entityUuid, version = 0, entityType = entityType))
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+    }
+  }
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
 
