@@ -14,5 +14,7 @@ data class AAPApiProperties(
     var command: String = "/command",
     var query: String = "/query",
     var delete: String = "/assessment/{uuid}",
+    var resetPlan: String = "/plan/start-new-period-of-supervision",
+
   )
 }
