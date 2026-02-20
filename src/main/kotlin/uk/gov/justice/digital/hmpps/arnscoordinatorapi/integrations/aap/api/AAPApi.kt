@@ -38,7 +38,6 @@ class AAPApi(
 
     val properties = mapOf(
       "PLAN_TYPE" to PropertyValue(type = "Single", value = createData.planType.name),
-      "SUBJECT_FORENAME" to PropertyValue(type = "Single", value = createData.subjectDetails?.givenName ?: ""),
     )
 
     val command = CreateAssessmentCommand(

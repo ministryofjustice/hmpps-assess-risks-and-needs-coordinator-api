@@ -8,7 +8,4 @@ data class SubjectDetails(
 
   @Schema(description = "NOMIS ID of the offender", example = "A1234BC")
   val nomisId: String? = null,
-
-  @Schema(description = "Given name (forename) of the offender", example = "John")
-  val givenName: String? = null,
 )
