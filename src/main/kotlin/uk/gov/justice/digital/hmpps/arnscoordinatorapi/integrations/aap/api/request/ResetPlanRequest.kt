@@ -4,5 +4,5 @@ import java.util.UUID
 
 data class ResetPlanRequest(
   val user: AAPUser,
-  val assessmentUuid: UUID
+  val assessmentUuid: UUID,
 )

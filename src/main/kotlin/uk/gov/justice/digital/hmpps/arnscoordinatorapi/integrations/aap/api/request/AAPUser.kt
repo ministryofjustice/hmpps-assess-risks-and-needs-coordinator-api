@@ -4,5 +4,3 @@ data class AAPUser(
   val id: String,
   val name: String,
 )
-
-
