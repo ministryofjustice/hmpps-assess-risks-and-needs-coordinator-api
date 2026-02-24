@@ -586,6 +586,7 @@ class OasysCoordinatorServiceTest {
     @Test
     fun `should reset existing associations when same PK exists and newPeriodOfSupervision is Y`() {
       val existingSpUuid = UUID.randomUUID()
+      val resetVersion = 9876543210L
       val existingAssociation = OasysAssociation(
         oasysAssessmentPk = oasysCreateRequest.oasysAssessmentPk,
         entityType = EntityType.AAP_PLAN,
@@ -593,7 +594,7 @@ class OasysCoordinatorServiceTest {
         baseVersion = 3,
       )
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val resetVersionedEntity = VersionedEntity(existingSpUuid, 0, EntityType.AAP_PLAN)
+      val resetVersionedEntity = VersionedEntity(existingSpUuid, resetVersion, EntityType.AAP_PLAN)
 
       val requestWithReset = oasysCreateRequest.copy(
         newPeriodOfSupervision = "Y",
@@ -609,6 +610,7 @@ class OasysCoordinatorServiceTest {
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
       assertEquals(existingSpUuid, response.sentencePlanId)
+      assertEquals(resetVersion, response.sentencePlanVersion)
 
       verify(spStrategy).reset(any(), eq(existingSpUuid))
       verify(spStrategy, never()).create(any())

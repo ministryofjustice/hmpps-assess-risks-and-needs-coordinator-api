@@ -188,7 +188,10 @@ class OasysCoordinatorService(
           is OperationResult.Failure -> return CreateOperationResult.Failure(
             "Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}",
           )
-          is OperationResult.Success -> { }
+          is OperationResult.Success -> {
+            response.addVersionedEntity(resetResult.data)
+            continue
+          }
         }
       }
 
