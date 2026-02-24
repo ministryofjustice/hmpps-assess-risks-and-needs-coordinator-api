@@ -132,13 +132,17 @@ class OasysCoordinatorService(
       if (linkResult.result is EntityResult.Success && request.shouldReset(strategy.entityType)) {
         val resetData = ResetData(userDetails = request.userDetails.intoUserDetails())
 
-        when (val resetResult = strategy.reset(resetData, (linkResult.result as EntityResult.Success).entity.id)) {
+        when (val resetResult = strategy.reset(resetData, linkResult.result.entity.id)) {
           is OperationResult.Failure -> return EntityResultWithCommand(
             EntityResult.Failure("Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}"),
             null,
             null,
           )
-          is OperationResult.Success -> { }
+          is OperationResult.Success -> return EntityResultWithCommand(
+            EntityResult.Success(resetResult.data),
+            null,
+            linkResult.pendingAssociation,
+          )
         }
       }
 
@@ -150,19 +154,6 @@ class OasysCoordinatorService(
 
   @Transactional
   fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
-    val existingAssociations = oasysAssociationsService.findAssociationsByPk(requestData.oasysAssessmentPk)
-
-    if (existingAssociations.isNotEmpty()) {
-      if (requestData.newPeriodOfSupervision == "Y") {
-        return resetExistingAssociations(requestData, existingAssociations)
-      }
-
-      val types = existingAssociations.map { it.entityType }.distinct()
-      return CreateOperationResult.ConflictingAssociations(
-        "Cannot create due to conflicting associations: Existing associations found for ${types.joinToString(", ")}",
-      )
-    }
-
     return runBlocking {
       val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
         async(Dispatchers.IO) { handleEntity(requestData, strategy) }
@@ -170,38 +161,6 @@ class OasysCoordinatorService(
 
       processCreateResults(results)
     }
-  }
-
-  private fun resetExistingAssociations(
-    requestData: OasysCreateRequest,
-    associations: List<OasysAssociation>,
-  ): CreateOperationResult<OasysVersionedEntityResponse> {
-    val response = OasysVersionedEntityResponse()
-    val resetData = ResetData(userDetails = requestData.userDetails.intoUserDetails())
-
-    for (association in associations) {
-      val strategy = association.entityType?.let(strategyFactory::getStrategy)
-        ?: return CreateOperationResult.Failure("Strategy not initialized for ${association.entityType}")
-
-      if (requestData.shouldReset(strategy.entityType)) {
-        when (val resetResult = strategy.reset(resetData, association.entityUuid)) {
-          is OperationResult.Failure -> return CreateOperationResult.Failure(
-            "Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}",
-          )
-          is OperationResult.Success -> response.addVersionedEntity(resetResult.data)
-        }
-      } else {
-        response.addVersionedEntity(
-          VersionedEntity(
-            id = association.entityUuid,
-            version = association.baseVersion,
-            entityType = association.entityType!!,
-          ),
-        )
-      }
-    }
-
-    return CreateOperationResult.Success(response)
   }
 
   private fun processCreateResults(
