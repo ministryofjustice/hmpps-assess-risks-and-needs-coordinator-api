@@ -4,6 +4,8 @@ FROM gradle:9-jdk25 AS builder
 FROM ${BASE_IMAGE} AS runtime
 
 FROM builder AS build
+ARG BUILD_NUMBER
+ENV BUILD_NUMBER=${BUILD_NUMBER:-1_0_0}
 WORKDIR /app
 ADD . .
 RUN gradle --no-daemon assemble
