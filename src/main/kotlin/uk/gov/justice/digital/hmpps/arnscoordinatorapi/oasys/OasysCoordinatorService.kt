@@ -188,20 +188,17 @@ class OasysCoordinatorService(
           is OperationResult.Failure -> return CreateOperationResult.Failure(
             "Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}",
           )
-          is OperationResult.Success -> {
-            response.addVersionedEntity(resetResult.data)
-            continue
-          }
+          is OperationResult.Success -> response.addVersionedEntity(resetResult.data)
         }
+      } else {
+        response.addVersionedEntity(
+          VersionedEntity(
+            id = association.entityUuid,
+            version = association.baseVersion,
+            entityType = association.entityType!!,
+          ),
+        )
       }
-
-      response.addVersionedEntity(
-        VersionedEntity(
-          id = association.entityUuid,
-          version = association.baseVersion,
-          entityType = association.entityType!!,
-        ),
-      )
     }
 
     return CreateOperationResult.Success(response)

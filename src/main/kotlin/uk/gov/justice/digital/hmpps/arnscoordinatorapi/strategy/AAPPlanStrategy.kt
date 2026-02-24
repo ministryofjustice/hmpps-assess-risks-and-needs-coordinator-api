@@ -283,7 +283,7 @@ class AAPPlanStrategy(
     val user = AAPUser(id = resetData.userDetails.id, name = resetData.userDetails.name)
 
     return when (val result = aapApi.resetPlan(entityUuid, user)) {
-      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.RESET, entityUuid).toOperationResult()
+      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid).toOperationResult()
       is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
     }
   }

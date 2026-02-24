@@ -22,7 +22,6 @@ enum class OasysEvent {
   DOUBLE_COUNTERSIGNED,
   LOCKED,
   REJECTED,
-  RESET,
   ROLLED_BACK,
   SELF_SIGNED,
 }

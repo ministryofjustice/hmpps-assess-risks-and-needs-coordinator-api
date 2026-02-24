@@ -921,10 +921,10 @@ class AAPPlanStrategyTest {
         AAPApi.ApiOperationResult.Success(Unit),
       )
 
-      whenever(oasysVersionService.createVersionFor(OasysEvent.RESET, entityUuid))
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid))
         .thenReturn(
           OasysVersionEntity(
-            createdBy = OasysEvent.RESET,
+            createdBy = OasysEvent.CREATED,
             entityUuid = entityUuid,
             version = expectedVersion,
           ),
@@ -939,7 +939,7 @@ class AAPPlanStrategyTest {
         assertEquals(entityType, it.entityType)
       }
       verify(aapApi).resetPlan(entityUuid, AAPUser(id = "id", name = "name"))
-      verify(oasysVersionService).createVersionFor(OasysEvent.RESET, entityUuid)
+      verify(oasysVersionService).createVersionFor(OasysEvent.CREATED, entityUuid)
     }
 
     @Test
