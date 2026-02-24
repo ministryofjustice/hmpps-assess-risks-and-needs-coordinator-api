@@ -68,9 +68,6 @@ class OasysCoordinatorServiceTest {
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
       val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
 
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(emptyList())
-
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
       `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(spVersionedEntity))
@@ -86,7 +83,6 @@ class OasysCoordinatorServiceTest {
       assertEquals(sanVersionedEntity.id, response.sanAssessmentId)
 
       verify(strategyFactory).getStrategiesFor(AssessmentType.SAN_SP)
-      verify(oasysAssociationsService).findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk)
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
     }
 
@@ -96,9 +92,6 @@ class OasysCoordinatorServiceTest {
       val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
       val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
-
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
@@ -123,9 +116,6 @@ class OasysCoordinatorServiceTest {
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
       val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
       val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
-
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
@@ -158,9 +148,6 @@ class OasysCoordinatorServiceTest {
       val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
 
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(emptyList())
-
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
       `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
@@ -181,29 +168,6 @@ class OasysCoordinatorServiceTest {
 
       verify(transactionStatus).setRollbackOnly()
       transactionAspect.close()
-    }
-
-    @Test
-    fun `should return conflicting associations result if associations exist`() {
-      val existingAssociation = OasysAssociation(
-        oasysAssessmentPk = oasysCreateRequest.oasysAssessmentPk,
-        entityType = EntityType.AAP_PLAN,
-        entityUuid = UUID.randomUUID(),
-        baseVersion = 1,
-      )
-
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(listOf(existingAssociation))
-
-      val result = oasysCoordinatorService.create(oasysCreateRequest)
-
-      assertTrue(result is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations)
-      assertTrue(
-        (result as OasysCoordinatorService.CreateOperationResult.ConflictingAssociations)
-          .errorMessage.contains("Existing associations found for"),
-      )
-
-      verify(oasysAssociationsService).findAssociationsByPk(oasysCreateRequest.oasysAssessmentPk)
     }
 
     @Test
@@ -581,89 +545,6 @@ class OasysCoordinatorServiceTest {
 
       verify(transactionStatus).setRollbackOnly()
       transactionAspect.close()
-    }
-
-    @Test
-    fun `should reset existing associations when same PK exists and newPeriodOfSupervision is Y`() {
-      val existingSpUuid = UUID.randomUUID()
-      val resetVersion = 9876543210L
-      val existingAssociation = OasysAssociation(
-        oasysAssessmentPk = oasysCreateRequest.oasysAssessmentPk,
-        entityType = EntityType.AAP_PLAN,
-        entityUuid = existingSpUuid,
-        baseVersion = 3,
-      )
-      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val resetVersionedEntity = VersionedEntity(existingSpUuid, resetVersion, EntityType.AAP_PLAN)
-
-      val requestWithReset = oasysCreateRequest.copy(
-        newPeriodOfSupervision = "Y",
-      )
-
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(listOf(existingAssociation))
-      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
-      `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Success(resetVersionedEntity))
-
-      val result = oasysCoordinatorService.create(requestWithReset)
-
-      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
-      val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
-      assertEquals(existingSpUuid, response.sentencePlanId)
-      assertEquals(resetVersion, response.sentencePlanVersion)
-
-      verify(spStrategy).reset(any(), eq(existingSpUuid))
-      verify(spStrategy, never()).create(any())
-    }
-
-    @Test
-    fun `should not reset existing associations when same PK exists and newPeriodOfSupervision is N`() {
-      val existingAssociation = OasysAssociation(
-        oasysAssessmentPk = oasysCreateRequest.oasysAssessmentPk,
-        entityType = EntityType.AAP_PLAN,
-        entityUuid = UUID.randomUUID(),
-        baseVersion = 3,
-      )
-
-      val requestWithoutReset = oasysCreateRequest.copy(
-        newPeriodOfSupervision = "N",
-      )
-
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(listOf(existingAssociation))
-
-      val result = oasysCoordinatorService.create(requestWithoutReset)
-
-      assertTrue(result is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations)
-    }
-
-    @Test
-    fun `should return failure when reset of existing associations fails`() {
-      val existingSpUuid = UUID.randomUUID()
-      val existingAssociation = OasysAssociation(
-        oasysAssessmentPk = oasysCreateRequest.oasysAssessmentPk,
-        entityType = EntityType.AAP_PLAN,
-        entityUuid = existingSpUuid,
-        baseVersion = 3,
-      )
-      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-
-      val requestWithReset = oasysCreateRequest.copy(
-        newPeriodOfSupervision = "Y",
-      )
-
-      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
-        .thenReturn(listOf(existingAssociation))
-      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(spStrategy)
-      `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Failure("Reset failed"))
-
-      val result = oasysCoordinatorService.create(requestWithReset)
-
-      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
-      assertEquals(
-        "Failed to reset AAP_PLAN: Reset failed",
-        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
-      )
     }
   }
 

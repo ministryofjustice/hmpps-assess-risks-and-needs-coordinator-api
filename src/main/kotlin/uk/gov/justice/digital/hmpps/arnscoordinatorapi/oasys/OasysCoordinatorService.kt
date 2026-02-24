@@ -153,14 +153,12 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
-    return runBlocking {
-      val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
-        async(Dispatchers.IO) { handleEntity(requestData, strategy) }
-      }.awaitAll()
+  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> = runBlocking {
+    val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
+      async(Dispatchers.IO) { handleEntity(requestData, strategy) }
+    }.awaitAll()
 
-      processCreateResults(results)
-    }
+    processCreateResults(results)
   }
 
   private fun processCreateResults(

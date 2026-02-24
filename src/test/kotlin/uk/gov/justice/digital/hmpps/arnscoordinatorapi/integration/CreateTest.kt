@@ -53,30 +53,6 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a conflict status where an association already exists with the oasys PK`() {
-    val oasysAssessmentPk = getRandomOasysPk()
-    oasysAssociationRepository.save(
-      OasysAssociation(
-        oasysAssessmentPk = oasysAssessmentPk,
-        entityUuid = UUID.randomUUID(),
-        entityType = EntityType.ASSESSMENT,
-      ),
-    )
-    webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-      .bodyValue(
-        OasysCreateRequest(
-          oasysAssessmentPk = oasysAssessmentPk,
-          planType = PlanType.INITIAL,
-          assessmentType = AssessmentType.SAN_SP,
-          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
-        ),
-      )
-      .exchange()
-      .expectStatus().isEqualTo(409)
-  }
-
-  @Test
   fun `it returns a 500 status where a call to the downstream AAP service returns 500`() {
     stubAAPCreateAssessment(500)
     val oasysAssessmentPk = getRandomOasysPk()
