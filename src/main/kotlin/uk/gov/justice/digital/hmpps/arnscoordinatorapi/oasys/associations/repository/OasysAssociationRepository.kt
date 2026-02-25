@@ -21,4 +21,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociation, Long> {
 
   @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_uuid = :entityUuid", nativeQuery = true)
   fun findAllByEntityUuidIncludingDeleted(entityUuid: UUID): List<OasysAssociation>
+
+  fun findByEntityUuidAndEntityType(entityUuid: UUID, entityType: EntityType): OasysAssociation?
 }
