@@ -153,12 +153,17 @@ class OasysCoordinatorService(
   }
 
   @Transactional
-  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> = runBlocking {
-    val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
-      async(Dispatchers.IO) { handleEntity(requestData, strategy) }
-    }.awaitAll()
+  fun create(requestData: OasysCreateRequest): CreateOperationResult<OasysVersionedEntityResponse> {
+    oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
+      .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    processCreateResults(results)
+    return runBlocking {
+      val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
+        async(Dispatchers.IO) { handleEntity(requestData, strategy) }
+      }.awaitAll()
+
+      processCreateResults(results)
+    }
   }
 
   private fun processCreateResults(

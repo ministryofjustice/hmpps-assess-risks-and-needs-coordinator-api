@@ -61,6 +61,12 @@ class OasysCoordinatorServiceTest {
   @Nested
   inner class Create {
 
+    @BeforeEach
+    fun createSetUp() {
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Success(Unit))
+    }
+
     @Test
     fun `should create entities and associations successfully`() {
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }

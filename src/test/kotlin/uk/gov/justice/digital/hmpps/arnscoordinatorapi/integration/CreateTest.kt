@@ -125,6 +125,32 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `it returns a conflict status where an association already exists with the oasys PK`() {
+    val oasysAssessmentPk = getRandomOasysPk()
+
+    oasysAssociationRepository.save(
+      OasysAssociation(
+        oasysAssessmentPk = oasysAssessmentPk,
+        entityUuid = UUID.randomUUID(),
+        entityType = EntityType.ASSESSMENT,
+      ),
+    )
+
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          oasysAssessmentPk = oasysAssessmentPk,
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isEqualTo(409)
+  }
+
+  @Test
   fun `it returns a 404 not found when a previous oasys PK is supplied that does not have an association`() {
     val previousOasysPk = getRandomOasysPk()
     val oasysAssessmentPk = getRandomOasysPk()
