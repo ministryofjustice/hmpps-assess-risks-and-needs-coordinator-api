@@ -53,30 +53,6 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a conflict status where an association already exists with the oasys PK`() {
-    val oasysAssessmentPk = getRandomOasysPk()
-    oasysAssociationRepository.save(
-      OasysAssociation(
-        oasysAssessmentPk = oasysAssessmentPk,
-        entityUuid = UUID.randomUUID(),
-        entityType = EntityType.ASSESSMENT,
-      ),
-    )
-    webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-      .bodyValue(
-        OasysCreateRequest(
-          oasysAssessmentPk = oasysAssessmentPk,
-          planType = PlanType.INITIAL,
-          assessmentType = AssessmentType.SAN_SP,
-          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
-        ),
-      )
-      .exchange()
-      .expectStatus().isEqualTo(409)
-  }
-
-  @Test
   fun `it returns a 500 status where a call to the downstream AAP service returns 500`() {
     stubAAPCreateAssessment(500)
     val oasysAssessmentPk = getRandomOasysPk()
@@ -146,6 +122,32 @@ class CreateTest : IntegrationTestBase() {
     assertThat(sanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
     assertThat(sentencePlanAssociation?.entityUuid).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
     assertThat(sanAssociation?.entityUuid).isEqualTo(UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"))
+  }
+
+  @Test
+  fun `it returns a conflict status where an association already exists with the oasys PK`() {
+    val oasysAssessmentPk = getRandomOasysPk()
+
+    oasysAssociationRepository.save(
+      OasysAssociation(
+        oasysAssessmentPk = oasysAssessmentPk,
+        entityUuid = UUID.randomUUID(),
+        entityType = EntityType.ASSESSMENT,
+      ),
+    )
+
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          oasysAssessmentPk = oasysAssessmentPk,
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isEqualTo(409)
   }
 
   @Test

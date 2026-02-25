@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
@@ -902,6 +903,56 @@ class AAPPlanStrategyTest {
         "Unable to countersign version '${versionedEntity.version}' for entity ${versionedEntity.entityUuid}",
         (result as OperationResult.Failure).errorMessage,
       )
+    }
+  }
+
+  @Nested
+  inner class Reset {
+    val entityUuid = UUID.randomUUID()
+    val resetData = ResetData(
+      userDetails = UserDetails("id", "name"),
+    )
+
+    @Test
+    fun `should return success when reset plan is successful`() {
+      val expectedVersion = 1234567890L
+
+      whenever(aapApi.resetPlan(entityUuid, AAPUser(id = "id", name = "name"))).thenReturn(
+        AAPApi.ApiOperationResult.Success(Unit),
+      )
+
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CREATED,
+            entityUuid = entityUuid,
+            version = expectedVersion,
+          ),
+        )
+
+      val result = planStrategy.reset(resetData, entityUuid)
+
+      assertTrue(result is OperationResult.Success)
+      (result as OperationResult.Success).data.let {
+        assertEquals(entityUuid, it.id)
+        assertEquals(expectedVersion, it.version)
+        assertEquals(entityType, it.entityType)
+      }
+      verify(aapApi).resetPlan(entityUuid, AAPUser(id = "id", name = "name"))
+      verify(oasysVersionService).createVersionFor(OasysEvent.CREATED, entityUuid)
+    }
+
+    @Test
+    fun `should return failure when reset plan fails`() {
+      whenever(aapApi.resetPlan(entityUuid, AAPUser(id = "id", name = "name"))).thenReturn(
+        AAPApi.ApiOperationResult.Failure("Reset error occurred"),
+      )
+
+      val result = planStrategy.reset(resetData, entityUuid)
+
+      assertTrue(result is OperationResult.Failure)
+      assertEquals("Reset error occurred", (result as OperationResult.Failure).errorMessage)
+      verify(aapApi).resetPlan(entityUuid, AAPUser(id = "id", name = "name"))
     }
   }
 

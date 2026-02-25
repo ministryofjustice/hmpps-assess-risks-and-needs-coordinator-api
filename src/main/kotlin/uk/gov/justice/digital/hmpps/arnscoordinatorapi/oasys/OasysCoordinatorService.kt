@@ -132,13 +132,17 @@ class OasysCoordinatorService(
       if (linkResult.result is EntityResult.Success && request.shouldReset(strategy.entityType)) {
         val resetData = ResetData(userDetails = request.userDetails.intoUserDetails())
 
-        when (val resetResult = strategy.reset(resetData, (linkResult.result as EntityResult.Success).entity.id)) {
+        when (val resetResult = strategy.reset(resetData, linkResult.result.entity.id)) {
           is OperationResult.Failure -> return EntityResultWithCommand(
             EntityResult.Failure("Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}"),
             null,
             null,
           )
-          is OperationResult.Success -> { }
+          is OperationResult.Success -> return EntityResultWithCommand(
+            EntityResult.Success(resetResult.data),
+            null,
+            linkResult.pendingAssociation,
+          )
         }
       }
 
