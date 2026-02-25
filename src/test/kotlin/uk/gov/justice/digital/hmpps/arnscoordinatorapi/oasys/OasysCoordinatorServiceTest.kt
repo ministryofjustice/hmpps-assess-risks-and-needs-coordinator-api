@@ -68,6 +68,22 @@ class OasysCoordinatorServiceTest {
     }
 
     @Test
+    fun `should return conflicting associations result if associations exist`() {
+      `when`(oasysAssociationsService.ensureNoExistingAssociation(anyString()))
+        .thenReturn(OperationResult.Failure("Conflicting associations"))
+
+      val result = oasysCoordinatorService.create(oasysCreateRequest)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations)
+      assertEquals(
+        "Cannot create due to conflicting associations: Conflicting associations",
+        (result as OasysCoordinatorService.CreateOperationResult.ConflictingAssociations).errorMessage,
+      )
+
+      verify(oasysAssociationsService).ensureNoExistingAssociation(oasysCreateRequest.oasysAssessmentPk)
+    }
+
+    @Test
     fun `should create entities and associations successfully`() {
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
       val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
