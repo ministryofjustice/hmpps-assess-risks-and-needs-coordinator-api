@@ -55,7 +55,7 @@ class OasysCoordinatorServiceTest {
 
   @BeforeEach
   fun setup() {
-    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService)
+    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService, oasysVersionService)
   }
 
   @Nested
