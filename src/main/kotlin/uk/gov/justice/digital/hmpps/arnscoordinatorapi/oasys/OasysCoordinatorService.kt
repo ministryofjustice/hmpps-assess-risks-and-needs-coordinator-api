@@ -44,6 +44,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.util.UUID
@@ -52,6 +53,7 @@ import java.util.UUID
 class OasysCoordinatorService(
   private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
+  private val oasysVersionService: OasysVersionService,
 ) {
 
   private fun buildCreateData(requestData: OasysCreateRequest): CreateData = CreateData(
@@ -394,7 +396,7 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(versionsResponseFactory.getVersionsResponse())
   }
 
-  fun getAssociations(oasysAssessmentPk: String): GetOperationResult<OasysAssociationsResponse> {
+  fun getAssociations(oasysAssessmentPk: String, planVersion: Long? = null): GetOperationResult<OasysAssociationsResponse> {
     val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -402,14 +404,20 @@ class OasysCoordinatorService(
     }
 
     val oasysAssociationsResponse = OasysAssociationsResponse()
-    associations.forEach {
-      when (it.entityType) {
+    associations.forEach { association ->
+      when (association.entityType) {
         EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
-          sanAssessmentId = it.entityUuid
+          sanAssessmentId = association.entityUuid
         }
 
         EntityType.PLAN, EntityType.AAP_PLAN -> oasysAssociationsResponse.apply {
-          sentencePlanId = it.entityUuid
+          sentencePlanId = association.entityUuid
+          if (association.entityType == EntityType.AAP_PLAN) {
+            planVersion?.let { version ->
+              sentencePlanVersion = oasysVersionService.fetchVersion(association.entityUuid, version)?.getEpochVersion()
+                ?: throw IllegalStateException("OASys plan version not found for the provided entityUuid")
+            }
+          }
         }
 
         null -> return GetOperationResult.Failure("Misconfigured association found")
