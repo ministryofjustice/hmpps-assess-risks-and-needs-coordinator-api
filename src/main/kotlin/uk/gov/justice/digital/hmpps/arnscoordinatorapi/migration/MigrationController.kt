@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
@@ -17,7 +16,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 data class VersionMapping(val version: Long, val createdAt: LocalDateTime, val event: OasysEvent)
 data class MigrateAssociationRequest(
@@ -31,7 +30,7 @@ data class MigrateAssociationRequest(
 @Tag(name = "OASys - Migration")
 @RequestMapping("\${app.self.endpoints.oasys}")
 class MigrationController(val migrationService: MigrationService) {
-  @RequestMapping(path = ["/{oasysAssessmentPK}/migrate-associations"], method = [RequestMethod.POST])
+  @RequestMapping(path = ["/migrate-associations"], method = [RequestMethod.POST])
   @Operation(description = "Migrates an association")
   @PreAuthorize("hasRole('ROLE_MIGRATE_SENTENCE_PLAN')")
   @ApiResponses(
@@ -54,7 +53,6 @@ class MigrationController(val migrationService: MigrationService) {
     ],
   )
   fun migrateAssociation(
-    @PathVariable oasysAssessmentPK: String,
     @RequestBody request: MigrateAssociationRequest,
-  ) = migrationService.migrateAssociation(oasysAssessmentPK, request)
+  ) = migrationService.migrateAssociation(request)
 }
