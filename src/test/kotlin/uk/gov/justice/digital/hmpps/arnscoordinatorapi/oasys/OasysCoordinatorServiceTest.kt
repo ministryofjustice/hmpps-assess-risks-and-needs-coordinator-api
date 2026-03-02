@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.time.LocalDateTime
@@ -40,6 +41,7 @@ import java.util.UUID
 class OasysCoordinatorServiceTest {
   private val strategyFactory: StrategyFactory = mock()
   private val oasysAssociationsService: OasysAssociationsService = mock()
+  private val oasysVersionService: OasysVersionService = mock()
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService
 
