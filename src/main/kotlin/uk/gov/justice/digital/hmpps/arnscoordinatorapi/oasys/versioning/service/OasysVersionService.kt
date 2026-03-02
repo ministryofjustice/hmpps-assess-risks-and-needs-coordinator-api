@@ -66,6 +66,8 @@ class OasysVersionService(
 
   fun getLatestVersionNumber() = clock.now().toInstant(ZoneOffset.UTC).toEpochMilli()
 
+  fun saveAll(versions: List<OasysVersionEntity>) = repository.saveAll(versions)
+
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
   }
