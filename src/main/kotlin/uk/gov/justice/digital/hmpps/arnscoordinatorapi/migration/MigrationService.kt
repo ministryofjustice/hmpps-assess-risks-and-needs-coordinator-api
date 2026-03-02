@@ -4,21 +4,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import java.time.LocalDateTime
-import java.util.UUID
-
-data class VersionMapping(val version: Long, val createdAt: LocalDateTime, val event: OasysEvent)
-data class MigrateAssociationRequest(
-  val mappings: List<VersionMapping>,
-  val entityTypeFrom: EntityType,
-  val entityTypeTo: EntityType,
-  val entityUuid: UUID,
-)
 
 @Service
 class MigrationService(

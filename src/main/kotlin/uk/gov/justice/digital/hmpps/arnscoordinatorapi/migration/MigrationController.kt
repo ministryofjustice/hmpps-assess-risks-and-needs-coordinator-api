@@ -12,14 +12,26 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.LocalDateTime
+import java.util.UUID
+
+data class VersionMapping(val version: Long, val createdAt: LocalDateTime, val event: OasysEvent)
+data class MigrateAssociationRequest(
+  val mappings: List<VersionMapping>,
+  val entityTypeFrom: EntityType,
+  val entityTypeTo: EntityType,
+  val entityUuid: UUID,
+)
 
 @RestController
 @Tag(name = "OASys - Migration")
 @RequestMapping("\${app.self.endpoints.oasys}")
 class MigrationController(val migrationService: MigrationService) {
-  @RequestMapping(path = ["/{oasysAssessmentPK}/migrate-versions"], method = [RequestMethod.POST])
+  @RequestMapping(path = ["/{oasysAssessmentPK}/migrate-associations"], method = [RequestMethod.POST])
   @Operation(description = "Migrates an association")
   @PreAuthorize("hasRole('ROLE_MIGRATE_SENTENCE_PLAN')")
   @ApiResponses(
