@@ -32,6 +32,9 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.time.LocalDateTime
@@ -40,6 +43,7 @@ import java.util.UUID
 class OasysCoordinatorServiceTest {
   private val strategyFactory: StrategyFactory = mock()
   private val oasysAssociationsService: OasysAssociationsService = mock()
+  private val oasysVersionService: OasysVersionService = mock()
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService
 
@@ -51,11 +55,9 @@ class OasysCoordinatorServiceTest {
     userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
 
-  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
-
   @BeforeEach
   fun setup() {
-    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService)
+    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService, oasysVersionService)
   }
 
   @Nested
@@ -266,6 +268,14 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            version = existingSpAssociation.baseVersion + 1,
+            entityUuid = existingSpUuid,
+          ),
+        )
 
       val result = oasysCoordinatorService.create(requestWithPreviousSp)
 
@@ -319,6 +329,14 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            version = existingSpAssociation.baseVersion + 1,
+            entityUuid = existingSpUuid,
+          ),
+        )
 
       val result = oasysCoordinatorService.create(requestWithBothPrevious)
 
@@ -431,6 +449,14 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            version = existingSpAssociation.baseVersion + 1,
+            entityUuid = existingSpUuid,
+          ),
+        )
 
       val result = oasysCoordinatorService.create(requestSpOnly)
 
@@ -474,6 +500,14 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Success(resetVersionedEntity))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            version = existingSpAssociation.baseVersion + 1,
+            entityUuid = existingSpUuid,
+          ),
+        )
 
       val result = oasysCoordinatorService.create(requestWithReset)
 
@@ -513,6 +547,14 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            version = existingSpAssociation.baseVersion + 1,
+            entityUuid = existingSpUuid,
+          ),
+        )
 
       val result = oasysCoordinatorService.create(requestWithoutReset)
 
@@ -520,6 +562,7 @@ class OasysCoordinatorServiceTest {
 
       verify(spStrategy, never()).create(any())
       verify(spStrategy, never()).reset(any(), any())
+      verify(oasysVersionService).createVersionFor(OasysEvent.CLONED, existingSpUuid)
     }
 
     @Test
@@ -552,6 +595,14 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Failure("Reset failed"))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(
+          OasysVersionEntity(
+            createdBy = OasysEvent.CLONED,
+            version = existingSpAssociation.baseVersion + 1,
+            entityUuid = existingSpUuid,
+          ),
+        )
 
       val transactionStatus: TransactionStatus = mock()
       val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)

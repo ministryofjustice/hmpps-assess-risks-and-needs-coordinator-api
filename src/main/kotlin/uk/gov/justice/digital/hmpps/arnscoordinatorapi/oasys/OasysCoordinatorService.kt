@@ -44,6 +44,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
 import java.util.UUID
@@ -52,6 +54,7 @@ import java.util.UUID
 class OasysCoordinatorService(
   private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
+  private val oasysVersionService: OasysVersionService,
 ) {
 
   private fun buildCreateData(requestData: OasysCreateRequest): CreateData = CreateData(
@@ -81,7 +84,11 @@ class OasysCoordinatorService(
       oasysAssessmentPk = newPk,
       entityType = entityType,
       entityUuid = existingAssociation.entityUuid,
-      baseVersion = existingAssociation.baseVersion,
+      baseVersion = when (entityType) {
+        EntityType.ASSESSMENT -> existingAssociation.baseVersion // TODO: get the latest version number from SAN?
+        EntityType.PLAN -> existingAssociation.baseVersion // TODO: remove, not used after national rollout
+        EntityType.AAP_PLAN -> oasysVersionService.createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid).version
+      },
       regionPrisonCode = regionPrisonCode,
     )
 
