@@ -11,6 +11,7 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.SQLRestriction
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 enum class OasysEvent {
@@ -56,4 +57,6 @@ class OasysVersionEntity(
 
   @Column(name = "deleted")
   var deleted: Boolean = false,
-)
+) {
+  fun getEpochVersion() = createdAt.toInstant(ZoneOffset.UTC).toEpochMilli()
+}
