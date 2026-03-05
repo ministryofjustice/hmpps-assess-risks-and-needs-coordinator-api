@@ -10,7 +10,7 @@ services:
       - /var/lib/postgresql
 
   hmpps-auth:
-    image: ghcr.io/ministryofjustice/hmpps-auth:2026-03-04.437.770c9e6
+    image: ghcr.io/ministryofjustice/hmpps-auth:2026-03-02.422.c36796f
     healthcheck:
       test: ["CMD", "curl", "-f", "http://hmpps-auth:9090/auth/health"]
       interval: 5s
