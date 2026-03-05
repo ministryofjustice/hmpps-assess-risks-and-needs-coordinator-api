@@ -21,9 +21,9 @@ import java.util.*
 data class VersionMapping(val version: Long, val createdAt: LocalDateTime, val event: OasysEvent)
 data class MigrateAssociationRequest(
   val mappings: List<VersionMapping>,
-  val entityTypeFrom: EntityType,
   val entityTypeTo: EntityType,
-  val entityUuid: UUID,
+  val entityUuidFrom: UUID,
+  val entityUuidTo: UUID,
 )
 
 @RestController
