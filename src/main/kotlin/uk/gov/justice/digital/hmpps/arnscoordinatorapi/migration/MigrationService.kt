@@ -15,27 +15,27 @@ class MigrationService(
   private val oasysVersionService: OasysVersionService,
 ) {
   fun migrateAssociation(request: MigrateAssociationRequest) {
-    oasysAssociationsService.findByEntityId(request.entityUuid)
+    oasysAssociationsService.findByEntityId(request.entityUuidFrom)
       .mapIndexed { index, association ->
         OasysAssociation(
           createdAt = association.createdAt,
           entityType = request.entityTypeTo,
-          entityUuid = request.entityUuid,
+          entityUuid = request.entityUuidTo,
           oasysAssessmentPk = association.oasysAssessmentPk,
           regionPrisonCode = association.regionPrisonCode,
           deleted = false,
           baseVersion = association.baseVersion,
         ).also {
           when (oasysAssociationsService.storeAssociation(it)) {
-            is OperationResult.Failure<*> -> throw IllegalStateException("Failed to persist new association with entity UUID: ${request.entityUuid} ($index)")
+            is OperationResult.Failure<*> -> throw IllegalStateException("Failed to persist new association with entity UUID: ${request.entityUuidTo} ($index)")
             else -> {
-              log.info("Created new association for entity UUID: ${request.entityUuid} ($index)")
+              log.info("Created new association for entity UUID: ${request.entityUuidTo} ($index)")
             }
           }
         }
       }
       .firstOrNull()
-      ?: throw IllegalStateException("Unable to find association with entity UUID: ${request.entityUuid}")
+      ?: throw IllegalStateException("Unable to find association with entity UUID: ${request.entityUuidFrom}")
 
     request.mappings.map { versionMapping ->
       OasysVersionEntity(
@@ -43,11 +43,11 @@ class MigrationService(
         createdBy = versionMapping.event,
         updatedAt = LocalDateTime.now(),
         version = versionMapping.version,
-        entityUuid = request.entityUuid,
+        entityUuid = request.entityUuidTo,
         deleted = false,
       )
     }.run(oasysVersionService::saveAll)
-      .also { log.info("Migrated ${it.size} versions for  entity UUID: ${request.entityUuid}") }
+      .also { log.info("Migrated ${it.size} versions for  entity UUID: ${request.entityUuidTo}") }
   }
 
   companion object {
