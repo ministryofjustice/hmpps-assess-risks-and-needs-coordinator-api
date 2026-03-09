@@ -490,6 +490,7 @@ class OasysCoordinatorServiceTest {
 
       verify(sanStrategy, never()).create(any())
       verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 6L })
     }
 
     @Test

@@ -155,11 +155,14 @@ class OasysCoordinatorService(
             null,
             null,
           )
-          is OperationResult.Success -> return EntityResultWithCommand(
-            EntityResult.Success(cloneResult.data),
-            null,
-            linkResult.pendingAssociation,
-          )
+          is OperationResult.Success -> {
+            linkResult.pendingAssociation?.apply { baseVersion = cloneResult.data.version }
+            return EntityResultWithCommand(
+              EntityResult.Success(cloneResult.data),
+              null,
+              linkResult.pendingAssociation,
+            )
+          }
         }
       }
 
