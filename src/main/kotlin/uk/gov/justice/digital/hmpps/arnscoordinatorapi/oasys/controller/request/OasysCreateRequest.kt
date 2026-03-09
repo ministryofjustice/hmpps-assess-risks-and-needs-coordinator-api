@@ -74,4 +74,9 @@ data class OasysCreateRequest(
     EntityType.PLAN, EntityType.AAP_PLAN -> newPeriodOfSupervision == "Y"
     else -> false
   }
+
+  fun shouldClone(entityType: EntityType): Boolean = when (entityType) {
+    EntityType.ASSESSMENT -> true
+    else -> false
+  }
 }
