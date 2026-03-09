@@ -148,6 +148,21 @@ class OasysCoordinatorService(
         }
       }
 
+      if (linkResult.result is EntityResult.Success && request.shouldClone(strategy.entityType)) {
+        when (val cloneResult = strategy.clone(buildCreateData(request), linkResult.result.entity.id)) {
+          is OperationResult.Failure -> return EntityResultWithCommand(
+            EntityResult.Failure("Failed to clone ${strategy.entityType}: ${cloneResult.errorMessage}"),
+            null,
+            null,
+          )
+          is OperationResult.Success -> return EntityResultWithCommand(
+            EntityResult.Success(cloneResult.data),
+            null,
+            linkResult.pendingAssociation,
+          )
+        }
+      }
+
       return linkResult
     }
 
