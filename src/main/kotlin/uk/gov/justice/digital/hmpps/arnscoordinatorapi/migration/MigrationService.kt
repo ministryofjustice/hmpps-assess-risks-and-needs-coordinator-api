@@ -15,7 +15,7 @@ class MigrationService(
   private val oasysVersionService: OasysVersionService,
 ) {
   fun migrateAssociation(request: MigrateAssociationRequest) {
-    oasysAssociationsService.findByEntityId(request.entityUuidFrom)
+    oasysAssociationsService.findAllIncludingDeleted(request.entityUuidFrom)
       .mapIndexed { index, association ->
         OasysAssociation(
           createdAt = association.createdAt,
@@ -23,7 +23,7 @@ class MigrationService(
           entityUuid = request.entityUuidTo,
           oasysAssessmentPk = association.oasysAssessmentPk,
           regionPrisonCode = association.regionPrisonCode,
-          deleted = false,
+          deleted = association.deleted,
           baseVersion = association.baseVersion,
         ).also {
           when (oasysAssociationsService.storeAssociation(it)) {
