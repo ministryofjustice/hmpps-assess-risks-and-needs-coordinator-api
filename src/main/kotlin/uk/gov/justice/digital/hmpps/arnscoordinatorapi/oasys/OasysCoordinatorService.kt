@@ -44,6 +44,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
@@ -83,7 +84,14 @@ class OasysCoordinatorService(
       oasysAssessmentPk = newPk,
       entityType = entityType,
       entityUuid = existingAssociation.entityUuid,
-      baseVersion = existingAssociation.baseVersion,
+      baseVersion = when (entityType) {
+        EntityType.ASSESSMENT -> existingAssociation.baseVersion
+        EntityType.PLAN -> existingAssociation.baseVersion
+        EntityType.AAP_PLAN ->
+          oasysVersionService
+            .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
+            .version
+      },
       regionPrisonCode = regionPrisonCode,
     )
 
@@ -140,11 +148,14 @@ class OasysCoordinatorService(
             null,
             null,
           )
-          is OperationResult.Success -> return EntityResultWithCommand(
-            EntityResult.Success(resetResult.data),
-            null,
-            linkResult.pendingAssociation,
-          )
+          is OperationResult.Success -> {
+            linkResult.pendingAssociation?.apply { baseVersion = resetResult.data.version }
+            return EntityResultWithCommand(
+              EntityResult.Success(resetResult.data),
+              null,
+              linkResult.pendingAssociation,
+            )
+          }
         }
       }
 
@@ -162,15 +173,6 @@ class OasysCoordinatorService(
               null,
               linkResult.pendingAssociation,
             )
-          }
-        }
-      }
-
-      if (linkResult.result is EntityResult.Success) {
-        val versions = strategy.fetchVersions(linkResult.result.entity.id)
-        if (versions is OperationResult.Success) {
-          versions.data.maxByOrNull { it.version }?.version?.let {
-            linkResult.pendingAssociation?.apply { baseVersion = it }
           }
         }
       }

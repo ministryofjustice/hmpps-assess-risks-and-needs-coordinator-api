@@ -23,7 +23,6 @@ import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
@@ -33,6 +32,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.StrategyFactory
@@ -272,11 +273,8 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
-      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
-        OperationResult.Success(
-          listOf(VersionDetails(existingSpUuid, 10, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
-        ),
-      )
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
 
       val result = oasysCoordinatorService.create(requestWithPreviousSp)
 
@@ -333,11 +331,8 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedSanVersionedEntity))
-      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
-        OperationResult.Success(
-          listOf(VersionDetails(existingSpUuid, 8, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
-        ),
-      )
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 8, entityUuid = existingSpUuid))
 
       val result = oasysCoordinatorService.create(requestWithBothPrevious)
 
@@ -452,11 +447,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
-      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
-        OperationResult.Success(
-          listOf(VersionDetails(existingSpUuid, 7, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
-        ),
-      )
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 7, entityUuid = existingSpUuid))
 
       val result = oasysCoordinatorService.create(requestSpOnly)
 
@@ -542,6 +534,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
       `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Success(resetVersionedEntity))
 
       val result = oasysCoordinatorService.create(requestWithReset)
@@ -551,6 +545,7 @@ class OasysCoordinatorServiceTest {
       assertEquals(existingSpUuid, response.sentencePlanId)
 
       verify(spStrategy).reset(any(), eq(existingSpUuid))
+      verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 4L })
     }
 
     @Test
@@ -582,11 +577,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
-      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
-        OperationResult.Success(
-          listOf(VersionDetails(existingSpUuid, 5, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
-        ),
-      )
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 5, entityUuid = existingSpUuid))
 
       val result = oasysCoordinatorService.create(requestWithoutReset)
 
@@ -625,6 +617,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
       `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Failure("Reset failed"))
 
       val transactionStatus: TransactionStatus = mock()
