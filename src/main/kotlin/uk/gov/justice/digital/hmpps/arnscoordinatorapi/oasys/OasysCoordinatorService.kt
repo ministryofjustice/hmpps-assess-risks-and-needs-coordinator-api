@@ -405,7 +405,7 @@ class OasysCoordinatorService(
     val versionsResponseFactory = VersionsResponseFactory()
 
     val associations = if (authType == "HMPPS_AUTH") {
-      oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
+      oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.AAP_PLAN))
     } else {
       oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
     }

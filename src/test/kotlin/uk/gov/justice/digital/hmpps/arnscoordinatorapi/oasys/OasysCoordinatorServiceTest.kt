@@ -55,7 +55,7 @@ class OasysCoordinatorServiceTest {
     userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
 
-  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
+  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
 
   @BeforeEach
   fun setup() {
@@ -679,7 +679,7 @@ class OasysCoordinatorServiceTest {
       val entityUuid = UUID.randomUUID()
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
         entityUuid = entityUuid,
         oasysAssessmentPk = "CY/12ZX56",
         regionPrisonCode = "111111",
@@ -687,7 +687,7 @@ class OasysCoordinatorServiceTest {
       val strategy: EntityStrategy = mock()
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       `when`(strategy.fetch(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
 
@@ -695,7 +695,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
       assertEquals(
-        "Failed to retrieve PLAN entity, Execution failed",
+        "Failed to retrieve AAP_PLAN entity, Execution failed",
         (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage,
       )
     }
@@ -705,16 +705,16 @@ class OasysCoordinatorServiceTest {
       val entityUuid = UUID.randomUUID()
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
         entityUuid = entityUuid,
         oasysAssessmentPk = "CY/12ZX56",
         regionPrisonCode = "111111",
       )
       val strategy: EntityStrategy = mock()
-      val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.PLAN)
+      val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.AAP_PLAN)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       `when`(strategy.fetch(any())).thenReturn(OperationResult.Success(fetchResponse))
 
@@ -768,7 +768,7 @@ class OasysCoordinatorServiceTest {
     fun `should return failure when command execution fails`() {
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
         oasysAssessmentPk = oasysAssessmentPk,
         regionPrisonCode = "111111",
         baseVersion = 1,
@@ -777,7 +777,7 @@ class OasysCoordinatorServiceTest {
 
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull<Boolean>())).thenReturn(listOf(association))
       `when`(oasysAssociationsService.findAllIncludingDeleted(association.entityUuid)).thenReturn(listOf(association))
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       val expectedSoftDeleteData = SoftDeleteData(request.userDetails.intoUserDetails(), 1)
 
@@ -800,7 +800,7 @@ class OasysCoordinatorServiceTest {
           id = 1L,
           createdAt = LocalDateTime.now().minusDays(2),
           entityUuid = entityUuid,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           oasysAssessmentPk = "older-oasys-pk",
           regionPrisonCode = "111111",
           baseVersion = 0L,
@@ -809,7 +809,7 @@ class OasysCoordinatorServiceTest {
           id = 1L,
           createdAt = LocalDateTime.now().minusDays(1),
           entityUuid = entityUuid,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           oasysAssessmentPk = oasysAssessmentPk,
           regionPrisonCode = "111111",
           baseVersion = 1L,
@@ -818,7 +818,7 @@ class OasysCoordinatorServiceTest {
           id = 2L,
           createdAt = LocalDateTime.now(),
           entityUuid = entityUuid,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           oasysAssessmentPk = "newer-oasys-pk",
           regionPrisonCode = "111111",
           baseVersion = 2L,
@@ -827,14 +827,14 @@ class OasysCoordinatorServiceTest {
       )
 
       val strategy: EntityStrategy = mock()
-      val softDeleteResponse = VersionedEntity(entityUuid, 3, EntityType.PLAN)
+      val softDeleteResponse = VersionedEntity(entityUuid, 3, EntityType.AAP_PLAN)
       `when`(strategy.softDelete(argThat { it: SoftDeleteData -> it.versionFrom == 1L && it.versionTo == 2L }, eq(entityUuid))).thenReturn(OperationResult.Success(softDeleteResponse))
 
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull<Boolean>())).thenReturn(associations.filter { it.oasysAssessmentPk == oasysAssessmentPk })
       `when`(oasysAssociationsService.findAllIncludingDeleted(entityUuid)).thenReturn(associations)
       `when`(oasysAssociationsService.storeAssociation(argThat { it: OasysAssociation -> it.deleted && it.baseVersion == 1L })).then { i -> OperationResult.Success(i.getArgument<OasysAssociation>(0)) }
 
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPk)
 
@@ -853,7 +853,7 @@ class OasysCoordinatorServiceTest {
     private val oasysAssessmentPk = "test-pk"
 
     private val planAssociation = OasysAssociation(
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
       entityUuid = UUID.randomUUID(),
       oasysAssessmentPk = oasysAssessmentPk,
     )
@@ -864,7 +864,7 @@ class OasysCoordinatorServiceTest {
       oasysAssessmentPk = oasysAssessmentPk,
     )
 
-    private val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
+    private val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
     private val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
 
     @Test
@@ -874,12 +874,12 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.findOasysPkByEntityId(entityUuid))
         .thenReturn(oasysAssessmentPk)
 
-      `when`(oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN)))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.AAP_PLAN)))
         .thenReturn(listOf(planAssociation))
 
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull())).thenReturn(emptyList())
 
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(planStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(planStrategy)
       `when`(planStrategy.fetchVersions(planAssociation.entityUuid)).thenReturn(
         OperationResult.Success(emptyList()),
       )
@@ -888,7 +888,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Success)
       verify(oasysAssociationsService).findOasysPkByEntityId(entityUuid)
-      verify(oasysAssociationsService).findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
+      verify(oasysAssociationsService).findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.AAP_PLAN))
 
       verify(planStrategy).fetchVersions(planAssociation.entityUuid)
       verify(assessmentStrategy, times(0)).fetchVersions(any())
@@ -904,9 +904,9 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull()))
         .thenReturn(listOf(planAssociation, assessmentAssociation))
 
-      `when`(oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))).thenReturn(emptyList())
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.AAP_PLAN))).thenReturn(emptyList())
 
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(planStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(planStrategy)
       `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(assessmentStrategy)
       `when`(planStrategy.fetchVersions(planAssociation.entityUuid)).thenReturn(
         OperationResult.Success(emptyList()),
