@@ -166,6 +166,15 @@ class OasysCoordinatorService(
         }
       }
 
+      if (linkResult.result is EntityResult.Success) {
+        val versions = strategy.fetchVersions(linkResult.result.entity.id)
+        if (versions is OperationResult.Success) {
+          versions.data.maxByOrNull { it.version }?.version?.let {
+            linkResult.pendingAssociation?.apply { baseVersion = it }
+          }
+        }
+      }
+
       return linkResult
     }
 
