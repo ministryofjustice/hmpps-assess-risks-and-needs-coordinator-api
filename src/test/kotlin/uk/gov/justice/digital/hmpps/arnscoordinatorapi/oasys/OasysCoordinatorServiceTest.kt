@@ -23,6 +23,7 @@ import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
@@ -271,6 +272,11 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
+      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
+        OperationResult.Success(
+          listOf(VersionDetails(existingSpUuid, 10, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
+        ),
+      )
 
       val result = oasysCoordinatorService.create(requestWithPreviousSp)
 
@@ -283,6 +289,7 @@ class OasysCoordinatorServiceTest {
       verify(sanStrategy).create(any())
       verify(spStrategy, never()).create(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
+      verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_PLAN && baseVersion == 10L })
     }
 
     @Test
@@ -326,6 +333,11 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedSanVersionedEntity))
+      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
+        OperationResult.Success(
+          listOf(VersionDetails(existingSpUuid, 8, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
+        ),
+      )
 
       val result = oasysCoordinatorService.create(requestWithBothPrevious)
 
@@ -338,6 +350,7 @@ class OasysCoordinatorServiceTest {
       verify(sanStrategy).clone(any(), eq(existingSanUuid))
       verify(spStrategy, never()).create(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
+      verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_PLAN && baseVersion == 8L })
     }
 
     @Test
@@ -439,6 +452,11 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
+        OperationResult.Success(
+          listOf(VersionDetails(existingSpUuid, 7, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
+        ),
+      )
 
       val result = oasysCoordinatorService.create(requestSpOnly)
 
@@ -449,6 +467,7 @@ class OasysCoordinatorServiceTest {
 
       verify(spStrategy, never()).create(any())
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
+      verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 7L })
     }
 
     @Test
@@ -563,6 +582,11 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(spStrategy.fetchVersions(existingSpUuid)).thenReturn(
+        OperationResult.Success(
+          listOf(VersionDetails(existingSpUuid, 5, LocalDateTime.now(), LocalDateTime.now(), "UNSIGNED", null, EntityType.AAP_PLAN)),
+        ),
+      )
 
       val result = oasysCoordinatorService.create(requestWithoutReset)
 
