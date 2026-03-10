@@ -87,9 +87,10 @@ class OasysCoordinatorService(
       baseVersion = when (entityType) {
         EntityType.ASSESSMENT -> existingAssociation.baseVersion
         EntityType.PLAN -> existingAssociation.baseVersion
-        EntityType.AAP_PLAN -> oasysVersionService
-          .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
-          .version
+        EntityType.AAP_PLAN ->
+          oasysVersionService
+            .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
+            .version
       },
       regionPrisonCode = regionPrisonCode,
     )
