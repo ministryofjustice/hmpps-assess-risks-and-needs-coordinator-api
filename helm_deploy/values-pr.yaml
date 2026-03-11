@@ -1,0 +1,19 @@
+---
+# Per environment values which override defaults in hmpps-sentence-plan-ui/values.yaml
+
+generic-service:
+  nameOverride: $RELEASE_NAME
+  replicaCount: 1
+
+  ingress:
+    host: pr-$PR_NUMBER.arns-coordinator-api-dev.hmpps.service.justice.gov.uk
+
+  env:
+    APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
+    HMPPS_AUTH_BASE_URL: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
+    SAN_API_BASE_URL: "https://api.strengths-based-needs-dev.hmpps.service.justice.gov.uk"
+    SP_API_BASE_URL: "https://sentence-plan-api-dev.hmpps.service.justice.gov.uk"
+
+generic-prometheus-alerts:
+  targetApplication: $RELEASE_NAME
+  alertSeverity: NON_PROD_ALERTS_SEVERITY_LABEL
