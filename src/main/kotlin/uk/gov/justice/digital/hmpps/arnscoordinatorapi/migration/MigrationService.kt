@@ -1,13 +1,31 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.migration
 
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
+import java.util.UUID
+
+class AssociationNotFoundException(
+  val entityUuid: UUID,
+) : RuntimeException("Association '$entityUuid' not found") {
+  fun intoResponse(): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(HttpStatus.NOT_FOUND)
+    .body(
+      ErrorResponse(
+        userMessage = message.orEmpty(),
+        developerMessage = "No resource found for $entityUuid",
+        status = HttpStatus.NOT_FOUND,
+      ),
+    )
+}
 
 @Service
 class MigrationService(
@@ -35,7 +53,7 @@ class MigrationService(
         }
       }
       .firstOrNull()
-      ?: throw IllegalStateException("Unable to find association with entity UUID: ${request.entityUuidFrom}")
+      ?: throw AssociationNotFoundException(request.entityUuidFrom)
 
     request.mappings.map { versionMapping ->
       OasysVersionEntity(
