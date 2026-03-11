@@ -93,8 +93,7 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
     ).also { log.info("No resource found exception: {}", e.message) }
 
   @ExceptionHandler(AssociationNotFoundException::class)
-  fun handleNoResourceFoundException(e: AssociationNotFoundException): ResponseEntity<ErrorResponse> =
-    e.intoResponse().also { log.info("AssociationNotFoundException: {}", e.message) }
+  fun handleNoResourceFoundException(e: AssociationNotFoundException): ResponseEntity<ErrorResponse> = e.intoResponse().also { log.info("AssociationNotFoundException: {}", e.message) }
 
   @ExceptionHandler(AccessDeniedException::class)
   fun handleAccessDeniedException(e: AccessDeniedException): ResponseEntity<ErrorResponse> = ResponseEntity
