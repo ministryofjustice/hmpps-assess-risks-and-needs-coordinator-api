@@ -96,3 +96,9 @@ db-connection-string: ## Outputs a DB connection string that will let you connec
 
 db-connect: ## Connects to the remote DB though the port-forwarding pod
 	psql --pset=pager=off $$(make db-connection-string)
+
+db-export: ## Export the remote DB to out.sql
+	pg_dump --schema="coordinator" --clean --no-owner --no-privileges $$(make db-connection-string) > out.sql
+
+db-import: ## Import out.sql to remote DB
+	psql $$(make db-connection-string) < out.sql
