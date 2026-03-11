@@ -868,43 +868,12 @@ class OasysCoordinatorServiceTest {
     private val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
 
     @Test
-    fun `should return only PLAN versions when authType is HMPPS_AUTH`() {
-      val authType = "HMPPS_AUTH"
-
-      `when`(oasysAssociationsService.findOasysPkByEntityId(entityUuid))
-        .thenReturn(oasysAssessmentPk)
-
-      `when`(oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN)))
-        .thenReturn(listOf(planAssociation))
-
-      `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull())).thenReturn(emptyList())
-
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(planStrategy)
-      `when`(planStrategy.fetchVersions(planAssociation.entityUuid)).thenReturn(
-        OperationResult.Success(emptyList()),
-      )
-
-      val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid, authType)
-
-      assertTrue(result is OasysCoordinatorService.GetOperationResult.Success)
-      verify(oasysAssociationsService).findOasysPkByEntityId(entityUuid)
-      verify(oasysAssociationsService).findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
-
-      verify(planStrategy).fetchVersions(planAssociation.entityUuid)
-      verify(assessmentStrategy, times(0)).fetchVersions(any())
-    }
-
-    @Test
-    fun `should return both PLAN and ASSESSMENT versions when authType is not HMPPS_AUTH`() {
-      val authType = "OASYS" // or null
-
+    fun `should return both PLAN and ASSESSMENT versions`() {
       `when`(oasysAssociationsService.findOasysPkByEntityId(entityUuid))
         .thenReturn(oasysAssessmentPk)
 
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull()))
         .thenReturn(listOf(planAssociation, assessmentAssociation))
-
-      `when`(oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))).thenReturn(emptyList())
 
       `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(planStrategy)
       `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(assessmentStrategy)
@@ -915,7 +884,7 @@ class OasysCoordinatorServiceTest {
         OperationResult.Success(emptyList()),
       )
 
-      val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid, authType)
+      val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid)
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Success)
       verify(oasysAssociationsService).findOasysPkByEntityId(entityUuid)
@@ -929,7 +898,7 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.findOasysPkByEntityId(entityUuid))
         .thenReturn(null)
 
-      val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid, "HMPPS_AUTH")
+      val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid)
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.NoAssociations)
       assertEquals("No associations found for the provided entityUuid", (result as OasysCoordinatorService.GetOperationResult.NoAssociations).errorMessage)

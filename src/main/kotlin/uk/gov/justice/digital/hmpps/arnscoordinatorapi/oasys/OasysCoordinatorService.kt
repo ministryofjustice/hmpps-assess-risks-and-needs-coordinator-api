@@ -398,17 +398,13 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(oasysGetResponse)
   }
 
-  fun getVersionsByEntityId(entityUuid: UUID, authType: String?): GetOperationResult<VersionsResponse> {
+  fun getVersionsByEntityId(entityUuid: UUID): GetOperationResult<VersionsResponse> {
     val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
       ?: return GetOperationResult.NoAssociations("No associations found for the provided entityUuid")
 
     val versionsResponseFactory = VersionsResponseFactory()
 
-    val associations = if (authType == "HMPPS_AUTH") {
-      oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
-    } else {
-      oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
-    }
+    val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
     for (association in associations) {
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
