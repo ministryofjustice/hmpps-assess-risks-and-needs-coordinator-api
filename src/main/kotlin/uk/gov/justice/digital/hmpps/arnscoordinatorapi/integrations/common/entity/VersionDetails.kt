@@ -8,7 +8,7 @@ typealias VersionDetailsList = List<VersionDetails>
 
 data class VersionDetails(
   val uuid: UUID,
-  val version: Int,
+  val version: Long,
   val createdAt: LocalDateTime,
   val updatedAt: LocalDateTime,
   val status: String,
