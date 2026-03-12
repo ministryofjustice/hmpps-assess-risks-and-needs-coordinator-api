@@ -32,7 +32,7 @@ data class MigrateAssociationRequest(
 class MigrationController(val migrationService: MigrationService) {
   @RequestMapping(path = ["/migrate-associations"], method = [RequestMethod.POST])
   @Operation(description = "Migrates an association")
-  @PreAuthorize("hasRole('ROLE_MIGRATE_SENTENCE_PLAN')")
+  @PreAuthorize("hasRole('ROLE_SENTENCE_PLAN_WRITE')")
   @ApiResponses(
     value = [
       ApiResponse(
