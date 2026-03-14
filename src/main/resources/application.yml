@@ -96,6 +96,13 @@ app:
     id: ${CLIENT_ID}
     secret: ${CLIENT_SECRET}
 
+api:
+  health-timeout: 2s
+  timeout: 5s
+  retry:
+    max-retries: 2
+    min-backoff: 250ms
+
 server:
   port: 8080
   servlet:
