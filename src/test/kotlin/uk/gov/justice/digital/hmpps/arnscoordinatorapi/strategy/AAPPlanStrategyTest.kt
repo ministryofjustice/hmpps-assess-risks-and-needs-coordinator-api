@@ -429,7 +429,7 @@ class AAPPlanStrategyTest {
           createdAt = LocalDateTime.parse("2026-01-13T12:45:00"),
           createdBy = OasysEvent.AWAITING_COUNTERSIGN,
           updatedAt = LocalDateTime.parse("2026-01-13T12:45:00"),
-          version = 2,
+          version = LocalDateTime.parse("2026-01-13T12:45:00").toInstant(ZoneOffset.UTC).toEpochMilli(),
           entityUuid = entityUuid,
           deleted = false,
         ),
@@ -518,7 +518,7 @@ class AAPPlanStrategyTest {
           ),
           VersionDetails(
             uuid = oasysVersions[0].uuid,
-            version = oasysVersions[0].version,
+            version = oasysVersions[0].updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
             createdAt = LocalDateTime.parse("2026-01-13T12:00:00"),
             updatedAt = LocalDateTime.parse("2026-01-13T12:30:00"),
             status = oasysVersions[0].createdBy.name,
@@ -527,7 +527,7 @@ class AAPPlanStrategyTest {
           ),
           VersionDetails(
             uuid = oasysVersions[1].uuid,
-            version = oasysVersions[1].version,
+            version = oasysVersions[1].updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
             createdAt = LocalDateTime.parse("2026-01-13T12:45:00"),
             updatedAt = LocalDateTime.parse("2026-01-13T12:45:00"),
             status = oasysVersions[1].createdBy.name,
