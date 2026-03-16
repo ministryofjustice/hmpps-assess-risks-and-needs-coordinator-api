@@ -10,7 +10,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.time.LocalDateTime
 import java.util.UUID
 
 class AssociationNotFoundException(
