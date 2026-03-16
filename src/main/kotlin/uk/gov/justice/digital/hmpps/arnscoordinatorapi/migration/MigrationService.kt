@@ -59,7 +59,7 @@ class MigrationService(
       OasysVersionEntity(
         createdAt = versionMapping.createdAt,
         createdBy = versionMapping.event,
-        updatedAt = LocalDateTime.now(),
+        updatedAt = versionMapping.createdAt,
         version = versionMapping.version,
         entityUuid = request.entityUuidTo,
         deleted = false,

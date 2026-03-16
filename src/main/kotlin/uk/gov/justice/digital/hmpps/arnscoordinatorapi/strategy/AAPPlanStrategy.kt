@@ -109,7 +109,7 @@ class AAPPlanStrategy(
     val oasysVersions = oasysVersionService.fetchAllForEntityUuid(entityUuid).map {
       VersionDetails(
         uuid = it.uuid,
-        version = it.version,
+        version = if (it.version > 1000L) it.version else it.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
         createdAt = it.createdAt,
         updatedAt = it.updatedAt,
         status = it.createdBy.name,
