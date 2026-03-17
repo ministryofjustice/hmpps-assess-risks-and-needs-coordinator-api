@@ -17,7 +17,6 @@ import uk.gov.justice.hmpps.kotlin.auth.authorisedWebClient
 import uk.gov.justice.hmpps.kotlin.auth.healthWebClient
 import java.io.IOException
 import java.time.Duration
-import java.util.concurrent.TimeoutException
 
 @Configuration
 class WebClientConfiguration(
@@ -87,7 +86,7 @@ class WebClientConfiguration(
       return retryableStatusCodes.contains(exception.statusCode.value())
     }
 
-    if (exception is WebClientRequestException || exception is IOException || exception is TimeoutException) {
+    if (exception is WebClientRequestException || exception is IOException) {
       return true
     }
 
