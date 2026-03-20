@@ -62,6 +62,8 @@ class OasysVersionService(
 
   fun fetchVersion(entityUuid: UUID, versionNumber: Long): OasysVersionEntity? = repository.findByEntityUuidAndVersion(entityUuid, versionNumber)
 
+  fun fetchLatestForEntity(entityUuid: UUID): OasysVersionEntity? = repository.findTopByEntityUuidOrderByVersionDesc(entityUuid)
+
   fun fetchAllForEntityUuid(entityUuid: UUID) = repository.findAllByEntityUuid(entityUuid)
 
   fun getLatestVersionNumber() = clock.now().toInstant(ZoneOffset.UTC).toEpochMilli()

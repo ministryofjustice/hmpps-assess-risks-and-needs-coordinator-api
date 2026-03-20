@@ -8,9 +8,9 @@ import java.util.UUID
 @JsonInclude(JsonInclude.Include.NON_NULL)
 open class OasysVersionedEntityResponse(
   open var sanAssessmentId: UUID = UUID(0, 0),
-  open var sanAssessmentVersion: Long = 0,
+  open var sanAssessmentVersion: Long? = null,
   open var sentencePlanId: UUID = UUID(0, 0),
-  open var sentencePlanVersion: Long = 0,
+  open var sentencePlanVersion: Long? = null,
 ) {
   open fun addVersionedEntity(versionedEntity: VersionedEntity) {
     when (versionedEntity.entityType) {
@@ -24,4 +24,5 @@ open class OasysVersionedEntityResponse(
       }
     }
   }
+
 }

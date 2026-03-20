@@ -439,8 +439,13 @@ class OasysCoordinatorService(
           sentencePlanId = association.entityUuid
           if (association.entityType == EntityType.AAP_PLAN) {
             planVersion?.let { version ->
-              sentencePlanVersion = oasysVersionService.fetchVersion(association.entityUuid, version)?.getEpochVersion()
+              val requestedVersion = oasysVersionService.fetchVersion(association.entityUuid, version)
                 ?: throw IllegalStateException("OASys plan version not found for the provided entityUuid")
+              val latestVersion = oasysVersionService.fetchLatestForEntity(association.entityUuid)
+
+              if (requestedVersion.version != latestVersion?.version) {
+                sentencePlanVersion = requestedVersion.getEpochVersion()
+              }
             }
           }
         }

@@ -543,6 +543,7 @@ class OasysCoordinatorServiceTest {
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
       val response = (result as OasysCoordinatorService.CreateOperationResult.Success).data
       assertEquals(existingSpUuid, response.sentencePlanId)
+      assertEquals(4L, response.sentencePlanVersion)
 
       verify(spStrategy).reset(any(), eq(existingSpUuid))
       verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 4L })
