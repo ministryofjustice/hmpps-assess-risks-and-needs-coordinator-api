@@ -4,6 +4,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
@@ -38,4 +39,6 @@ interface EntityStrategy {
   fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity>
 
   fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity>
+
+  fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity>
 }

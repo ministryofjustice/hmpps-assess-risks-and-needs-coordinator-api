@@ -12,6 +12,7 @@ generic-service:
     HMPPS_AUTH_BASE_URL: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
     SAN_API_BASE_URL: "https://api.strengths-based-needs-test.hmpps.service.justice.gov.uk"
     SP_API_BASE_URL: "https://sentence-plan-api-test.hmpps.service.justice.gov.uk"
+    AAP_API_BASE_URL: "https://arns-assessment-platform-api-test.hmpps.service.justice.gov.uk"
 
   allowlist:
     mp-nat-egress-one: 13.43.9.198/32
@@ -31,8 +32,10 @@ generic-service:
     capita-developers-vms-six: 85.115.54.200/29
     oasys-box-t2 : 10.26.12.211/32
     krupal-app-sec: 80.195.27.199/32
+    accessibility-audit: 5.181.59.114/32
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
 generic-prometheus-alerts:
-  alertSeverity: NON_PROD_ALERTS_SEVERITY_LABEL
+  alertSeverity: hmpps-assess-risks-and-needs-integrations-test
+  businessHoursOnly: true

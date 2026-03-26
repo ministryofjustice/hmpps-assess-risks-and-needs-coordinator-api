@@ -31,9 +31,9 @@ import java.util.UUID
 class EntityController(
   private val oasysCoordinatorService: OasysCoordinatorService,
 ) {
-  @RequestMapping(path = ["/versions/{entityUuid}", "/versions/{entityUuid}/{authType}"], method = [RequestMethod.GET])
+  @RequestMapping(path = ["/versions/{entityUuid}"], method = [RequestMethod.GET])
   @Operation(description = "Gets the list of both assessment AND sentence plan versions for a given entity ID")
-  @PreAuthorize("hasAnyRole('ROLE_SENTENCE_PLAN_READ','ROLE_STRENGTHS_AND_NEEDS_READ')")
+  @PreAuthorize("hasAnyRole('ROLE_SENTENCE_PLAN_READ','ROLE_STRENGTHS_AND_NEEDS_READ','ROLE_AAP__FRONTEND_RW')")
   @ApiResponses(
     value = [
       ApiResponse(
@@ -57,9 +57,7 @@ class EntityController(
     @Parameter(description = "Entity UUID. SAN or SP entity ID", required = true, example = "90a71d16-fecd-4e1a-85b9-98178bf0f8d0")
     @PathVariable
     @Valid entityUuid: UUID,
-    @Parameter(description = "Authentication Type. If 'HMPPS_AUTH', only plan versions are returned.", required = false, example = "HMPPS_AUTH")
-    @PathVariable(required = false) authType: String?,
-  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid, authType)) {
+  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid)) {
     is OasysCoordinatorService.GetOperationResult.Success ->
       ResponseEntity.status(HttpStatus.OK).body(result.data)
 
@@ -72,7 +70,7 @@ class EntityController(
 
   @RequestMapping(path = ["/{entityUuid}/{entityType}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of the provided entity type associated with the OASys Assessment PK linked to the provided entity id")
-  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ')")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ','ROLE_AAP__FRONTEND_RW')")
   @ApiResponses(
     value = [
       ApiResponse(

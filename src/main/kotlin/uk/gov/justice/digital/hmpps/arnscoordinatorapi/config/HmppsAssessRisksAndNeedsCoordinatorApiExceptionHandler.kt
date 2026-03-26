@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.servlet.resource.NoResourceFoundException
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.migration.AssociationNotFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
@@ -90,6 +91,9 @@ class HmppsAssessRisksAndNeedsCoordinatorApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.info("No resource found exception: {}", e.message) }
+
+  @ExceptionHandler(AssociationNotFoundException::class)
+  fun handleNoResourceFoundException(e: AssociationNotFoundException): ResponseEntity<ErrorResponse> = e.intoResponse().also { log.info("AssociationNotFoundException: {}", e.message) }
 
   @ExceptionHandler(AccessDeniedException::class)
   fun handleAccessDeniedException(e: AccessDeniedException): ResponseEntity<ErrorResponse> = ResponseEntity

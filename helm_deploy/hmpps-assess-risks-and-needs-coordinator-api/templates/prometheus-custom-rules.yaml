@@ -1,0 +1,22 @@
+{{- if .Values.customPrometheusAlerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+    role: alert-rules
+  name: prometheus-custom-rules-{{ .Values.customPrometheusAlerts.applicationName }}
+spec:
+  groups:
+    - name: application-rules
+      rules:
+        - alert: 5xxErrorResponses
+          expr: sum(rate(nginx_ingress_controller_requests{host="{{ .Values.customPrometheusAlerts.ingressHost }}", status=~"5.*"}[1m])) > 0
+          for: 0m
+          labels:
+            severity: {{ .Values.customPrometheusAlerts.severity }}
+          annotations:
+            message: "Ingress {{ .Release.Namespace }}/{{ .Values.customPrometheusAlerts.applicationName }} is serving 5xx responses."
+            runbook_url: https://github.com/ministryofjustice/hmpps-helm-charts/blob/main/charts/generic-prometheus-alerts/RUNBOOK.md#5xxerrorresponses
+            dashboard_url: https://grafana.live.cloud-platform.service.justice.gov.uk/d/golden-signals/golden-signals?orgId=1&var-namespace={{ .Release.Namespace }}&var-service={{ .Values.customPrometheusAlerts.applicationName }}
+{{- end }}
