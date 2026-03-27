@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -41,4 +42,6 @@ interface EntityStrategy {
   fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity>
 
   fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity>
+
+  fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 }
