@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import org.junit.jupiter.api.extension.AfterAllCallback
@@ -92,6 +93,40 @@ class AAPApiMock : WireMockServer(8093) {
           )
           .withStatus(status),
       ),
+    )
+  }
+
+  fun stubMarkMerged(status: Int = 200) {
+    stubFor(
+      post("/command")
+        .withRequestBody(containing("UpdateAssessmentPropertiesCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "UpdateAssessmentPropertiesCommand",
+                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
+                        "user": { "id": "1", "name": "Test Name" },
+                        "added": {},
+                        "removed": []
+                      },
+                      "result": {
+                        "type": "CommandSuccessCommandResult",
+                        "message": "Done",
+                        "success": true
+                      }
+                    }
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 

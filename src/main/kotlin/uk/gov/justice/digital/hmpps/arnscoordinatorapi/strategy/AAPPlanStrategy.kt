@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
@@ -284,6 +285,15 @@ class AAPPlanStrategy(
 
     return when (val result = aapApi.resetPlan(entityUuid, user)) {
       is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid).toOperationResult()
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+    }
+  }
+
+  override fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> {
+    val user = AAPUser(id = userDetails.id, name = userDetails.name)
+
+    return when (val result = aapApi.markMerged(entityUuid, user)) {
+      is AAPApi.ApiOperationResult.Success -> Success(Unit)
       is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
     }
   }
