@@ -11,32 +11,37 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.*
+import java.util.UUID
 
 class LockTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
 
+  @Autowired
+  lateinit var oasysVersionRepository: OasysVersionRepository
+
   @BeforeEach
   fun setUp() {
     stubGrantToken()
     stubAssessmentsLock()
-    stubSentencePlanLock()
   }
 
   @Test
   fun `it successfully locks an existing SP and SAN for an oasys PK`() {
     val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -44,7 +49,6 @@ class LockTest : IntegrationTestBase() {
           entityUuid = UUID.fromString("4fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
       ),
-
     )
 
     val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/lock")
@@ -57,17 +61,24 @@ class LockTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isOk
-      .expectBody(OasysGetResponse::class.java)
+      .expectBody(OasysVersionedEntityResponse::class.java)
       .returnResult()
       .responseBody
 
+    val planVersions = oasysVersionRepository.findAllByEntityUuid(planUuid)
+
     assertThat(response?.sanAssessmentId).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
     assertThat(response?.sanAssessmentVersion).isEqualTo(0)
+    assertThat(response?.sentencePlanId).isEqualTo(planUuid)
+    assertThat(planVersions).hasSize(1)
+    assertThat(planVersions.first().createdBy).isEqualTo(OasysEvent.LOCKED)
+    assertThat(response?.sentencePlanVersion).isEqualTo(planVersions.first().version)
   }
 
   @Test
   fun `it returns a 409 when the SAN assessment is already locked`() {
     stubAssessmentsLock(409)
+
     val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
@@ -97,15 +108,15 @@ class LockTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a 409 when the Sentence Plan is already locked`() {
-    stubSentencePlanLock(409)
+  fun `it successfully locks an existing sentence plan without SAN`() {
     val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
         ),
       ),
     )
@@ -118,25 +129,31 @@ class LockTest : IntegrationTestBase() {
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
-      .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().isEqualTo(409)
-      .expectBody(ErrorResponse::class.java)
-      .returnResult().responseBody
+      .expectStatus().isOk
+      .expectBody(OasysVersionedEntityResponse::class.java)
+      .returnResult()
+      .responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to lock PLAN entity due to a conflict, Sentence Plan is already locked")
+    val planVersions = oasysVersionRepository.findAllByEntityUuid(planUuid)
+
+    assertThat(response?.sanAssessmentId).isEqualTo(UUID(0, 0))
+    assertThat(response?.sentencePlanId).isEqualTo(planUuid)
+    assertThat(planVersions).hasSize(1)
+    assertThat(planVersions.first().createdBy).isEqualTo(OasysEvent.LOCKED)
+    assertThat(response?.sentencePlanVersion).isEqualTo(planVersions.first().version)
   }
 
   @Test
   fun `it returns a 404 when no associations found`() {
+    val request = OasysGenericRequest(
+      userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+    )
+
     webTestClient.post().uri("/oasys/999/lock")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-      .bodyValue(
-        OasysGenericRequest(
-          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
-        ),
-      )
+      .bodyValue(request)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isNotFound

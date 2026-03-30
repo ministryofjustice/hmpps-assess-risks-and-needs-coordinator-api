@@ -15,20 +15,25 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 class SoftDeleteTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
 
+  @Autowired
+  lateinit var oasysVersionRepository: OasysVersionRepository
+
   @BeforeEach
   fun setUp() {
     stubGrantToken()
     stubAssessmentsSoftDelete()
-    stubSentencePlanSoftDelete()
   }
 
   @Test
@@ -36,14 +41,13 @@ class SoftDeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     val unaffectedOasysAssessmentPk = getRandomOasysPk()
     val assessmentUuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2")
-    val planUuid = UUID.fromString("3fc52df3-ad01-40d5-b29c-eba6573faf91")
-
+    val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = unaffectedOasysAssessmentPk,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           baseVersion = 1,
         ),
@@ -56,7 +60,7 @@ class SoftDeleteTest : IntegrationTestBase() {
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           baseVersion = 2,
         ),
@@ -65,6 +69,20 @@ class SoftDeleteTest : IntegrationTestBase() {
           entityType = EntityType.ASSESSMENT,
           entityUuid = assessmentUuid,
           baseVersion = 3,
+        ),
+      ),
+    )
+    oasysVersionRepository.saveAll(
+      listOf(
+        OasysVersionEntity(
+          createdBy = OasysEvent.CREATED,
+          entityUuid = planUuid,
+          version = 1,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.LOCKED,
+          entityUuid = planUuid,
+          version = 2,
         ),
       ),
     )
@@ -83,11 +101,17 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
+    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 2, 2)
+    val activePlanVersions = oasysVersionRepository.findAllByEntityUuid(planUuid)
+
     assertThat(response?.sanAssessmentId).isEqualTo(assessmentUuid)
     assertThat(response?.sanAssessmentVersion).isEqualTo(2)
-
     assertThat(response?.sentencePlanId).isEqualTo(planUuid)
-    assertThat(response?.sentencePlanVersion).isEqualTo(3)
+    assertThat(response?.sentencePlanVersion).isEqualTo(2)
+    assertThat(activePlanVersions).hasSize(1)
+    assertThat(activePlanVersions.first().version).isEqualTo(1)
+    assertThat(deletedPlanVersions).hasSize(1)
+    assertThat(deletedPlanVersions.first().version).isEqualTo(2)
 
     oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(2, count())
@@ -121,15 +145,12 @@ class SoftDeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     val assessmentUuid = UUID.randomUUID()
     val planUuid = UUID.randomUUID()
-
     stubAssessmentsSoftDelete(200, emptyBody = true)
-    stubSentencePlanSoftDelete(200, planUuid)
-
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           baseVersion = 0,
         ),
@@ -139,6 +160,13 @@ class SoftDeleteTest : IntegrationTestBase() {
           entityUuid = assessmentUuid,
           baseVersion = 0,
         ),
+      ),
+    )
+    oasysVersionRepository.save(
+      OasysVersionEntity(
+        createdBy = OasysEvent.CREATED,
+        entityUuid = planUuid,
+        version = 0,
       ),
     )
 
@@ -156,10 +184,14 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
+    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 0)
+
     assertThat(response!!.sanAssessmentId).isEqualTo(UUID(0, 0))
     assertThat(response.sanAssessmentVersion).isEqualTo(0)
     assertThat(response.sentencePlanId).isEqualTo(planUuid)
-    assertThat(response.sentencePlanVersion).isEqualTo(3)
+    assertThat(response.sentencePlanVersion).isEqualTo(0)
+    assertThat(deletedPlanVersions).hasSize(1)
+    assertThat(deletedPlanVersions.first().version).isEqualTo(0)
 
     oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(1, count())
@@ -175,6 +207,7 @@ class SoftDeleteTest : IntegrationTestBase() {
   @Test
   fun `it returns a 409 when the SAN assessment is already soft-deleted`() {
     stubAssessmentsSoftDelete(409)
+
     val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
@@ -204,15 +237,15 @@ class SoftDeleteTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a 409 when the Sentence Plan version(s) is already soft-deleted`() {
-    stubSentencePlanSoftDelete(409)
+  fun `it returns a 500 when the sentence plan has no versions to soft-delete`() {
     val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
         ),
       ),
     )
@@ -227,11 +260,11 @@ class SoftDeleteTest : IntegrationTestBase() {
       )
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().isEqualTo(409)
+      .expectStatus().is5xxServerError
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).startsWith("Failed to soft-delete PLAN versions from 0 to null due to a conflict, Unable to soft-delete the requested sentence plan versions")
+    assertThat(response?.userMessage).isEqualTo("Failed to soft-delete association for $oasysAssessmentPk, Something went wrong while deleting versions for entity $planUuid")
   }
 
   @Test

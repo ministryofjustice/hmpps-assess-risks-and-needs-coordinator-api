@@ -27,6 +27,7 @@ class MergeTest : IntegrationTestBase() {
   @BeforeEach
   fun setUp() {
     stubGrantToken()
+    stubAAPMarkMerged()
   }
 
   @Test
@@ -39,9 +40,9 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.ASSESSMENT),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.ASSESSMENT),
       ),
     )
@@ -80,7 +81,7 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.PLAN, deleted = true),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.AAP_PLAN, deleted = true),
         OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.ASSESSMENT, deleted = true),
       ),
     )
@@ -186,10 +187,10 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -238,7 +239,7 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -340,9 +341,9 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.ASSESSMENT),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.ASSESSMENT),
       ),
     )

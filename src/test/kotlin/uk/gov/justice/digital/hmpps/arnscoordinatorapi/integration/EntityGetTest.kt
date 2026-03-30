@@ -19,7 +19,7 @@ class EntityGetTest : IntegrationTestBase() {
   fun setUp() {
     stubGrantToken()
     stubAssessmentsGet()
-    stubSentencePlanGet()
+    stubAAPQueryAssessment()
   }
 
   @Test
@@ -29,7 +29,7 @@ class EntityGetTest : IntegrationTestBase() {
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
         OasysAssociation(
@@ -48,7 +48,7 @@ class EntityGetTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val sentencePlanResponse = webTestClient.get().uri("/entity/5fa85f64-5717-4562-b3fc-2c963f66afa6/PLAN")
+    val sentencePlanResponse = webTestClient.get().uri("/entity/5fa85f64-5717-4562-b3fc-2c963f66afa6/AAP_PLAN")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .exchange()
       .expectStatus().isEqualTo(200)
@@ -76,7 +76,7 @@ class EntityGetTest : IntegrationTestBase() {
 
   @Test
   fun `get by entity id returns not found`() {
-    webTestClient.get().uri("/entity/5dc85f64-5717-4562-b3fc-2c963f66afa7/PLAN")
+    webTestClient.get().uri("/entity/5dc85f64-5717-4562-b3fc-2c963f66afa7/AAP_PLAN")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .exchange()
       .expectStatus().isEqualTo(404)

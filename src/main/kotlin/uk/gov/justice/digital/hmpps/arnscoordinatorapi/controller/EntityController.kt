@@ -94,9 +94,9 @@ class EntityController(
     @Parameter(description = "Entity UUID. SAN or SP Entity Id", required = true, example = "90a71d16-fecd-4e1a-85b9-98178bf0f8d0")
     @PathVariable
     @Valid entityUuid: UUID,
-    @Parameter(description = "Entity Type. ASSESSMENT or PLAN", required = true, example = "ASSESSMENT")
+    @Parameter(description = "Entity Type. ASSESSMENT or AAP_PLAN", required = true, example = "ASSESSMENT")
     @PathVariable
-    @Pattern(regexp = "ASSESSMENT|PLAN")
+    @Pattern(regexp = "ASSESSMENT|AAP_PLAN")
     @Valid entityType: String,
   ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))) {
     is OasysCoordinatorService.GetOperationResult.Success ->
