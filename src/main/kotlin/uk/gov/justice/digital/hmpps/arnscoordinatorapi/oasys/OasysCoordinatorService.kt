@@ -629,6 +629,18 @@ class OasysCoordinatorService(
       }
     }
 
+    val userDetails = request.userDetails.intoUserDetails()
+
+    for (association in resultsToMerge.values.flatten()) {
+      val strategy = strategyFactory.getStrategy(association.entityType!!)
+      val result = strategy.markMerged(association.entityUuid, userDetails)
+
+      if (result is OperationResult.Failure) {
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return MergeOperationResult.Failure("Failed to mark ${association.entityType} ${association.entityUuid} as merged: ${result.errorMessage}")
+      }
+    }
+
     log.info(StringUtils.normalizeSpace("Associations transferred by user ID ${request.userDetails.id}: ${request.merge.joinToString { "From ${it.oldOasysAssessmentPK} to ${it.newOasysAssessmentPK}" }}"))
 
     return MergeOperationResult.Success(OasysMessageResponse("Successfully processed all ${request.merge.size} merge elements"))

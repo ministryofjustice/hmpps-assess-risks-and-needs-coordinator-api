@@ -13,6 +13,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.IdentifierType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.QueriesRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.Query
@@ -141,6 +143,40 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
+  }
+
+  fun markMerged(assessmentUuid: UUID, user: AAPUser): ApiOperationResult<Unit> = try {
+    val command = UpdateAssessmentPropertiesCommand(
+      assessmentUuid = assessmentUuid,
+      user = user,
+      added = mapOf("MERGED" to PropertyValue(type = "Single", value = "Y")),
+      timeline = Timeline(type = "MERGED"),
+    )
+
+    val request = CommandsRequest.of(command)
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(request))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+
+    val result = response?.commands?.firstOrNull()?.result
+      ?: throw IllegalStateException("No command result returned from AAP API")
+
+    if (!result.success) {
+      throw IllegalStateException("AAP API returned failure: ${result.message}")
+    }
+
+    ApiOperationResult.Success(Unit)
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during mark merged: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during markMerged: ${ex.message}", ex)
   }
 
   fun runQueries(vararg queries: Query): ApiOperationResult<QueriesResponse> = try {
