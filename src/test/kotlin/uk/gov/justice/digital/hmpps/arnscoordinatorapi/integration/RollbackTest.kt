@@ -13,32 +13,49 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.*
+import java.util.UUID
+
 class RollbackTest : IntegrationTestBase() {
+
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
+
+  @Autowired
+  lateinit var oasysVersionRepository: OasysVersionRepository
+
   lateinit var oasysAssessmentPk: String
+  lateinit var planUuid: UUID
 
   @BeforeEach
   fun setUp() {
     stubGrantToken()
     stubAssessmentsRollback()
-    stubSentencePlanRollback()
     oasysAssessmentPk = getRandomOasysPk()
+    planUuid = UUID.randomUUID()
 
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.ASSESSMENT,
           entityUuid = UUID.fromString("4da85f64-5717-4562-b3fc-2c963f66afb8"),
         ),
+      ),
+    )
+    oasysVersionRepository.save(
+      OasysVersionEntity(
+        createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+        entityUuid = planUuid,
+        version = 2,
       ),
     )
   }
@@ -63,10 +80,16 @@ class RollbackTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
+    val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(
+      planUuid,
+      2,
+    )
+
     assertThat(response?.sanAssessmentId).isEqualTo(UUID.fromString("4da85f64-5717-4562-b3fc-2c963f66afb8"))
     assertThat(response?.sanAssessmentVersion).isEqualTo(1)
-    assertThat(response?.sentencePlanId).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
+    assertThat(response?.sentencePlanId).isEqualTo(planUuid)
     assertThat(response?.sentencePlanVersion).isEqualTo(2)
+    assertThat(planVersion?.createdBy).isEqualTo(OasysEvent.ROLLED_BACK)
   }
 
   @Test
@@ -82,15 +105,23 @@ class RollbackTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a 409 when the Sentence Plan is already locked`() {
-    stubSentencePlanRollback(409)
+  fun `it returns a 500 when the sentence plan version does not exist`() {
+    val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
+    oasysAssociationRepository.save(
+      OasysAssociation(
+        oasysAssessmentPk = oasysAssessmentPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = planUuid,
+      ),
+    )
 
     val response = request(oasysAssessmentPk)
-      .expectStatus().isEqualTo(409)
+      .expectStatus().is5xxServerError
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to roll back PLAN entity due to a conflict, Unable to roll back this plan version")
+    assertThat(response?.userMessage).isEqualTo("Failed to roll back AAP_PLAN entity, Unable to update version '2' for entity $planUuid")
   }
 
   @Test
