@@ -9,7 +9,7 @@ data class TimelineItem(
   val timestamp: LocalDateTime,
   val user: AAPUser,
   val assessment: UUID,
-  val event: String,
+  val event: String?,
   var data: Map<String, Any> = mapOf(),
   var customType: String? = null,
   var customData: Map<String, Any>? = null,
