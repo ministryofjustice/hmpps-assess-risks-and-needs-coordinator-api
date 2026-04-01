@@ -23,10 +23,10 @@ class OasysAssociationsService(
 
   fun findOasysPkByEntityId(entityUuid: UUID): String? = oasysAssociationRepository.findAllByEntityUuid(entityUuid).maxByOrNull { it.createdAt }?.oasysAssessmentPk
 
-  fun findOasysPksByEntityUuids(entityUuids: Collection<UUID>): Map<UUID, List<String>> =
-    oasysAssociationRepository.findAllByEntityUuidIn(entityUuids)
-      .groupBy { it.entityUuid }
-      .mapValues { (_, associations) -> associations.mapNotNull { it.oasysAssessmentPk } }
+  fun findOasysPksByEntityIds(entityUuids: Collection<UUID>): Map<UUID, List<String>> = oasysAssociationRepository
+    .findAllByEntityUuidIn(entityUuids)
+    .groupBy { it.entityUuid }
+    .mapValues { (_, associations) -> associations.mapNotNull { it.oasysAssessmentPk } }
 
   fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 

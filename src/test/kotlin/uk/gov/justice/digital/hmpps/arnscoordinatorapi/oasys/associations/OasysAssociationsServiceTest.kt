@@ -200,7 +200,7 @@ class OasysAssociationsServiceTest {
       val entityUuids = listOf(UUID.randomUUID())
       `when`(oasysAssociationRepository.findAllByEntityUuidIn(entityUuids)).thenReturn(emptyList())
 
-      val result = oasysAssociationsService.findOasysPksByEntityUuids(entityUuids)
+      val result = oasysAssociationsService.findOasysPksByEntityIds(entityUuids)
 
       assertTrue(result.isEmpty())
       verify(oasysAssociationRepository).findAllByEntityUuidIn(entityUuids)
@@ -217,7 +217,7 @@ class OasysAssociationsServiceTest {
       )
       `when`(oasysAssociationRepository.findAllByEntityUuidIn(listOf(entityUuid1, entityUuid2))).thenReturn(associations)
 
-      val result = oasysAssociationsService.findOasysPksByEntityUuids(listOf(entityUuid1, entityUuid2))
+      val result = oasysAssociationsService.findOasysPksByEntityIds(listOf(entityUuid1, entityUuid2))
 
       assertEquals(mapOf(entityUuid1 to listOf("100", "101"), entityUuid2 to listOf("200")), result)
     }

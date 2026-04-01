@@ -36,7 +36,7 @@ class EntityController(
 ) {
   @RequestMapping(path = ["/associations"], method = [RequestMethod.POST])
   @Operation(description = "Return OASys Assessment PKs for the given entity UUIDs")
-  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ')")
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "OASys PKs returned"),
@@ -54,7 +54,7 @@ class EntityController(
   )
   fun associationsByEntityUuids(
     @RequestBody entityUuids: List<UUID>,
-  ): Map<UUID, List<String>> = oasysAssociationsService.findOasysPksByEntityUuids(entityUuids)
+  ): Map<UUID, List<String>> = oasysAssociationsService.findOasysPksByEntityIds(entityUuids)
 
   @RequestMapping(path = ["/versions/{entityUuid}", "/versions/{entityUuid}/{authType}"], method = [RequestMethod.GET])
   @Operation(description = "Gets the list of both assessment AND sentence plan versions for a given entity ID")
