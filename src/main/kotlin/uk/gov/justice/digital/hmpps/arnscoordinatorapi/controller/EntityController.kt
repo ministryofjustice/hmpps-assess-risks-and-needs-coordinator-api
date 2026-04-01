@@ -14,11 +14,13 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -30,7 +32,30 @@ import java.util.UUID
 @RequestMapping("entity")
 class EntityController(
   private val oasysCoordinatorService: OasysCoordinatorService,
+  private val oasysAssociationsService: OasysAssociationsService,
 ) {
+  @RequestMapping(path = ["/associations"], method = [RequestMethod.POST])
+  @Operation(description = "Return OASys Assessment PKs for the given entity UUIDs")
+  @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS')")
+  @ApiResponses(
+    value = [
+      ApiResponse(responseCode = "200", description = "OASys PKs returned"),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised",
+        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden",
+        content = arrayOf(Content(schema = Schema(implementation = ErrorResponse::class))),
+      ),
+    ],
+  )
+  fun associationsByEntityUuids(
+    @RequestBody entityUuids: List<UUID>,
+  ): Map<UUID, List<String>> = oasysAssociationsService.findOasysPksByEntityUuids(entityUuids)
+
   @RequestMapping(path = ["/versions/{entityUuid}", "/versions/{entityUuid}/{authType}"], method = [RequestMethod.GET])
   @Operation(description = "Gets the list of both assessment AND sentence plan versions for a given entity ID")
   @PreAuthorize("hasAnyRole('ROLE_SENTENCE_PLAN_READ','ROLE_STRENGTHS_AND_NEEDS_READ')")
