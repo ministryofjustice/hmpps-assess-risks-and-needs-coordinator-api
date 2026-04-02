@@ -56,7 +56,7 @@ class EntityController(
     @RequestBody entityUuids: List<UUID>,
   ): Map<UUID, List<String>> = oasysAssociationsService.findOasysPksByEntityIds(entityUuids)
 
-  @RequestMapping(path = ["/versions/{entityUuid}", "/versions/{entityUuid}/{authType}"], method = [RequestMethod.GET])
+  @RequestMapping(path = ["/versions/{entityUuid}"], method = [RequestMethod.GET])
   @Operation(description = "Gets the list of both assessment AND sentence plan versions for a given entity ID")
   @PreAuthorize("hasAnyRole('ROLE_SENTENCE_PLAN_READ','ROLE_STRENGTHS_AND_NEEDS_READ','ROLE_AAP__FRONTEND_RW')")
   @ApiResponses(
