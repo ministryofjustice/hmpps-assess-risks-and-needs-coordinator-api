@@ -815,4 +815,130 @@ class VersionsResponseFactoryTest {
     assertEquals(expectedResponse.allVersions.entries.toList(), actualResponse.allVersions.entries.toList())
     assertEquals(expectedResponse.countersignedVersions.entries.toList(), actualResponse.countersignedVersions.entries.toList())
   }
+
+  @Test
+  fun `plan agreed then updated on the same day should preserve planAgreementStatus AGREED`() {
+    val date = LocalDate.of(2026, 3, 19)
+    val planUuid = UUID.randomUUID()
+
+    val agreedVersion = VersionDetails(
+      uuid = planUuid,
+      version = 1,
+      status = "UNSIGNED",
+      createdAt = date.atTime(10, 0),
+      updatedAt = date.atTime(10, 30),
+      planAgreementStatus = "AGREED",
+      entityType = EntityType.AAP_PLAN,
+    )
+
+    val updatedVersion = VersionDetails(
+      uuid = planUuid,
+      version = 2,
+      status = "UNSIGNED",
+      createdAt = date.atTime(14, 0),
+      updatedAt = date.atTime(14, 30),
+      planAgreementStatus = "",
+      entityType = EntityType.AAP_PLAN,
+    )
+
+    val factory = VersionsResponseFactory()
+    factory.addVersions(listOf(agreedVersion, updatedVersion))
+
+    val expectedResponse = VersionsResponse(
+      allVersions = sortedMapOf(
+        date to LastVersionsOnDate(
+          description = "Plan updated",
+          planVersion = VersionDetails(
+            uuid = planUuid,
+            version = 2,
+            status = "UNSIGNED",
+            createdAt = date.atTime(14, 0),
+            updatedAt = date.atTime(14, 30),
+            planAgreementStatus = "AGREED",
+            entityType = EntityType.AAP_PLAN,
+          ),
+        ),
+      ),
+    )
+
+    assertEquals(expectedResponse, factory.getVersionsResponse())
+  }
+
+  @Test
+  fun `plan agreed as the only event on a day should retain planAgreementStatus AGREED`() {
+    val date = LocalDate.of(2026, 3, 19)
+    val planUuid = UUID.randomUUID()
+
+    val agreedVersion = VersionDetails(
+      uuid = planUuid,
+      version = 1,
+      status = "UNSIGNED",
+      createdAt = date.atTime(10, 0),
+      updatedAt = date.atTime(10, 30),
+      planAgreementStatus = "AGREED",
+      entityType = EntityType.AAP_PLAN,
+    )
+
+    val factory = VersionsResponseFactory()
+    factory.addVersions(listOf(agreedVersion))
+
+    val expectedResponse = VersionsResponse(
+      allVersions = sortedMapOf(
+        date to LastVersionsOnDate(
+          description = "Plan updated",
+          planVersion = agreedVersion,
+        ),
+      ),
+    )
+
+    assertEquals(expectedResponse, factory.getVersionsResponse())
+  }
+
+  @Test
+  fun `plan agreed then updated across two days should show AGREED on the agreement day`() {
+    val day1 = LocalDate.of(2026, 3, 19)
+    val day2 = LocalDate.of(2026, 3, 20)
+    val planUuid = UUID.randomUUID()
+
+    val agreedVersion = VersionDetails(
+      uuid = planUuid,
+      version = 1,
+      status = "UNSIGNED",
+      createdAt = day1.atTime(10, 0),
+      updatedAt = day1.atTime(10, 30),
+      planAgreementStatus = "AGREED",
+      entityType = EntityType.AAP_PLAN,
+    )
+
+    val updatedVersion = VersionDetails(
+      uuid = planUuid,
+      version = 2,
+      status = "UNSIGNED",
+      createdAt = day2.atTime(9, 0),
+      updatedAt = day2.atTime(9, 30),
+      planAgreementStatus = "",
+      entityType = EntityType.AAP_PLAN,
+    )
+
+    val factory = VersionsResponseFactory()
+    factory.addVersions(listOf(agreedVersion, updatedVersion))
+
+    val expectedResponse = VersionsResponse(
+      allVersions = sortedMapOf(
+        Comparator.reverseOrder(),
+        day2 to LastVersionsOnDate(
+          description = "Plan updated",
+          planVersion = updatedVersion,
+        ),
+        day1 to LastVersionsOnDate(
+          description = "Plan updated",
+          planVersion = agreedVersion,
+        ),
+      ),
+    )
+
+    val actualResponse = factory.getVersionsResponse()
+
+    assertEquals(expectedResponse.allVersions.entries.toList(), actualResponse.allVersions.entries.toList())
+  }
 }

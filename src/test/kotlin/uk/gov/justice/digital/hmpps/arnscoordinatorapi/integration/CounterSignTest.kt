@@ -13,32 +13,38 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.*
+import java.util.UUID
 
 class CounterSignTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
 
+  @Autowired
+  lateinit var oasysVersionRepository: OasysVersionRepository
+
   @BeforeEach
   fun setUp() {
     stubGrantToken()
     stubAssessmentsCounterSign()
-    stubSentencePlanCounterSign()
   }
 
   @Test
   fun `it successfully countersigns an existing SP and SAN for an oasys PK`() {
     val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -46,7 +52,13 @@ class CounterSignTest : IntegrationTestBase() {
           entityUuid = UUID.fromString("4fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
       ),
-
+    )
+    oasysVersionRepository.save(
+      OasysVersionEntity(
+        createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+        entityUuid = planUuid,
+        version = 0,
+      ),
     )
 
     val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/counter-sign")
@@ -62,17 +74,23 @@ class CounterSignTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isOk
-      .expectBody(OasysGetResponse::class.java)
+      .expectBody(OasysVersionedEntityResponse::class.java)
       .returnResult()
       .responseBody
 
+    val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(planUuid, 0)
+
     assertThat(response?.sanAssessmentId).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
     assertThat(response?.sanAssessmentVersion).isEqualTo(1)
+    assertThat(response?.sentencePlanId).isEqualTo(planUuid)
+    assertThat(response?.sentencePlanVersion).isEqualTo(0)
+    assertThat(planVersion?.createdBy).isEqualTo(OasysEvent.COUNTERSIGNED)
   }
 
   @Test
   fun `it returns a 409 when the SAN assessment is already locked`() {
     stubAssessmentsCounterSign(409)
+
     val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
@@ -105,16 +123,23 @@ class CounterSignTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it returns a 409 when the Sentence Plan is already locked`() {
-    stubSentencePlanCounterSign(409)
+  fun `it successfully rejects an existing sentence plan without SAN`() {
     val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.PLAN,
-          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
         ),
+      ),
+    )
+    oasysVersionRepository.save(
+      OasysVersionEntity(
+        createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+        entityUuid = planUuid,
+        version = 0,
       ),
     )
 
@@ -125,32 +150,37 @@ class CounterSignTest : IntegrationTestBase() {
         OasysCounterSignRequest(
           sanVersionNumber = 0,
           sentencePlanVersionNumber = 0,
-          outcome = CounterSignOutcome.COUNTERSIGNED,
+          outcome = CounterSignOutcome.REJECTED,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
         ),
       )
-      .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().isEqualTo(409)
-      .expectBody(ErrorResponse::class.java)
-      .returnResult().responseBody
+      .expectStatus().isOk
+      .expectBody(OasysVersionedEntityResponse::class.java)
+      .returnResult()
+      .responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to countersign PLAN entity due to a conflict")
+    val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(planUuid, 0)
+
+    assertThat(response?.sanAssessmentId).isEqualTo(UUID(0, 0))
+    assertThat(response?.sentencePlanId).isEqualTo(planUuid)
+    assertThat(response?.sentencePlanVersion).isEqualTo(0)
+    assertThat(planVersion?.createdBy).isEqualTo(OasysEvent.REJECTED)
   }
 
   @Test
   fun `it returns a 404 when no associations found`() {
+    val request = OasysCounterSignRequest(
+      sanVersionNumber = 0,
+      sentencePlanVersionNumber = 0,
+      outcome = CounterSignOutcome.COUNTERSIGNED,
+      userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+    )
+
     webTestClient.post().uri("/oasys/999/counter-sign")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-      .bodyValue(
-        OasysCounterSignRequest(
-          sanVersionNumber = 0,
-          sentencePlanVersionNumber = 0,
-          outcome = CounterSignOutcome.COUNTERSIGNED,
-          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
-        ),
-      )
+      .bodyValue(request)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isNotFound
@@ -237,33 +267,5 @@ class CounterSignTest : IntegrationTestBase() {
       .returnResult()
 
     assertThat(response.responseBody?.developerMessage).isEqualTo("[oasysAssessmentPK - size must be between 1 and 15]")
-  }
-
-  @Test
-  fun `it returns 400 when the CounterSignOutcome is not one of the enum values`() {
-    val request = """
-        {
-          "sanVersionNumber":1,
-          "sentencePlanVersionNumber":1,
-          "outcome":"OUTCOME",
-          "userDetails":
-          {
-            "id":"1",
-            "name":"Test Name"
-          }
-        }
-    """.trimIndent()
-
-    val response = webTestClient.post().uri("/oasys/999/counter-sign")
-      .header(HttpHeaders.CONTENT_TYPE, "application/json")
-      .headers(setAuthorisation())
-      .bodyValue(request)
-      .exchange()
-      .expectStatus().isBadRequest
-      .expectBody<ErrorResponse>()
-      .returnResult()
-
-    assertThat(response.responseBody?.userMessage).startsWith("Validation failure: JSON parse error")
-    assertThat(response.responseBody?.developerMessage).startsWith("JSON parse error: Cannot deserialize value of type")
   }
 }

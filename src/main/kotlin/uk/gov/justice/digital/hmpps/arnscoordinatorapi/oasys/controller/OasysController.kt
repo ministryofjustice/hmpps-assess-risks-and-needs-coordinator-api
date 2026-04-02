@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
@@ -107,11 +108,7 @@ class OasysController(
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
   ): ResponseEntity<Any> {
-    val result = if (request.previousOasysAssessmentPk === null) {
-      oasysCoordinatorService.create(request)
-    } else {
-      oasysCoordinatorService.clone(request)
-    }
+    val result = oasysCoordinatorService.create(request)
 
     return when (result) {
       is OasysCoordinatorService.CreateOperationResult.Success ->
@@ -585,7 +582,8 @@ class OasysController(
     @Size(min = Constraints.OASYS_PK_MIN_LENGTH, max = Constraints.OASYS_PK_MAX_LENGTH)
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
-  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK)) {
+    @RequestParam planVersion: Long?,
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK, planVersion)) {
     is OasysCoordinatorService.GetOperationResult.Failure ->
       ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
 

@@ -12,7 +12,7 @@ class VersionsResponseFactory {
     versions.getOrPut(versionToAdd.updatedAt.toLocalDate()) { VersionsOnDate() }
       .let {
         when (versionToAdd.entityType) {
-          EntityType.PLAN -> it.planVersions
+          EntityType.PLAN, EntityType.AAP_PLAN -> it.planVersions
           EntityType.ASSESSMENT -> it.assessmentVersions
         }
       }.add(versionToAdd)
@@ -41,9 +41,25 @@ class VersionsResponseFactory {
       var lastAssessment: VersionDetails? = null
       var lastPlan: VersionDetails? = null
     }) { acc, (date, versionsOnDate) ->
+      val latestPlan = versionsOnDate.planVersions.maxByOrNull { it.updatedAt } ?: acc.lastPlan
+
+      // When multiple plan versions exist on the same day (e.g. plan agreed at 10:00, then goal added at 14:00),
+      // the latest version may have an empty planAgreementStatus even though the plan was agreed earlier that day.
+      // Preserve the most significant planAgreementStatus from any version on that date.
+      val planWithPreservedStatus = latestPlan?.let { plan ->
+        val mostSignificantStatus = versionsOnDate.planVersions
+          .firstOrNull { !it.planAgreementStatus.isNullOrEmpty() }
+          ?.planAgreementStatus
+        if (mostSignificantStatus != null && plan.planAgreementStatus.isNullOrEmpty()) {
+          plan.copy(planAgreementStatus = mostSignificantStatus)
+        } else {
+          plan
+        }
+      }
+
       LastVersionsOnDate(
         assessmentVersion = versionsOnDate.assessmentVersions.maxByOrNull { it.updatedAt } ?: acc.lastAssessment,
-        planVersion = versionsOnDate.planVersions.maxByOrNull { it.updatedAt } ?: acc.lastPlan,
+        planVersion = planWithPreservedStatus,
         description = getDescription(versionsOnDate),
       )
         .also {

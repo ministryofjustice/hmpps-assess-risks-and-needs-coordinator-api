@@ -10,12 +10,13 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 class StrategyFactoryTest {
   private val assessmentStrategy: AssessmentStrategy = mock()
   private val planStrategy: PlanStrategy = mock()
+  private val aapPlanStrategy: AAPPlanStrategy = mock()
 
   private lateinit var entityStrategyFactory: StrategyFactory
 
   @BeforeEach
   fun setUp() {
-    entityStrategyFactory = StrategyFactory(assessmentStrategy, planStrategy)
+    entityStrategyFactory = StrategyFactory(assessmentStrategy, planStrategy, aapPlanStrategy)
   }
 
   @Nested
