@@ -49,6 +49,9 @@ generic-service:
       - internal
       - prisons
 
+global:
+  environment: ""
+
 generic-prometheus-alerts:
   targetApplication: hmpps-assess-risks-and-needs-coordinator-api
 
