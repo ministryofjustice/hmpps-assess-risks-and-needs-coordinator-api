@@ -19,7 +19,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociation, Long> {
 
   fun findAllByEntityUuid(entityUuid: UUID): List<OasysAssociation>
 
-  @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_type in ('AAP_PLAN', 'ASSESSMENT') AND entity_uuid = :entityUuid", nativeQuery = true)
   fun findAllByEntityUuidIn(entityUuids: Collection<UUID>): List<OasysAssociation>
 
   @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_type in ('AAP_PLAN', 'ASSESSMENT') AND entity_uuid = :entityUuid", nativeQuery = true)

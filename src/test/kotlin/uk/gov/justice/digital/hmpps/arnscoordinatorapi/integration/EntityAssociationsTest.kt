@@ -78,9 +78,9 @@ class EntityAssociationsTest : IntegrationTestBase() {
 
       oasysAssociationRepository.saveAll(
         listOf(
-          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.PLAN, oasysAssessmentPk = "100"),
-          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.PLAN, oasysAssessmentPk = "101"),
-          OasysAssociation(entityUuid = entityUuid2, entityType = EntityType.PLAN, oasysAssessmentPk = "200"),
+          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100"),
+          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101"),
+          OasysAssociation(entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200"),
         ),
       )
 

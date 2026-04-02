@@ -211,9 +211,9 @@ class OasysAssociationsServiceTest {
       val entityUuid1 = UUID.randomUUID()
       val entityUuid2 = UUID.randomUUID()
       val associations = listOf(
-        OasysAssociation(id = 1L, entityUuid = entityUuid1, entityType = EntityType.PLAN, oasysAssessmentPk = "100"),
-        OasysAssociation(id = 2L, entityUuid = entityUuid1, entityType = EntityType.PLAN, oasysAssessmentPk = "101"),
-        OasysAssociation(id = 3L, entityUuid = entityUuid2, entityType = EntityType.PLAN, oasysAssessmentPk = "200"),
+        OasysAssociation(id = 1L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100"),
+        OasysAssociation(id = 2L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101"),
+        OasysAssociation(id = 3L, entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200"),
       )
       `when`(oasysAssociationRepository.findAllByEntityUuidIn(listOf(entityUuid1, entityUuid2))).thenReturn(associations)
 
