@@ -49,22 +49,22 @@ spec:
                 - name: DB_NAME
                   valueFrom:
                     secretKeyRef:
-                      name: rds-postgresql-instance-output
+                      name: hmpps-assess-risks-and-needs-integrations-rds-instance
                       key: database_name
                 - name: DB_USER
                   valueFrom:
                     secretKeyRef:
-                      name: rds-postgresql-instance-output
+                      name: hmpps-assess-risks-and-needs-integrations-rds-instance
                       key: database_username
                 - name: DB_PASS
                   valueFrom:
                     secretKeyRef:
-                      name: rds-postgresql-instance-output
+                      name: hmpps-assess-risks-and-needs-integrations-rds-instance
                       key: database_password
                 - name: DB_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: rds-postgresql-instance-output
+                      name: hmpps-assess-risks-and-needs-integrations-rds-instance
                       key: rds_instance_address
                 - name: DB_NAME_PREPROD
                   valueFrom:
