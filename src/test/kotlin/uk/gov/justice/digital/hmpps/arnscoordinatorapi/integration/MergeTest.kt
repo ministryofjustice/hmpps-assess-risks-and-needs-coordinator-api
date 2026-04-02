@@ -27,6 +27,7 @@ class MergeTest : IntegrationTestBase() {
   @BeforeEach
   fun setUp() {
     stubGrantToken()
+    stubAAPMarkMerged()
   }
 
   @Test
@@ -39,9 +40,9 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.ASSESSMENT),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.ASSESSMENT),
       ),
     )
@@ -80,7 +81,7 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.PLAN, deleted = true),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.AAP_PLAN, deleted = true),
         OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.ASSESSMENT, deleted = true),
       ),
     )
@@ -109,6 +110,75 @@ class MergeTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `it successfully merges AAP_PLAN associations and marks them as merged`() {
+    stubAAPMarkMerged()
+
+    val existingOasysPk = getRandomOasysPk()
+    val newOasysPk = getRandomOasysPk()
+
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.ASSESSMENT),
+      ),
+    )
+
+    val response = webTestClient.post().uri("/oasys/merge")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysMergeRequest(
+          merge = listOf(
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk, newOasysAssessmentPK = newOasysPk),
+          ),
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(OasysMessageResponse::class.java)
+      .returnResult()
+      .responseBody
+
+    assertThat(response?.message).isEqualTo("Successfully processed all 1 merge elements")
+
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingOasysPk)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk).size).isEqualTo(2)
+  }
+
+  @Test
+  fun `it returns 500 when marking AAP_PLAN as merged fails`() {
+    stubAAPMarkMerged(500)
+
+    val existingOasysPk = getRandomOasysPk()
+    val newOasysPk = getRandomOasysPk()
+
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.AAP_PLAN),
+      ),
+    )
+
+    webTestClient.post().uri("/oasys/merge")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysMergeRequest(
+          merge = listOf(
+            OasysTransferAssociation(oldOasysAssessmentPK = existingOasysPk, newOasysAssessmentPK = newOasysPk),
+          ),
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().is5xxServerError
+
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(existingOasysPk).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk)).isEmpty()
+  }
+
+  @Test
   fun `it returns a 409 when an association already exists for the new OASys PK`() {
     val existingAssociationPk1 = getRandomOasysPk()
     val existingAssociationPk2 = getRandomOasysPk()
@@ -117,10 +187,10 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.AAP_PLAN),
+        OasysAssociation(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -169,7 +239,7 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -271,9 +341,9 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.ASSESSMENT),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.PLAN),
+        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
         OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.ASSESSMENT),
       ),
     )
