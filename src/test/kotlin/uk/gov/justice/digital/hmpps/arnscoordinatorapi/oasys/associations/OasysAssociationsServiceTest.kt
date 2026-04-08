@@ -194,6 +194,36 @@ class OasysAssociationsServiceTest {
   }
 
   @Nested
+  inner class FindOasysPksByEntityUuids {
+    @Test
+    fun `should return empty map when no associations are found`() {
+      val entityUuids = listOf(UUID.randomUUID())
+      `when`(oasysAssociationRepository.findAllByEntityUuidIn(entityUuids)).thenReturn(emptyList())
+
+      val result = oasysAssociationsService.findOasysPksByEntityIds(entityUuids)
+
+      assertTrue(result.isEmpty())
+      verify(oasysAssociationRepository).findAllByEntityUuidIn(entityUuids)
+    }
+
+    @Test
+    fun `should group OASys PKs by entity UUID`() {
+      val entityUuid1 = UUID.randomUUID()
+      val entityUuid2 = UUID.randomUUID()
+      val associations = listOf(
+        OasysAssociation(id = 1L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100"),
+        OasysAssociation(id = 2L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101"),
+        OasysAssociation(id = 3L, entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200"),
+      )
+      `when`(oasysAssociationRepository.findAllByEntityUuidIn(listOf(entityUuid1, entityUuid2))).thenReturn(associations)
+
+      val result = oasysAssociationsService.findOasysPksByEntityIds(listOf(entityUuid1, entityUuid2))
+
+      assertEquals(mapOf(entityUuid1 to listOf("100", "101"), entityUuid2 to listOf("200")), result)
+    }
+  }
+
+  @Nested
   inner class FindDeletedAssociations {
     val oasysAssessmentPk = "test"
 
