@@ -19,7 +19,7 @@ data class OasysGetResponse(
 
   override var sentencePlanId: UUID = UUID(0, 0),
   override var sentencePlanVersion: Long = 0,
-  var planComplete: PlanState? = null,
+  var planComplete: PlanState = PlanState.INCOMPLETE,
   var planType: PlanType? = null,
   var lastUpdatedTimestampSP: LocalDateTime? = null,
 ) : OasysVersionedEntityResponse(
