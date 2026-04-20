@@ -34,6 +34,7 @@ class SoftDeleteTest : IntegrationTestBase() {
   fun setUp() {
     stubGrantToken()
     stubAssessmentsSoftDelete()
+    stubAAPSoftDeleteAssessment()
   }
 
   @Test

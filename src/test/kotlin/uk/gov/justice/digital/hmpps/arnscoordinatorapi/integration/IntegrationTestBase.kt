@@ -160,4 +160,8 @@ abstract class IntegrationTestBase {
   protected fun stubAAPMarkMerged(status: Int = 200) {
     aapApiMock.stubMarkMerged(status)
   }
+
+  protected fun stubAAPSoftDeleteAssessment(status: Int = 200) {
+    aapApiMock.stubSoftDeleteAssessment(status)
+  }
 }
