@@ -71,17 +71,20 @@ class EntityAssociationsTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `returns OASys PKs for multiple entity UUIDs`() {
+    fun `returns latest association details per entity UUID`() {
       val entityUuid1 = UUID.randomUUID()
       val entityUuid2 = UUID.randomUUID()
       val entityUuid3 = UUID.randomUUID()
 
+      // entityUuid1 has two associations; the second (PK 101) is the latest
       oasysAssociationRepository.saveAll(
         listOf(
-          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100"),
-          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101"),
-          OasysAssociation(entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200"),
+          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100", regionPrisonCode = "LDN", baseVersion = 1),
+          OasysAssociation(entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200", regionPrisonCode = "MAN", baseVersion = 5),
         ),
+      )
+      oasysAssociationRepository.save(
+        OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101", regionPrisonCode = "LDN", baseVersion = 2),
       )
 
       webTestClient.post()
@@ -94,8 +97,8 @@ class EntityAssociationsTest : IntegrationTestBase() {
         .expectBody().json(
           """
           {
-            "$entityUuid1": ["100", "101"],
-            "$entityUuid2": ["200"]
+            "$entityUuid1": { "oasysAssessmentPk": "101", "regionPrisonCode": "LDN", "baseVersion": 2 },
+            "$entityUuid2": { "oasysAssessmentPk": "200", "regionPrisonCode": "MAN", "baseVersion": 5 }
           }
           """,
         )
