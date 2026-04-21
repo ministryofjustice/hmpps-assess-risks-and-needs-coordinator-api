@@ -70,5 +70,4 @@ jobs:
     secrets: inherit
     with:
       environment: 'prod'
-      app_version: '2026-02-17.92.cf02779'
-#      app_version: '${{ needs.build_docker.outputs.app_version }}'
+      app_version: '${{ needs.build_docker.outputs.app_version }}'
