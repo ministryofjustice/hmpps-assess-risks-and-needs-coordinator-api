@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(
   JsonSubTypes.Type(value = CreateAssessmentCommand::class, name = "CreateAssessmentCommand"),
+  JsonSubTypes.Type(value = SoftDeleteAssessmentCommand::class, name = "SoftDeleteCommand"),
   JsonSubTypes.Type(value = UpdateAssessmentPropertiesCommand::class, name = "UpdateAssessmentPropertiesCommand"),
 )
 sealed interface Command {

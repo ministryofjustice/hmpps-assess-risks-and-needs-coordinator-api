@@ -130,6 +130,39 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
+  fun stubSoftDeleteAssessment(status: Int = 200) {
+    stubFor(
+      post("/command")
+        .withRequestBody(containing("SoftDeleteCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "SoftDeleteCommand",
+                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
+                        "user": { "id": "1", "name": "Test Name" },
+                        "pointInTime": "2026-01-09T12:00:00"
+                      },
+                      "result": {
+                        "type": "CommandSuccessCommandResult",
+                        "message": "Done",
+                        "success": true
+                      }
+                    }
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
+    )
+  }
+
   fun stubQueryAssessmentVersions(status: Int = 200) {
     stubFor(
       post("/query").willReturn(

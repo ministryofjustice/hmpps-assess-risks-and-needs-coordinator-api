@@ -958,46 +958,120 @@ class AAPPlanStrategyTest {
 
   @Nested
   inner class SoftDelete {
-    val softDeleteData = SoftDeleteData(
-      UserDetails("id", "name", UserType.OASYS),
-      versionFrom = 1,
-      versionTo = 2,
-    )
     val versionedEntity = OasysVersionEntity(
       createdBy = OasysEvent.LOCKED,
       entityUuid = UUID.randomUUID(),
       version = 2,
     )
 
-    @Test
-    fun `should return success when soft-delete is successful`() {
-      whenever(oasysVersionService.softDeleteVersions(versionedEntity.entityUuid, 1, 2)).thenReturn(
-        versionedEntity,
+    val expectedUser = AAPUser(id = "id", name = "name")
+
+    @Nested
+    inner class WithoutVersionTo {
+      val softDeleteData = SoftDeleteData(
+        UserDetails("id", "name", UserType.OASYS),
+        versionFrom = 1,
       )
 
-      val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
+      val expectedPointInTime = LocalDateTime.ofInstant(
+        java.time.Instant.ofEpochMilli(softDeleteData.versionFrom),
+        ZoneOffset.UTC,
+      )
 
-      assertTrue(result is OperationResult.Success)
-      (result as OperationResult.Success).data?.let {
-        assertEquals(it.id, versionedEntity.entityUuid)
-        assertEquals(it.version, versionedEntity.version)
+      @Test
+      fun `should call AAP soft-delete and return success`() {
+        whenever(aapApi.softDeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+        whenever(oasysVersionService.softDeleteVersions(versionedEntity.entityUuid, 1, null)).thenReturn(
+          versionedEntity,
+        )
+
+        val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Success)
+        (result as OperationResult.Success).data?.let {
+          assertEquals(it.id, versionedEntity.entityUuid)
+          assertEquals(it.version, versionedEntity.version)
+        }
+        verify(aapApi).softDeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser)
+        verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, null)
       }
-      verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, 2)
+
+      @Test
+      fun `should return failure when AAP soft-delete fails`() {
+        whenever(aapApi.softDeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Failure("Soft-delete failed"))
+
+        val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Failure)
+        assertEquals(
+          "Failed to soft-delete AAP assessment: Soft-delete failed",
+          (result as OperationResult.Failure).errorMessage,
+        )
+        verify(aapApi).softDeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser)
+        verify(oasysVersionService, org.mockito.Mockito.never()).softDeleteVersions(any(), any(), any())
+      }
+
+      @Test
+      fun `should return failure when local soft-delete fails`() {
+        whenever(aapApi.softDeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+        whenever(oasysVersionService.softDeleteVersions(versionedEntity.entityUuid, 1, null))
+          .thenThrow(RuntimeException("Error occurred"))
+
+        val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Failure)
+        assertEquals(
+          "Something went wrong while deleting versions for entity ${versionedEntity.entityUuid}",
+          (result as OperationResult.Failure).errorMessage,
+        )
+        verify(aapApi).softDeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser)
+        verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, null)
+      }
     }
 
-    @Test
-    fun `should return failure when soft-delete fails`() {
-      whenever(oasysVersionService.softDeleteVersions(versionedEntity.entityUuid, 1, 2))
-        .thenThrow(RuntimeException("Error occurred"))
-
-      val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
-
-      assertTrue(result is OperationResult.Failure)
-      assertEquals(
-        result,
-        OperationResult.Failure<VersionedEntity?>("Something went wrong while deleting versions for entity ${versionedEntity.entityUuid}"),
+    @Nested
+    inner class WithVersionTo {
+      val softDeleteData = SoftDeleteData(
+        UserDetails("id", "name", UserType.OASYS),
+        versionFrom = 1,
+        versionTo = 2,
       )
-      verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, 2)
+
+      @Test
+      fun `should not call AAP soft-delete and only delete local versions`() {
+        whenever(oasysVersionService.softDeleteVersions(versionedEntity.entityUuid, 1, 2)).thenReturn(
+          versionedEntity,
+        )
+
+        val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Success)
+        (result as OperationResult.Success).data?.let {
+          assertEquals(it.id, versionedEntity.entityUuid)
+          assertEquals(it.version, versionedEntity.version)
+        }
+        verify(aapApi, org.mockito.Mockito.never()).softDeleteAssessment(any(), any(), any())
+        verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, 2)
+      }
+
+      @Test
+      fun `should return failure when local soft-delete fails`() {
+        whenever(oasysVersionService.softDeleteVersions(versionedEntity.entityUuid, 1, 2))
+          .thenThrow(RuntimeException("Error occurred"))
+
+        val result = planStrategy.softDelete(softDeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Failure)
+        assertEquals(
+          "Something went wrong while deleting versions for entity ${versionedEntity.entityUuid}",
+          (result as OperationResult.Failure).errorMessage,
+        )
+        verify(aapApi, org.mockito.Mockito.never()).softDeleteAssessment(any(), any(), any())
+        verify(oasysVersionService).softDeleteVersions(versionedEntity.entityUuid, 1, 2)
+      }
     }
   }
 
