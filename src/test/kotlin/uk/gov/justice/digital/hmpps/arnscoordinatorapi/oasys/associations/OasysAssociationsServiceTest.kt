@@ -194,32 +194,40 @@ class OasysAssociationsServiceTest {
   }
 
   @Nested
-  inner class FindOasysPksByEntityUuids {
+  inner class FindLatestAssociationDetailsByEntityIds {
     @Test
     fun `should return empty map when no associations are found`() {
       val entityUuids = listOf(UUID.randomUUID())
       `when`(oasysAssociationRepository.findAllByEntityUuidIn(entityUuids)).thenReturn(emptyList())
 
-      val result = oasysAssociationsService.findOasysPksByEntityIds(entityUuids)
+      val result = oasysAssociationsService.findLatestAssociationDetailsByEntityIds(entityUuids)
 
       assertTrue(result.isEmpty())
       verify(oasysAssociationRepository).findAllByEntityUuidIn(entityUuids)
     }
 
     @Test
-    fun `should group OASys PKs by entity UUID`() {
+    fun `should return latest association details per entity UUID`() {
       val entityUuid1 = UUID.randomUUID()
       val entityUuid2 = UUID.randomUUID()
+      val older = java.time.LocalDateTime.now().minusDays(2)
+      val newer = java.time.LocalDateTime.now()
       val associations = listOf(
-        OasysAssociation(id = 1L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100"),
-        OasysAssociation(id = 2L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101"),
-        OasysAssociation(id = 3L, entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200"),
+        OasysAssociation(id = 1L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100", regionPrisonCode = "LDN", baseVersion = 1, createdAt = older),
+        OasysAssociation(id = 2L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101", regionPrisonCode = "LDN", baseVersion = 2, createdAt = newer),
+        OasysAssociation(id = 3L, entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200", regionPrisonCode = "MAN", baseVersion = 5, createdAt = newer),
       )
       `when`(oasysAssociationRepository.findAllByEntityUuidIn(listOf(entityUuid1, entityUuid2))).thenReturn(associations)
 
-      val result = oasysAssociationsService.findOasysPksByEntityIds(listOf(entityUuid1, entityUuid2))
+      val result = oasysAssociationsService.findLatestAssociationDetailsByEntityIds(listOf(entityUuid1, entityUuid2))
 
-      assertEquals(mapOf(entityUuid1 to listOf("100", "101"), entityUuid2 to listOf("200")), result)
+      assertEquals(
+        mapOf(
+          entityUuid1 to uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails("101", "LDN", 2),
+          entityUuid2 to uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails("200", "MAN", 5),
+        ),
+        result,
+      )
     }
   }
 

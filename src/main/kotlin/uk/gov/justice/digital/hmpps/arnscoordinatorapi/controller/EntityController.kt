@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
@@ -35,11 +36,11 @@ class EntityController(
   private val oasysAssociationsService: OasysAssociationsService,
 ) {
   @RequestMapping(path = ["/associations"], method = [RequestMethod.POST])
-  @Operation(description = "Return OASys Assessment PKs for the given entity UUIDs")
+  @Operation(description = "Return current OASys association details (PK, region, version) for the given entity UUIDs")
   @PreAuthorize("hasAnyRole('ROLE_STRENGTHS_AND_NEEDS_OASYS','ROLE_SENTENCE_PLAN_READ')")
   @ApiResponses(
     value = [
-      ApiResponse(responseCode = "200", description = "OASys PKs returned"),
+      ApiResponse(responseCode = "200", description = "Association details returned"),
       ApiResponse(
         responseCode = "401",
         description = "Unauthorised",
@@ -54,7 +55,7 @@ class EntityController(
   )
   fun associationsByEntityUuids(
     @RequestBody entityUuids: List<UUID>,
-  ): Map<UUID, List<String>> = oasysAssociationsService.findOasysPksByEntityIds(entityUuids)
+  ): Map<UUID, EntityAssociationDetails> = oasysAssociationsService.findLatestAssociationDetailsByEntityIds(entityUuids)
 
   @RequestMapping(path = ["/versions/{entityUuid}"], method = [RequestMethod.GET])
   @Operation(description = "Gets the list of both assessment AND sentence plan versions for a given entity ID")

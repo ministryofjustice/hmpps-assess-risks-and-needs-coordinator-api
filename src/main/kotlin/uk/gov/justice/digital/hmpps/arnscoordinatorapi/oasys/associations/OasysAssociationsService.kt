@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -24,10 +25,19 @@ class OasysAssociationsService(
 
   fun findOasysPkByEntityId(entityUuid: UUID): String? = oasysAssociationRepository.findAllByEntityUuid(entityUuid).maxByOrNull { it.createdAt }?.oasysAssessmentPk
 
-  fun findOasysPksByEntityIds(entityUuids: Collection<UUID>): Map<UUID, List<String>> = oasysAssociationRepository
+  fun findLatestAssociationDetailsByEntityIds(entityUuids: Collection<UUID>): Map<UUID, EntityAssociationDetails> = oasysAssociationRepository
     .findAllByEntityUuidIn(entityUuids)
     .groupBy { it.entityUuid }
-    .mapValues { (_, associations) -> associations.mapNotNull { it.oasysAssessmentPk } }
+    .mapNotNull { (entityUuid, associations) ->
+      val latest = associations.maxByOrNull { it.createdAt } ?: return@mapNotNull null
+      val pk = latest.oasysAssessmentPk ?: return@mapNotNull null
+      entityUuid to EntityAssociationDetails(
+        oasysAssessmentPk = pk,
+        regionPrisonCode = latest.regionPrisonCode,
+        baseVersion = latest.baseVersion,
+      )
+    }
+    .toMap()
 
   fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 
