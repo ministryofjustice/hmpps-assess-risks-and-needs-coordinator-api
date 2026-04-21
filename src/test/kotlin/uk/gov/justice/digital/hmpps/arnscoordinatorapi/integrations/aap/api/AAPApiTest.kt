@@ -16,8 +16,10 @@ import reactor.core.publisher.Mono
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandSuccessResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CreateAssessmentCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
@@ -122,7 +124,6 @@ class AAPApiTest {
 
     @Test
     fun `should return success when AAP API deletes successfully`() {
-      // Arrange
       val assessmentUuid = UUID.randomUUID()
 
       `when`(webClient.delete()).thenReturn(requestHeadersUriSpec)
@@ -130,16 +131,13 @@ class AAPApiTest {
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(Void::class.java)).thenReturn(Mono.empty())
 
-      // Act
       val result = aapApi.deleteAssessment(assessmentUuid)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Success)
     }
 
     @Test
     fun `should return failure when AAP API returns HTTP error`() {
-      // Arrange
       val assessmentUuid = UUID.randomUUID()
 
       `when`(webClient.delete()).thenReturn(requestHeadersUriSpec)
@@ -148,10 +146,8 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(Void::class.java))
         .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.NOT_FOUND.value(), "Not Found", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
-      // Act
       val result = aapApi.deleteAssessment(assessmentUuid)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("HTTP error during delete AAP assessment"))
@@ -159,7 +155,6 @@ class AAPApiTest {
 
     @Test
     fun `should return failure when unexpected exception occurs`() {
-      // Arrange
       val assessmentUuid = UUID.randomUUID()
 
       `when`(webClient.delete()).thenReturn(requestHeadersUriSpec)
@@ -168,10 +163,8 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(Void::class.java))
         .thenReturn(Mono.error(RuntimeException("Unexpected error")))
 
-      // Act
       val result = aapApi.deleteAssessment(assessmentUuid)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("Unexpected error during deleteAssessment"))
@@ -183,7 +176,6 @@ class AAPApiTest {
 
     @Test
     fun `should return success when AAP API returns a valid response`() {
-      // Arrange
       val assessmentUuid = UUID.randomUUID()
       val aggregateUuid = UUID.randomUUID()
       val now = LocalDateTime.now()
@@ -219,10 +211,8 @@ class AAPApiTest {
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(QueriesResponse::class.java)).thenReturn(Mono.just(response))
 
-      // Act
       val result = aapApi.fetchAssessment(assessmentUuid, now)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Success)
       val successResult = result as AAPApi.ApiOperationResult.Success
       assertEquals(assessmentUuid, successResult.data.assessmentUuid)
@@ -232,7 +222,6 @@ class AAPApiTest {
 
     @Test
     fun `should return failure when AAP API returns HTTP error`() {
-      // Arrange
       val entityUuid = UUID.randomUUID()
       val timestamp = LocalDateTime.now()
 
@@ -243,10 +232,8 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(QueriesResponse::class.java))
         .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.NOT_FOUND.value(), "Not Found", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
-      // Act
       val result = aapApi.fetchAssessment(entityUuid, timestamp)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("HTTP error during fetch AAP assessment"))
@@ -254,7 +241,6 @@ class AAPApiTest {
 
     @Test
     fun `should return failure when AAP API returns empty queries list`() {
-      // Arrange
       val entityUuid = UUID.randomUUID()
       val timestamp = LocalDateTime.now()
       val response = QueriesResponse(queries = emptyList())
@@ -265,10 +251,8 @@ class AAPApiTest {
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(QueriesResponse::class.java)).thenReturn(Mono.just(response))
 
-      // Act
       val result = aapApi.fetchAssessment(entityUuid, timestamp)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("No query result returned from AAP API"))
@@ -276,7 +260,6 @@ class AAPApiTest {
 
     @Test
     fun `should return failure when unexpected exception occurs`() {
-      // Arrange
       val entityUuid = UUID.randomUUID()
       val timestamp = LocalDateTime.now()
 
@@ -287,13 +270,78 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(QueriesResponse::class.java))
         .thenReturn(Mono.error(RuntimeException("Unexpected error")))
 
-      // Act
       val result = aapApi.fetchAssessment(entityUuid, timestamp)
 
-      // Assert
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("Unexpected error during fetchAssessment"))
+    }
+  }
+
+  @Nested
+  inner class SoftDeleteAssessment {
+
+    @Test
+    fun `should return success when AAP API returns a valid response`() {
+      val entityUuid = UUID.randomUUID()
+      val pointInTime = LocalDateTime.parse("2026-01-09T12:00:00")
+      val user = AAPUser(id = "user-id", name = "User Name")
+
+      val response = CommandsResponse(
+        commands = listOf(
+          CommandResponse(mock<SoftDeleteAssessmentCommand>(), result = CommandSuccessResult()),
+        ),
+      )
+
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
+
+      val result = aapApi.softDeleteAssessment(entityUuid, pointInTime, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when AAP API returns HTTP error`() {
+      val entityUuid = UUID.randomUUID()
+      val pointInTime = LocalDateTime.parse("2026-01-09T12:00:00")
+      val user = AAPUser(id = "user-id", name = "User Name")
+
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
+
+      val result = aapApi.softDeleteAssessment(entityUuid, pointInTime, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      val failureResult = result as AAPApi.ApiOperationResult.Failure
+      assertTrue(failureResult.errorMessage.contains("HTTP error during soft-delete AAP assessment"))
+    }
+
+    @Test
+    fun `should return failure when unexpected exception occurs`() {
+      val entityUuid = UUID.randomUUID()
+      val pointInTime = LocalDateTime.parse("2026-01-09T12:00:00")
+      val user = AAPUser(id = "user-id", name = "User Name")
+
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.error(RuntimeException("Unexpected error")))
+
+      val result = aapApi.softDeleteAssessment(entityUuid, pointInTime, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      val failureResult = result as AAPApi.ApiOperationResult.Failure
+      assertTrue(failureResult.errorMessage.contains("Unexpected error during softDeleteAssessment"))
     }
   }
 }

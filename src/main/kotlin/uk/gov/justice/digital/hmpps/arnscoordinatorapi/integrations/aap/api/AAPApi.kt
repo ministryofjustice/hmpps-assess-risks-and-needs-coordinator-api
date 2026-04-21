@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.IdentifierType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
@@ -143,6 +144,39 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
+  }
+
+  fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
+    val command = SoftDeleteAssessmentCommand(
+      assessmentUuid = entityUuid,
+      user = user,
+      pointInTime = pointInTime,
+    )
+
+    val request = CommandsRequest.of(command)
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(request))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+
+    val result = response?.commands?.firstOrNull()?.result
+      ?: throw IllegalStateException("No command result returned from AAP API")
+
+    if (!result.success) {
+      throw IllegalStateException("AAP API returned failure: ${result.message}")
+    }
+
+    ApiOperationResult.Success(Unit)
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during soft-delete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during softDeleteAssessment: ${ex.message}", ex)
   }
 
   fun markMerged(assessmentUuid: UUID, user: AAPUser): ApiOperationResult<Unit> = try {

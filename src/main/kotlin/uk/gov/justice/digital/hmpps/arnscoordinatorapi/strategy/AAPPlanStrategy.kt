@@ -40,6 +40,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
+import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.getOrElse
@@ -211,24 +213,38 @@ class AAPPlanStrategy(
     },
   )
 
-  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> = runCatching {
-    val result =
-      oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> {
+    if (softDeleteData.versionTo == null) {
+      val pointInTime = LocalDateTime.ofInstant(
+        Instant.ofEpochMilli(softDeleteData.versionFrom),
+        ZoneOffset.UTC,
+      )
+      val user = AAPUser(id = softDeleteData.userDetails.id, name = softDeleteData.userDetails.name)
 
-    Success(
-      VersionedEntity(
-        id = entityUuid,
-        version = result.version,
-        entityType = EntityType.AAP_PLAN,
-      ),
+      when (val softDeleteResult = aapApi.softDeleteAssessment(entityUuid, pointInTime, user)) {
+        is AAPApi.ApiOperationResult.Failure -> return Failure("Failed to soft-delete AAP assessment: ${softDeleteResult.errorMessage}")
+        is AAPApi.ApiOperationResult.Success -> {}
+      }
+    }
+
+    return runCatching {
+      val result = oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
+
+      Success(
+        VersionedEntity(
+          id = entityUuid,
+          version = result.version,
+          entityType = EntityType.AAP_PLAN,
+        ),
+      )
+    }.fold(
+      onSuccess = { it },
+      onFailure = { ex ->
+        log.error("Failed to soft-delete versions for entity $entityUuid", ex)
+        Failure("Something went wrong while deleting versions for entity $entityUuid")
+      },
     )
-  }.fold(
-    onSuccess = { it },
-    onFailure = { ex ->
-      log.error("Failed to soft-delete versions for entity $entityUuid", ex)
-      Failure("Something went wrong while deleting versions for entity $entityUuid")
-    },
-  )
+  }
 
   override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
     val result = oasysVersionService.undeleteVersions(
