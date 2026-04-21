@@ -10,6 +10,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -223,8 +224,8 @@ class OasysAssociationsServiceTest {
 
       assertEquals(
         mapOf(
-          entityUuid1 to uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails("101", "LDN", 2),
-          entityUuid2 to uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails("200", "MAN", 5),
+          entityUuid1 to EntityAssociationDetails("101", "LDN", 2),
+          entityUuid2 to EntityAssociationDetails("200", "MAN", 5),
         ),
         result,
       )
