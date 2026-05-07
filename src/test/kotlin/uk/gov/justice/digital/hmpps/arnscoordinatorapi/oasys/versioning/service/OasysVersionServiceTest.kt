@@ -146,14 +146,14 @@ class OasysVersionServiceTest {
     fun `it throws when no versions are found in the provided range`() {
       val uuid = UUID.randomUUID()
 
-      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1767956400000L, 1767960000000L)).thenReturn(emptyList())
+      whenever(repository.findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767956400000L, 1767960000000L)).thenReturn(emptyList())
 
       val ex = assertThrows<Error> {
         service.softDeleteVersions(uuid, from = 1767956400000L, to = 1767960000000L)
       }
 
       assertTrue(ex.message!!.contains("No versions found for entity $uuid between 1767956400000 to 1767960000000"))
-      verify(repository).findAllByEntityUuidAndVersionBetween(uuid, 1767956400000L, 1767960000000L)
+      verify(repository).findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767956400000L, 1767960000000L)
       verify(repository, never()).saveAll(anyList())
     }
 
@@ -162,12 +162,12 @@ class OasysVersionServiceTest {
       val uuid = UUID.randomUUID()
 
       val found = listOf(entity(uuid, 1767952800000), entity(uuid, 1767956400000L), entity(uuid, 1767960000000L))
-      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767960000000L)).thenReturn(found)
+      whenever(repository.findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767952800000, 1767960000000L)).thenReturn(found)
       whenever(repository.saveAll(anyList())).thenAnswer { it.arguments[0] as List<*> }
 
       val last = service.softDeleteVersions(uuid, from = 1767952800000, to = null)
 
-      verify(repository).findAllByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767960000000L)
+      verify(repository).findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767952800000, 1767960000000L)
 
       verify(repository).saveAll(
         check<List<OasysVersionEntity>> {
@@ -183,7 +183,7 @@ class OasysVersionServiceTest {
     fun `it marks all returned entities deleted and returns the last version in the saveAll result`() {
       val uuid = UUID.randomUUID()
       val found = listOf(entity(uuid, 1767952800000), entity(uuid, 1767956400000L), entity(uuid, 1767960000000L))
-      whenever(repository.findAllByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767960000000L)).thenReturn(found)
+      whenever(repository.findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767952800000, 1767960000000L)).thenReturn(found)
 
       val savedList =
         listOf(entity(uuid, 1767952800000, deleted = true), entity(uuid, 1767956400000L, deleted = true), entity(uuid, 1767960000000L, deleted = true))

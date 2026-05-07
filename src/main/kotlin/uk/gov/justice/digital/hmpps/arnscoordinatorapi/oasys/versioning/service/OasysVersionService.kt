@@ -30,7 +30,7 @@ class OasysVersionService(
 
   fun softDeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity {
     val toVersion = to ?: getLatestVersionNumber()
-    val versions = repository.findAllByEntityUuidAndVersionBetween(entityUuid, from, toVersion)
+    val versions = repository.findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(entityUuid, from, toVersion)
 
     if (versions.isEmpty()) {
       val errorMessage = "No versions found for entity $entityUuid between $from to $toVersion"

@@ -22,11 +22,11 @@ interface OasysVersionRepository : JpaRepository<OasysVersionEntity, Long> {
     SELECT *
     FROM coordinator.oasys_version
     WHERE entity_uuid = :entityUuid
-    AND version BETWEEN :fromVersion AND :toVersion
+    AND version >= :fromVersion AND version < :toVersion
     AND deleted = true
   """,
     nativeQuery = true,
   )
   fun findAllDeletedByEntityUuidAndVersionBetween(entityUuid: UUID, fromVersion: Long, toVersion: Long): List<OasysVersionEntity>
-  fun findAllByEntityUuidAndVersionBetween(entityUuid: UUID, fromVersion: Long, toVersion: Long): List<OasysVersionEntity>
+  fun findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(entityUuid: UUID, fromVersion: Long, toVersion: Long): List<OasysVersionEntity>
 }
