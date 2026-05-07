@@ -149,7 +149,7 @@ class OasysVersionServiceTest {
       whenever(repository.findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767956400000L, 1767960000000L)).thenReturn(emptyList())
 
       val ex = assertThrows<Error> {
-        service.softDeleteVersions(uuid, from = 1767956400000L, to = 1767960000001L)
+        service.softDeleteVersions(uuid, from = 1767956400000L, to = 1767960000000L)
       }
 
       assertTrue(ex.message!!.contains("No versions found for entity $uuid between 1767956400000 to 1767960000000"))
@@ -189,7 +189,7 @@ class OasysVersionServiceTest {
         listOf(entity(uuid, 1767952800000, deleted = true), entity(uuid, 1767956400000L, deleted = true), entity(uuid, 1767960000000L, deleted = true))
       whenever(repository.saveAll(anyList())).thenReturn(savedList)
 
-      val last = service.softDeleteVersions(uuid, 1767952800000, 1767960000001L)
+      val last = service.softDeleteVersions(uuid, 1767952800000, 1767960000000L)
 
       assertEquals(1767960000000L, last.version)
       assertTrue(last.deleted)
@@ -205,7 +205,7 @@ class OasysVersionServiceTest {
       whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767956400000L)).thenReturn(emptyList())
 
       assertThrows<Error> {
-        service.undeleteVersions(uuid, 1767952800000, 1767956400001L)
+        service.undeleteVersions(uuid, 1767952800000, 1767956400000L)
       }
 
       verify(repository).findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767956400000L)
@@ -243,7 +243,7 @@ class OasysVersionServiceTest {
       val savedList = listOf(entity(uuid, 1767952800000, deleted = false), entity(uuid, 1767956400000L, deleted = false))
       whenever(repository.saveAll(anyList())).thenReturn(savedList)
 
-      val last = service.undeleteVersions(uuid, 1767952800000, 1767956400001L)
+      val last = service.undeleteVersions(uuid, 1767952800000, 1767956400000L)
 
       assertEquals(1767956400000L, last.version)
       assertFalse(last.deleted)

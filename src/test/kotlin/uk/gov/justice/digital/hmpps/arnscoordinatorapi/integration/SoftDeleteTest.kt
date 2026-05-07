@@ -102,7 +102,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 2, 2)
+    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 2, 3)
     val activePlanVersions = oasysVersionRepository.findAllByEntityUuid(planUuid)
 
     assertThat(response?.sanAssessmentId).isEqualTo(assessmentUuid)
@@ -185,7 +185,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 0)
+    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 1)
 
     assertThat(response!!.sanAssessmentId).isEqualTo(UUID(0, 0))
     assertThat(response.sanAssessmentVersion).isEqualTo(0)
