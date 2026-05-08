@@ -9,7 +9,7 @@ generic-service:
     modsecurity_enabled: true
     modsecurity_audit_enabled: true
     modsecurity_snippet: |
-      SecRuleEngine On
+      SecRuleEngine DetectionOnly
       # Team here grants access to the OpenSearch logs to delve into the cause of the blockage
       SecDefaultAction "phase:2,pass,log,tag:github_team=hmpps-assessments,tag:namespace={{ .Release.Namespace }}"
       # Change default denial to be a 406 so that we can tell easily that it is modsecurity doing the blocking
