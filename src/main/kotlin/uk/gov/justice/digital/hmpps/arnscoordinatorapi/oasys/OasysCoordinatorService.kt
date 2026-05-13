@@ -632,6 +632,8 @@ class OasysCoordinatorService(
     val userDetails = request.userDetails.intoUserDetails()
 
     for (association in resultsToMerge.values.flatten()) {
+      if (association.deleted) continue
+
       val strategy = strategyFactory.getStrategy(association.entityType!!)
       val result = strategy.markMerged(association.entityUuid, userDetails)
 
