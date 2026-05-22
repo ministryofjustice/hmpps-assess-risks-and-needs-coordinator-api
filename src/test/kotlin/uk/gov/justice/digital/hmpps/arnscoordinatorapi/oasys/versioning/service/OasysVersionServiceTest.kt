@@ -64,7 +64,7 @@ class OasysVersionServiceTest {
       val uuid = UUID.randomUUID()
       val event = OasysEvent.CREATED
 
-      whenever(repository.save(any())).thenAnswer { it.arguments[0] as OasysVersionEntity }
+      whenever(repository.save(any<OasysVersionEntity>())).thenAnswer { it.arguments[0] as OasysVersionEntity }
 
       val saved = service.createVersionFor(event, uuid)
 
@@ -87,7 +87,7 @@ class OasysVersionServiceTest {
       val uuid = UUID.randomUUID()
       val event = OasysEvent.AWAITING_COUNTERSIGN
 
-      whenever(repository.save(any())).thenAnswer { it.arguments[0] as OasysVersionEntity }
+      whenever(repository.save(any<OasysVersionEntity>())).thenAnswer { it.arguments[0] as OasysVersionEntity }
 
       val saved = service.createVersionFor(event, uuid)
 
@@ -122,7 +122,7 @@ class OasysVersionServiceTest {
       val existing = entity(uuid, version = 1767960000000L, createdBy = OasysEvent.AWAITING_COUNTERSIGN)
 
       whenever(repository.findByEntityUuidAndVersion(uuid, 1767960000000L)).thenReturn(existing)
-      whenever(repository.save(any())).thenAnswer { it.arguments[0] as OasysVersionEntity }
+      whenever(repository.save(any<OasysVersionEntity>())).thenAnswer { it.arguments[0] as OasysVersionEntity }
 
       val saved = service.updateVersion(event, uuid, 1767960000000L)
 
