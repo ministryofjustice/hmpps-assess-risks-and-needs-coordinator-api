@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CreateAssessmentCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -36,7 +37,49 @@ class AAPApi(
   val apiProperties: AAPApiProperties,
 ) {
 
-  fun createAssessment(createData: CreatePlanData): ApiOperationResult<VersionedEntity> = try {
+  fun createStrengthsAndNeeds(createData: CreateAssessmentData): ApiOperationResult<VersionedEntity> = try {
+    val identifiers = null // note: we do not currently receive identifiers in a CreateAssessmentData request
+
+    val request = CreateAssessmentCommand(
+      assessmentType = "STRENGTHS_AND_NEEDS",
+      formVersion = "", // note: we leave this empty and then set it when the user gets into AAPxSP
+      properties = emptyMap(),
+      identifiers = identifiers,
+      user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
+    ).let { CommandsRequest.of(it) }
+
+    aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(request))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+      .let { response ->
+        response?.commands?.firstOrNull()?.result.let {
+          when (it) {
+            is CreateAssessmentCommandResult -> ApiOperationResult.Success(
+              VersionedEntity(
+                id = it.assessmentUuid,
+                version = 0,
+                entityType = EntityType.AAP_SAN,
+              ),
+            )
+
+            null -> throw IllegalStateException("No command result returned from AAP API")
+            else -> throw IllegalStateException("Unexpected command result type: ${it::class.simpleName}")
+          }
+        }
+      }
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during create AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during createAssessment: ${ex.message}", ex)
+  }
+
+  fun createSentencePlan(createData: CreatePlanData): ApiOperationResult<VersionedEntity> = try {
     val identifiers = buildIdentifiers(createData)
 
     val properties = mapOf(

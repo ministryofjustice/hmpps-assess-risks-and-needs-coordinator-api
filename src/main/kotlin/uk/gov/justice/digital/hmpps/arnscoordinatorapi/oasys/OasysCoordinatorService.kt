@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService.GetOperationResult.*
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -91,10 +92,11 @@ class OasysCoordinatorService(
       baseVersion = when (entityType) {
         EntityType.ASSESSMENT -> existingAssociation.baseVersion
         EntityType.PLAN -> existingAssociation.baseVersion
-        EntityType.AAP_PLAN ->
+        EntityType.AAP_PLAN, EntityType.AAP_SAN ->
           oasysVersionService
             .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
             .version
+
       },
       regionPrisonCode = regionPrisonCode,
     )
@@ -452,7 +454,7 @@ class OasysCoordinatorService(
     val oasysAssociationsResponse = OasysAssociationsResponse()
     associations.forEach { association ->
       when (association.entityType) {
-        EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
+        EntityType.ASSESSMENT, EntityType.AAP_SAN -> oasysAssociationsResponse.apply {
           sanAssessmentId = association.entityUuid
         }
 
@@ -466,7 +468,7 @@ class OasysCoordinatorService(
           }
         }
 
-        null -> return GetOperationResult.Failure("Misconfigured association found")
+        null -> return Failure("Misconfigured association found")
       }
     }
 
