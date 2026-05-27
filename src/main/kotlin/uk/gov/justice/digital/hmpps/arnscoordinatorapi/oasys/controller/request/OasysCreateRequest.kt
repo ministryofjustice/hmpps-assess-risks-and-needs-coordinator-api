@@ -66,7 +66,7 @@ data class OasysCreateRequest(
 ) {
 
   fun previousPkFor(entityType: EntityType): String? = when (entityType) {
-    EntityType.ASSESSMENT -> previousOasysSanPk
+    EntityType.ASSESSMENT , EntityType.AAP_SAN -> previousOasysSanPk
     EntityType.PLAN, EntityType.AAP_PLAN -> previousOasysSpPk
   }
 
@@ -76,7 +76,7 @@ data class OasysCreateRequest(
   }
 
   fun shouldClone(entityType: EntityType): Boolean = when (entityType) {
-    EntityType.ASSESSMENT -> true
+    EntityType.ASSESSMENT, EntityType.AAP_SAN -> true
     else -> false
   }
 }

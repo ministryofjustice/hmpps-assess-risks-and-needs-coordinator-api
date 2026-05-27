@@ -98,6 +98,7 @@ app:
     plan: true
     assessment: true
     aap-plan: true
+    aap-san: true
   events:
     enabled: true
   db:
