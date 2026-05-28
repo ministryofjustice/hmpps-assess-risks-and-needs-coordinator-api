@@ -23,6 +23,7 @@ class StrategyFactory(
     assessmentStrategy,
     planStrategy,
     aapPlanStrategy,
+    aapStrengthsAndNeedsStrategy,
   )
 
   fun getStrategiesFor(assessmentType: AssessmentType): List<EntityStrategy> = getStrategies()
