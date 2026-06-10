@@ -4,8 +4,6 @@
 generic-service:
   replicaCount: 2
 
-  serviceAccountName: hmpps-assess-risks-and-needs-coordinator-api # This can be hoisted to values.yml later.
-
   ingress:
     host: arns-coordinator-api-dev.hmpps.service.justice.gov.uk
     modsecurity_enabled: true
@@ -42,10 +40,6 @@ generic-service:
     capita-developers-vms-five: 85.115.54.180/32
     capita-developers-vms-six: 85.115.54.200/29
     krupal-app-sec: 80.195.27.199/32
-
-  namespace_secrets:
-    sqs-arns-coordinator-queue:
-      HMPPS_SQS_QUEUES_COORDINATOR_QUEUE_NAME: "sqs_queue_name" # This can be hoisted to values.yml later.
       
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

@@ -1,5 +1,6 @@
 generic-service:
   nameOverride: hmpps-assess-risks-and-needs-coordinator-api
+  serviceAccountName: hmpps-assess-risks-and-needs-coordinator-api
   productId: "HMPPS509" # productId for the product that this belongs too, i.e. DPS001, see README.md for details
 
   replicaCount: 4
@@ -37,6 +38,9 @@ generic-service:
       APP_DB_NAME: database_name
       APP_DB_USERNAME: database_username
       APP_DB_PASSWORD: database_password
+
+    sqs-arns-coordinator-queue:
+      HMPPS_SQS_QUEUES_COORDINATOR_QUEUE_NAME: "sqs_queue_name"
 
   allowlist:
     groups:
