@@ -6,6 +6,21 @@ generic-service:
 
   ingress:
     host: arns-coordinator-api.hmpps.service.justice.gov.uk
+    className: modsec
+    modsecurity_enabled: true
+    modsecurity_snippet: |
+      # Required for DetectionOnly: default audit logging is RelevantOnly (warnings/errors only);
+      # SecAuditEngine On gives full request visibility in OpenSearch while we monitor the rollout.
+      SecAuditEngine On
+      SecRuleEngine DetectionOnly
+      # Team here grants access to the OpenSearch logs to delve into the cause of the blockage
+      SecDefaultAction "phase:2,pass,log,tag:github_team=hmpps-assessments,tag:namespace={{ .Release.Namespace }}"
+      # Disables request body scanning so free-text form fields (goal titles, step descriptions) do not trigger false positives
+      SecRuleUpdateTargetById 920272 "!REQUEST_BODY"
+      # Change default denial to be a 406 so that we can tell easily that it is modsecurity doing the blocking
+      SecRuleUpdateActionById 949110 "t:none,deny,status:406,logdata:%{SERVER_NAME}"
+      SecRuleUpdateActionById 959100 "t:none,deny,status:406,logdata:%{SERVER_NAME}"
+      SecAction "id:900000,phase:1,nolog,pass,t:none,setvar:tx.paranoia_level=2"
 
   env:
     HMPPS_AUTH_BASE_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
