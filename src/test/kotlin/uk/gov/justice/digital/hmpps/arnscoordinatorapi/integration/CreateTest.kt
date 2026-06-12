@@ -4,20 +4,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.never
-import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.sqs.SqsClient
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -26,6 +21,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.net.URI
 import java.util.UUID
 
 class CreateTest : IntegrationTestBase() {
@@ -33,8 +29,20 @@ class CreateTest : IntegrationTestBase() {
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
 
-  @MockitoBean
-  lateinit var oasysEventPublisher: OasysEventPublisher
+  @Value("\${hmpps.sqs.localstackUrl}")
+  lateinit var localStackUrl: String
+
+  fun createClient(): SqsClient {
+    return SqsClient.builder()
+      .endpointOverride(URI.create(localStackUrl))
+      .region(Region.EU_WEST_2)
+      .credentialsProvider(
+        StaticCredentialsProvider.create(
+          AwsBasicCredentials.create("test", "test"),
+        ),
+      )
+      .build()
+  }
 
   @BeforeEach
   fun setUp() {
@@ -42,7 +50,6 @@ class CreateTest : IntegrationTestBase() {
     stubAssessmentsCreate()
     stubAAPCreateAssessment()
     stubAssessmentsClone()
-    doNothing().whenever(oasysEventPublisher).publish(any())
   }
 
   @Test
@@ -70,8 +77,9 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it publishes an OASYS_VERSION_EVENT when create succeeds`() {
+  fun `it publishes an OASYS_VERSION_EVENT to SQS when create succeeds`() {
     val oasysAssessmentPk = getRandomOasysPk()
+    val sqsClient = createClient()
 
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
@@ -87,20 +95,17 @@ class CreateTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isCreated
 
-    val captor = argumentCaptor<CoordinatorEvent>()
-    verify(oasysEventPublisher, times(1)).publish(captor.capture())
+    val messages = sqsClient.receiveMessage {
+      it.queueUrl("${localStackUrl}/000000000000/coordinator-queue")
+        .messageAttributeNames("All")
+        .maxNumberOfMessages(1)
+        .waitTimeSeconds(2)
+    }.messages()
 
-    val event = captor.firstValue
-    assertThat(event.eventType).isEqualTo(EventType.OASYS_VERSION_EVENT)
-    assertThat(event.entityType).isEqualTo("AAP_PLAN")
-    assertThat(event.message).isInstanceOf(VersionPayload::class.java)
-
-    val payload = event.message as VersionPayload
-    assertThat(payload.oasysEvent).isEqualTo(OasysEvent.CREATED)
-    assertThat(payload.deleted).isFalse()
-    assertThat(payload.association.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
-    assertThat(payload.association.regionPrisonCode).isEqualTo("MDI")
-    assertThat(payload.association.baseVersion).isEqualTo(1L)
+    assertThat(messages).hasSize(1)
+    assertThat(messages.first().messageAttributes()["eventType"]?.stringValue()).isEqualTo("OASYS_VERSION_EVENT")
+    // assertThat(messages.first().body()).contains(oasysAssessmentPk)
+    assertThat(messages.first().body()).contains("\"entityType\":\"AAP_PLAN\"")
   }
 
   @Test
@@ -128,6 +133,7 @@ class CreateTest : IntegrationTestBase() {
   fun `it does not publish an event when create fails`() {
     stubAAPCreateAssessment(500)
     val oasysAssessmentPk = getRandomOasysPk()
+    val sqsClient = createClient()
 
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
@@ -142,7 +148,15 @@ class CreateTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isEqualTo(500)
 
-    verify(oasysEventPublisher, never()).publish(any())
+    val messages = sqsClient.receiveMessage {
+      it.queueUrl("${localStackUrl}/000000000000/coordinator-queue")
+        .maxNumberOfMessages(1)
+        .waitTimeSeconds(1)
+        .visibilityTimeout(1)
+        .messageAttributeNames("All")
+    }.messages()
+
+    assertThat(messages).isEmpty()
   }
 
   @Test

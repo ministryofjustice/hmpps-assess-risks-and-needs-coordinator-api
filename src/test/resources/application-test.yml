@@ -31,3 +31,12 @@ spring:
     create-schemas: true
     default-schema: COORDINATOR
     schemas: COORDINATOR
+
+hmpps:
+  sqs:
+    provider: localstack
+    localstackUrl: http://localhost:4566
+    queues:
+      coordinator:
+        queue-name: coordinator-queue
+        error-visibility-timeout: 30

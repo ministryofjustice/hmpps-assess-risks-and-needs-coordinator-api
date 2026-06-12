@@ -53,6 +53,8 @@ services:
     image: localstack/localstack:4
     networks:
       - hmpps
+    ports:
+      - "4566:4566"
     environment:
       - SERVICES=sqs
       - LOCALSTACK_HOST=localstack:4566
