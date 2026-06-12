@@ -30,6 +30,8 @@ services:
     depends_on:
       - postgres
       - hmpps-auth
+      - localstack
+      - sqs-admin
     healthcheck:
       test: ["CMD", "curl", "-f", "http://coordinator-api:8080/health/ping"]
       interval: 5s
@@ -46,6 +48,41 @@ services:
       # TODO: Need to get some proper credentials for below
       CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
       CLIENT_SECRET: clientsecret
+
+  localstack:
+    image: localstack/localstack:4
+    networks:
+      - hmpps
+    environment:
+      - SERVICES=sqs
+      - LOCALSTACK_HOST=localstack:4566
+      - DEBUG=1
+      - DEFAULT_REGION=eu-west-2
+      - AWS_DEFAULT_REGION=eu-west-2
+      - USE_SSL=false
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "./scripts/localstack/init:/etc/localstack/init/ready.d"
+      - "./scripts/localstack/wait:/scripts/wait"
+    healthcheck:
+      test: [ "CMD", "bash", "/scripts/wait/healthcheck.sh" ]
+      interval: 5s
+      timeout: 10s
+      retries: 50
+
+  sqs-admin:
+    image: pacovk/sqs-admin:latest
+    networks:
+      - hmpps
+    ports:
+      - "3999:3999"
+    environment:
+      SQS_ENDPOINT_URL: http://localstack:4566
+      SQS_AWS_REGION: eu-west-2
+      SQS_AWS_ACCESS_KEY_ID: test
+      SQS_AWS_SECRET_ACCESS_KEY: test
+    depends_on:
+      - localstack
 
 networks:
   hmpps:

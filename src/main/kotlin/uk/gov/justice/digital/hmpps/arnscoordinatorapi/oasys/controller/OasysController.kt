@@ -20,6 +20,12 @@ import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.AssociationPayload
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
@@ -31,12 +37,15 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.LocalDateTime
+import java.util.UUID
 
 @RestController
 @Tag(name = "OASys")
 @RequestMapping("\${app.self.endpoints.oasys}")
 class OasysController(
   private val oasysCoordinatorService: OasysCoordinatorService,
+  private val oasysEventPublisher: OasysEventPublisher,
 ) {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
@@ -111,9 +120,28 @@ class OasysController(
     val result = oasysCoordinatorService.create(request)
 
     return when (result) {
-      is OasysCoordinatorService.CreateOperationResult.Success ->
+      is OasysCoordinatorService.CreateOperationResult.Success -> {
+        oasysEventPublisher.publish(
+          event = CoordinatorEvent(
+            eventType = EventType.OASYS_VERSION_EVENT,
+            entityType = "AAP_PLAN",
+            entityUuid = result.data.sentencePlanId,
+            occurredAt = LocalDateTime.now(),
+            message = VersionPayload(
+              version = result.data.sentencePlanVersion,
+              oasysEvent = OasysEvent.CREATED,
+              incrementedAt = LocalDateTime.now(),
+              deleted = false,
+              association = AssociationPayload(
+                oasysAssessmentPk = request.oasysAssessmentPk,
+                regionPrisonCode = request.regionPrisonCode,
+                baseVersion = 1L // TODO: find out what Ben wants here
+              )
+            )
+          )
+        )
         ResponseEntity.status(HttpStatus.CREATED).body(result.data)
-
+      }
       is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
           ErrorResponse(
