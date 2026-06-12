@@ -29,7 +29,7 @@ class OasysEventPublisherTest {
   @Test
   fun `publish sends serialized event to coordinator queue with event type attribute`() {
     whenever(hmppsQueueService.findByQueueId("coordinator")).thenReturn(queue)
-    whenever(queue.queueUrl).thenReturn("http://localhost:4566/queue/coordinator-queue")
+    whenever(queue.queueUrl).thenReturn("http://localstack:4566/queue/coordinator-queue")
     whenever(queue.sqsClient).thenReturn(sqsClient)
     whenever(sqsClient.sendMessage(org.mockito.kotlin.any<SendMessageRequest>()))
       .thenReturn(CompletableFuture.completedFuture(SendMessageResponse.builder().messageId("123").build()))
@@ -60,7 +60,7 @@ class OasysEventPublisherTest {
     verify(sqsClient).sendMessage(captor.capture())
 
     val request = captor.firstValue
-    assertThat(request.queueUrl()).isEqualTo("http://localhost:4566/queue/coordinator-queue")
+    assertThat(request.queueUrl()).isEqualTo("http://localstack:4566/queue/coordinator-queue")
     assertThat(request.messageBody()).isEqualTo(objectMapper.writeValueAsString(event))
 
     assertThat(request.messageAttributes()).containsKey("eventType")

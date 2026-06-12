@@ -3,9 +3,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.web.reactive.server.expectBody
@@ -32,6 +29,8 @@ class CreateTest : IntegrationTestBase() {
   @Value("\${hmpps.sqs.localstackUrl}")
   lateinit var localStackUrl: String
 
+  val queueUrl get() = "${localStackUrl}/000000000000/coordinator-queue"
+
   fun createClient(): SqsClient {
     return SqsClient.builder()
       .endpointOverride(URI.create(localStackUrl))
@@ -50,6 +49,26 @@ class CreateTest : IntegrationTestBase() {
     stubAssessmentsCreate()
     stubAAPCreateAssessment()
     stubAssessmentsClone()
+  }
+
+  @BeforeEach
+  fun clearQueue() {
+    val sqsClient = createClient()
+    while (true) {
+      val messages = sqsClient.receiveMessage {
+        it.queueUrl(queueUrl)
+          .maxNumberOfMessages(10)
+          .waitTimeSeconds(1)
+      }.messages()
+
+      if (messages.isEmpty()) break
+
+      messages.forEach { message ->
+        sqsClient.deleteMessage {
+          it.queueUrl(queueUrl).receiptHandle(message.receiptHandle())
+        }
+      }
+    }
   }
 
   @Test
@@ -96,7 +115,7 @@ class CreateTest : IntegrationTestBase() {
       .expectStatus().isCreated
 
     val messages = sqsClient.receiveMessage {
-      it.queueUrl("${localStackUrl}/000000000000/coordinator-queue")
+      it.queueUrl(queueUrl)
         .messageAttributeNames("All")
         .maxNumberOfMessages(1)
         .waitTimeSeconds(2)
@@ -104,7 +123,7 @@ class CreateTest : IntegrationTestBase() {
 
     assertThat(messages).hasSize(1)
     assertThat(messages.first().messageAttributes()["eventType"]?.stringValue()).isEqualTo("OASYS_VERSION_EVENT")
-    // assertThat(messages.first().body()).contains(oasysAssessmentPk)
+    // assertThat(messages.first().body()).contains(oasysAssessmentPk) // TODO: Find out what's going on here
     assertThat(messages.first().body()).contains("\"entityType\":\"AAP_PLAN\"")
   }
 
@@ -149,7 +168,7 @@ class CreateTest : IntegrationTestBase() {
       .expectStatus().isEqualTo(500)
 
     val messages = sqsClient.receiveMessage {
-      it.queueUrl("${localStackUrl}/000000000000/coordinator-queue")
+      it.queueUrl(queueUrl)
         .maxNumberOfMessages(1)
         .waitTimeSeconds(1)
         .visibilityTimeout(1)
