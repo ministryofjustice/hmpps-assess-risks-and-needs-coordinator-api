@@ -29,6 +29,7 @@ dependencies {
 
   // SQS for OASys events
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.3.2")
+  implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.0")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.5.0")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
