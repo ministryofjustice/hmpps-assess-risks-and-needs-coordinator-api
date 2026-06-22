@@ -29,19 +29,17 @@ class CreateTest : IntegrationTestBase() {
   @Value("\${hmpps.sqs.localstackUrl}")
   lateinit var localStackUrl: String
 
-  val queueUrl get() = "${localStackUrl}/000000000000/coordinator-queue"
+  val queueUrl get() = "$localStackUrl/000000000000/coordinator-queue"
 
-  fun createClient(): SqsClient {
-    return SqsClient.builder()
-      .endpointOverride(URI.create(localStackUrl))
-      .region(Region.EU_WEST_2)
-      .credentialsProvider(
-        StaticCredentialsProvider.create(
-          AwsBasicCredentials.create("test", "test"),
-        ),
-      )
-      .build()
-  }
+  fun createClient(): SqsClient = SqsClient.builder()
+    .endpointOverride(URI.create(localStackUrl))
+    .region(Region.EU_WEST_2)
+    .credentialsProvider(
+      StaticCredentialsProvider.create(
+        AwsBasicCredentials.create("test", "test"),
+      ),
+    )
+    .build()
 
   @BeforeEach
   fun setUp() {

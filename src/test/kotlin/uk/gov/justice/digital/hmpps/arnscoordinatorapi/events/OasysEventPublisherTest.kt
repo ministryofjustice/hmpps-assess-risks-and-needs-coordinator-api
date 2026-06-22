@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentCaptor
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.firstValue
 import org.mockito.kotlin.mock

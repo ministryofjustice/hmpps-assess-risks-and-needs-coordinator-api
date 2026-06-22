@@ -1,12 +1,12 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.events
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest
 import uk.gov.justice.hmpps.sqs.HmppsQueueService
 import uk.gov.justice.hmpps.sqs.MissingQueueException
 import uk.gov.justice.hmpps.sqs.eventTypeMessageAttributes
-import com.fasterxml.jackson.databind.ObjectMapper
 
 @Service
 class OasysEventPublisher(

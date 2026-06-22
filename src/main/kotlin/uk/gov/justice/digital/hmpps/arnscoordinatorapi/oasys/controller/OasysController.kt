@@ -38,7 +38,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
-import java.util.UUID
 
 @RestController
 @Tag(name = "OASys")
@@ -135,10 +134,10 @@ class OasysController(
               association = AssociationPayload(
                 oasysAssessmentPk = request.oasysAssessmentPk,
                 regionPrisonCode = request.regionPrisonCode,
-                baseVersion = 1L // TODO: find out what Ben wants here
-              )
-            )
-          )
+                baseVersion = 1L, // TODO: find out what Ben wants here
+              ),
+            ),
+          ),
         )
         ResponseEntity.status(HttpStatus.CREATED).body(result.data)
       }
