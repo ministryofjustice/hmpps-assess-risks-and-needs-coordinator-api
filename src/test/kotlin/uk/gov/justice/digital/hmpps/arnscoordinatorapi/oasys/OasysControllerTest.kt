@@ -9,9 +9,11 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -27,7 +29,8 @@ class OasysControllerTest {
   fun `create publishes expected OASYS_VERSION_EVENT to SQS on success`() {
     val service = mock<OasysCoordinatorService>()
     val publisher = mock<OasysEventPublisher>()
-    val controller = OasysController(service, publisher)
+    val factory = OasysEventFactory(Clock())
+    val controller = OasysController(service, publisher, factory)
 
     val sentencePlanId = UUID.randomUUID()
     val sanAssessmentId = UUID.randomUUID()
@@ -76,7 +79,8 @@ class OasysControllerTest {
   fun `create does not publish to SQS when create fails`() {
     val service = mock<OasysCoordinatorService>()
     val publisher = mock<OasysEventPublisher>()
-    val controller = OasysController(service, publisher)
+    val factory = mock<OasysEventFactory>()
+    val controller = OasysController(service, publisher, factory)
 
     val request = OasysCreateRequest(
       oasysAssessmentPk = "12345",
