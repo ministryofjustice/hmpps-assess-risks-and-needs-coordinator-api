@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.AssociationPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
@@ -45,6 +46,7 @@ import java.time.LocalDateTime
 class OasysController(
   private val oasysCoordinatorService: OasysCoordinatorService,
   private val oasysEventPublisher: OasysEventPublisher,
+  private val oasysEventFactory: OasysEventFactory
 ) {
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
@@ -116,31 +118,14 @@ class OasysController(
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
   ): ResponseEntity<Any> {
-    val result = oasysCoordinatorService.create(request)
-
-    return when (result) {
+    return when (val result = oasysCoordinatorService.create(request)) {
       is OasysCoordinatorService.CreateOperationResult.Success -> {
         oasysEventPublisher.publish(
-          event = CoordinatorEvent(
-            eventType = EventType.OASYS_VERSION_EVENT,
-            entityType = "AAP_PLAN",
-            entityUuid = result.data.sentencePlanId,
-            occurredAt = LocalDateTime.now(),
-            message = VersionPayload(
-              version = result.data.sentencePlanVersion,
-              oasysEvent = OasysEvent.CREATED,
-              incrementedAt = LocalDateTime.now(),
-              deleted = false,
-              association = AssociationPayload(
-                oasysAssessmentPk = request.oasysAssessmentPk,
-                regionPrisonCode = request.regionPrisonCode,
-                baseVersion = 1L, // TODO: find out what Ben wants here
-              ),
-            ),
-          ),
+          oasysEventFactory.createVersionEvent(request, result.data)
         )
         ResponseEntity.status(HttpStatus.CREATED).body(result.data)
       }
+
       is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
         ResponseEntity.status(HttpStatus.CONFLICT).body(
           ErrorResponse(

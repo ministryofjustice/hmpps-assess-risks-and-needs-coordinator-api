@@ -24,13 +24,19 @@ class OasysEventPublisher(
   fun publish(event: CoordinatorEvent) {
     val message = objectMapper.writeValueAsString(event)
 
-    queue.sqsClient.sendMessage(
-      SendMessageRequest.builder()
-        .queueUrl(queue.queueUrl)
-        .messageBody(message)
-        .eventTypeMessageAttributes(event.eventType.name)
-        .build()
-        .also { log.info("Published OASys event type={}", event.eventType) },
-    ).get()
+    try {
+      queue.sqsClient.sendMessage(
+        SendMessageRequest.builder()
+          .queueUrl(queue.queueUrl)
+          .messageBody(message)
+          .eventTypeMessageAttributes(event.eventType.name)
+          .build(),
+      ).get()
+
+      log.info("Published OASys event type={}", event.eventType)
+    } catch (ex: Exception) {
+      log.error("Failed to publish OASys event type={}", event.eventType, ex)
+      throw ex
+    }
   }
 }
