@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchVersionsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
@@ -55,6 +57,8 @@ class OasysCoordinatorService(
   private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
   private val oasysVersionService: OasysVersionService,
+  private val oasysEventPublisher: OasysEventPublisher,
+  private val oasysEventFactory: OasysEventFactory,
 ) {
 
   private fun buildCreateData(requestData: OasysCreateRequest): CreateData = CreateData(
@@ -188,13 +192,19 @@ class OasysCoordinatorService(
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    return runBlocking {
+    val result = runBlocking {
       val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
         async(Dispatchers.IO) { handleEntity(requestData, strategy) }
       }.awaitAll()
 
       processCreateResults(results)
     }
+
+    if (result is CreateOperationResult.Success) {
+      oasysEventPublisher.publish(oasysEventFactory.createVersionEvent(requestData, result.data))
+    }
+
+    return result
   }
 
   private fun processCreateResults(
