@@ -228,13 +228,10 @@ class OasysCoordinatorService(
 
     val pendingAssociations = results.mapNotNull { it.pendingAssociation }
     for (association in pendingAssociations) {
-      when (oasysAssociationsService.storeAssociation(association)) {
-        is OperationResult.Failure -> {
-          commands.forEach { it.rollback() }
-          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-          return CreateOperationResult.Failure("Failed to store ${association.entityType} association")
-        }
-        is OperationResult.Success -> { }
+      oasysAssociationsService.storeAssociation(association).onFailure {
+        commands.forEach { it.rollback() }
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return CreateOperationResult.Failure("Failed to store ${association.entityType} association")
       }
     }
 
