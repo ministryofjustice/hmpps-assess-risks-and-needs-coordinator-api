@@ -108,7 +108,9 @@ class OasysController(
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
   ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.create(request)) {
+    val result = oasysCoordinatorService.create(request)
+
+    return when (result) {
       is OasysCoordinatorService.CreateOperationResult.Success ->
         ResponseEntity.status(HttpStatus.CREATED).body(result.data)
 

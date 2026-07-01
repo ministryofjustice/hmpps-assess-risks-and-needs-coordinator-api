@@ -274,7 +274,9 @@ class OasysCoordinatorService(
       }
     }
 
-    oasysEventPublisher.publish(oasysEventFactory.lockVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, oasysLockResponse))
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.lockVersionEvent(aapAssociation, oasysLockResponse))
+    }
 
     return LockOperationResult.Success(oasysLockResponse)
   }
@@ -317,7 +319,9 @@ class OasysCoordinatorService(
       }
     }
 
-    oasysEventPublisher.publish(oasysEventFactory.signVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, oasysSignResponse))
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.signVersionEvent(aapAssociation, oasysSignResponse))
+    }
 
     return SignOperationResult.Success(oasysSignResponse)
   }
@@ -353,7 +357,9 @@ class OasysCoordinatorService(
       }
     }
 
-    oasysEventPublisher.publish(oasysEventFactory.rollbackVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, oasysRollbackResponse))
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.rollbackVersionEvent(aapAssociation, oasysRollbackResponse))
+    }
 
     return RollbackOperationResult.Success(oasysRollbackResponse)
   }
@@ -499,7 +505,9 @@ class OasysCoordinatorService(
       }
     }
 
-    oasysEventPublisher.publish(oasysEventFactory.counterSignVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, request, response))
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.counterSignVersionEvent(aapAssociation, request, response))
+    }
 
     return CounterSignOperationResult.Success(response)
   }
@@ -517,6 +525,8 @@ class OasysCoordinatorService(
 
     val oasysSoftDeleteResponse = OasysVersionedEntityResponse()
     for (association in associations) {
+      if (association.entityType != EntityType.AAP_PLAN) continue
+
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return SoftDeleteOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
@@ -545,6 +555,7 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
           when (association.apply { deleted = true }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> response.data?.run(oasysSoftDeleteResponse::addVersionedEntity)
             is OperationResult.Failure -> {
@@ -556,7 +567,7 @@ class OasysCoordinatorService(
     }
 
     associations.filter { it.entityType == EntityType.AAP_PLAN }.forEach { association ->
-      oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association.oasysAssessmentPk!!, association))
+      oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, association.baseVersion))
     }
 
     return SoftDeleteOperationResult.Success(oasysSoftDeleteResponse)
@@ -575,6 +586,8 @@ class OasysCoordinatorService(
 
     val oasysUndeleteResponse = OasysVersionedEntityResponse()
     for (association in associations) {
+      if (association.entityType != EntityType.AAP_PLAN) continue
+
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return UndeleteOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
@@ -602,6 +615,7 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
           when (association.apply { deleted = false }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> oasysUndeleteResponse.addVersionedEntity(response.data)
             is OperationResult.Failure -> {
@@ -613,7 +627,7 @@ class OasysCoordinatorService(
     }
 
     associations.filter { it.entityType == EntityType.AAP_PLAN }.forEach { association ->
-      oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association.oasysAssessmentPk!!, association))
+      oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, association.baseVersion))
     }
 
     return UndeleteOperationResult.Success(oasysUndeleteResponse)
