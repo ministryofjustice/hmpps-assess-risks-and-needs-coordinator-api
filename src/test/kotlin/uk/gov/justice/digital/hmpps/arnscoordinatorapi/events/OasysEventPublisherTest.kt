@@ -33,7 +33,7 @@ class OasysEventPublisherTest {
     whenever(sqsClient.sendMessage(org.mockito.kotlin.any<SendMessageRequest>()))
       .thenReturn(CompletableFuture.completedFuture(SendMessageResponse.builder().messageId("123").build()))
 
-    val publisher = OasysEventPublisher(hmppsQueueService, objectMapper)
+    val publisher = SqsOasysEventPublisher(hmppsQueueService, objectMapper)
 
     val event = CoordinatorEvent(
       eventType = EventType.OASYS_VERSION_EVENT,
