@@ -66,6 +66,7 @@ class OasysCoordinatorServiceTest {
 
   @BeforeEach
   fun setup() {
+    publishedEvents.clear()
     oasysCoordinatorService = OasysCoordinatorService(
       strategyFactory,
       oasysAssociationsService,

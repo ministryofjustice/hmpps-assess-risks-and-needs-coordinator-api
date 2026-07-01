@@ -48,7 +48,7 @@ class SqsOasysEventPublisher(
 }
 
 @Service
-@ConditionalOnProperty(name = ["app.events.enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = ["app.events.enabled"], havingValue = "false", matchIfMissing = true)
 class NoOpOasysEventPublisher : OasysEventPublisher {
   companion object {
     private val log = LoggerFactory.getLogger(NoOpOasysEventPublisher::class.java)
