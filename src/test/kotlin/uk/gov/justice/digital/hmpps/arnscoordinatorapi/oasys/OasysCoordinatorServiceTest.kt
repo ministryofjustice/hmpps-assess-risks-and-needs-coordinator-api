@@ -21,6 +21,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
@@ -46,8 +47,10 @@ class OasysCoordinatorServiceTest {
   private val strategyFactory: StrategyFactory = mock()
   private val oasysAssociationsService: OasysAssociationsService = mock()
   private val oasysVersionService: OasysVersionService = mock()
-  private val oasysEventPublisher: OasysEventPublisher = mock<OasysEventPublisher>()
   private val oasysEventFactory: OasysEventFactory = mock()
+
+  private val publishedEvents = mutableListOf<CoordinatorEvent>()
+  private val oasysEventPublisher: OasysEventPublisher = OasysEventPublisher { publishedEvents.add(it) }
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService
 

@@ -566,10 +566,6 @@ class OasysCoordinatorService(
       }
     }
 
-    associations.filter { it.entityType == EntityType.AAP_PLAN }.forEach { association ->
-      oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, association.baseVersion))
-    }
-
     return SoftDeleteOperationResult.Success(oasysSoftDeleteResponse)
   }
 
@@ -624,10 +620,6 @@ class OasysCoordinatorService(
           }
         }
       }
-    }
-
-    associations.filter { it.entityType == EntityType.AAP_PLAN }.forEach { association ->
-      oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, association.baseVersion))
     }
 
     return UndeleteOperationResult.Success(oasysUndeleteResponse)
