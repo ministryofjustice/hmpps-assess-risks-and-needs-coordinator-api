@@ -274,6 +274,8 @@ class OasysCoordinatorService(
       }
     }
 
+    oasysEventPublisher.publish(oasysEventFactory.lockVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, oasysLockResponse))
+
     return LockOperationResult.Success(oasysLockResponse)
   }
 
@@ -315,6 +317,8 @@ class OasysCoordinatorService(
       }
     }
 
+    oasysEventPublisher.publish(oasysEventFactory.signVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, oasysSignResponse))
+
     return SignOperationResult.Success(oasysSignResponse)
   }
 
@@ -348,6 +352,8 @@ class OasysCoordinatorService(
         is OperationResult.Success -> oasysRollbackResponse.addVersionedEntity(response.data)
       }
     }
+
+    oasysEventPublisher.publish(oasysEventFactory.rollbackVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, oasysRollbackResponse))
 
     return RollbackOperationResult.Success(oasysRollbackResponse)
   }
@@ -493,6 +499,8 @@ class OasysCoordinatorService(
       }
     }
 
+    oasysEventPublisher.publish(oasysEventFactory.counterSignVersionEvent(oasysAssessmentPk, associations.first { it.entityType == EntityType.AAP_PLAN }, request, response))
+
     return CounterSignOperationResult.Success(response)
   }
 
@@ -547,6 +555,10 @@ class OasysCoordinatorService(
       }
     }
 
+    associations.filter { it.entityType == EntityType.AAP_PLAN }.forEach { association ->
+      oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association.oasysAssessmentPk!!, association))
+    }
+
     return SoftDeleteOperationResult.Success(oasysSoftDeleteResponse)
   }
 
@@ -598,6 +610,10 @@ class OasysCoordinatorService(
           }
         }
       }
+    }
+
+    associations.filter { it.entityType == EntityType.AAP_PLAN }.forEach { association ->
+      oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association.oasysAssessmentPk!!, association))
     }
 
     return UndeleteOperationResult.Success(oasysUndeleteResponse)
