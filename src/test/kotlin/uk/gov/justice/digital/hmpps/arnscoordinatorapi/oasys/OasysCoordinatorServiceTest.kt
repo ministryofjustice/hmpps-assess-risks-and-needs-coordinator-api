@@ -21,6 +21,8 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
@@ -44,6 +46,8 @@ class OasysCoordinatorServiceTest {
   private val strategyFactory: StrategyFactory = mock()
   private val oasysAssociationsService: OasysAssociationsService = mock()
   private val oasysVersionService: OasysVersionService = mock()
+  private val oasysEventPublisher: OasysEventPublisher = mock()
+  private val oasysEventFactory: OasysEventFactory = mock()
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService
 
@@ -59,7 +63,13 @@ class OasysCoordinatorServiceTest {
 
   @BeforeEach
   fun setup() {
-    oasysCoordinatorService = OasysCoordinatorService(strategyFactory, oasysAssociationsService, oasysVersionService)
+    oasysCoordinatorService = OasysCoordinatorService(
+      strategyFactory,
+      oasysAssociationsService,
+      oasysVersionService,
+      oasysEventPublisher,
+      oasysEventFactory,
+    )
   }
 
   @Nested

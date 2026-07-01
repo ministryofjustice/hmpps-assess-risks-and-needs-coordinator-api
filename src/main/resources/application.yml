@@ -95,6 +95,8 @@ app:
   client:
     id: ${CLIENT_ID}
     secret: ${CLIENT_SECRET}
+  historical-events:
+    enabled: ${HISTORICAL_EVENTS_ENABLED:false}
 
 api:
   health-timeout: 2s
