@@ -85,6 +85,8 @@ app:
     plan: true
     assessment: true
     aap-plan: true
+  events:
+    enabled: true
   db:
     name: postgres
     endpoint: localhost:5432

@@ -46,7 +46,7 @@ class OasysCoordinatorServiceTest {
   private val strategyFactory: StrategyFactory = mock()
   private val oasysAssociationsService: OasysAssociationsService = mock()
   private val oasysVersionService: OasysVersionService = mock()
-  private val oasysEventPublisher: OasysEventPublisher = mock()
+  private val oasysEventPublisher: OasysEventPublisher = mock<OasysEventPublisher>()
   private val oasysEventFactory: OasysEventFactory = mock()
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService

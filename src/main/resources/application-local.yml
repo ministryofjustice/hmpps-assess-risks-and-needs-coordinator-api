@@ -3,3 +3,5 @@ app:
     plan: false
     assessment: false
     aap-plan: false
+  events:
+    enabled: true
