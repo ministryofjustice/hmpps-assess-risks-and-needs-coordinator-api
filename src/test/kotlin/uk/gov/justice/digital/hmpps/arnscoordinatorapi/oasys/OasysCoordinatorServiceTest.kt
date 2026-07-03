@@ -105,7 +105,7 @@ class OasysCoordinatorServiceTest {
       oasysVersionService,
       oasysEventPublisher,
       oasysEventFactory,
-      )
+    )
   }
 
   @Nested
