@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -22,6 +23,7 @@ import org.mockito.kotlin.mock
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
@@ -50,7 +52,7 @@ class OasysCoordinatorServiceTest {
   private val oasysEventFactory: OasysEventFactory = mock()
 
   private val publishedEvents = mutableListOf<CoordinatorEvent>()
-  private val oasysEventPublisher: OasysEventPublisher = OasysEventPublisher { publishedEvents.add(it) }
+  private val oasysEventPublisher: OasysEventPublisher = OasysEventPublisher { it?.let(publishedEvents::add) }
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService
 
@@ -124,6 +126,8 @@ class OasysCoordinatorServiceTest {
 
       verify(strategyFactory).getStrategiesFor(AssessmentType.SAN_SP)
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
+      assertThat(publishedEvents).hasSize(1)
+      assertThat(publishedEvents.first().eventType).isEqualTo(EventType.OASYS_VERSION_EVENT)
     }
 
     @Test
@@ -650,6 +654,22 @@ class OasysCoordinatorServiceTest {
       verify(transactionStatus).setRollbackOnly()
       transactionAspect.close()
     }
+
+    @Test
+    fun `should not publish event when create fails`() {
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+      `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(spStrategy))
+      `when`(spStrategy.create(any())).thenReturn(OperationResult.Failure("failed"))
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      oasysCoordinatorService.create(oasysCreateRequest)
+
+      assertThat(publishedEvents).isEmpty()
+      transactionAspect.close()
+    }
   }
 
   @Nested
@@ -858,6 +878,31 @@ class OasysCoordinatorServiceTest {
       assertNotNull(response)
       assertEquals(entityUuid, response.sentencePlanId)
       assertEquals(3, response.sentencePlanVersion)
+    }
+
+    @Test
+    fun `should publish softDelete event for AAP_PLAN association`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        baseVersion = 1L,
+      )
+      val mockEvent: CoordinatorEvent = mock()
+      val strategy: EntityStrategy = mock()
+
+      `when`(oasysAssociationsService.findAssociationsByPk(eq("CY/12ZX56"), anyOrNull())).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAllIncludingDeleted(entityUuid)).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
+      `when`(strategy.softDelete(any(), eq(entityUuid))).thenReturn(OperationResult.Success(VersionedEntity(entityUuid, 2, EntityType.AAP_PLAN)))
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
+      `when`(oasysEventFactory.softDeleteEvent(any(), anyOrNull())).thenReturn(mockEvent)
+
+      oasysCoordinatorService.softDelete(OasysGenericRequest(OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).containsExactly(mockEvent)
     }
   }
 

@@ -525,8 +525,6 @@ class OasysCoordinatorService(
 
     val oasysSoftDeleteResponse = OasysVersionedEntityResponse()
     for (association in associations) {
-      if (association.entityType != EntityType.AAP_PLAN) continue
-
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return SoftDeleteOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
@@ -555,7 +553,9 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
-          oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
+          if (association.entityType == EntityType.AAP_PLAN) {
+            oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
+          }
           when (association.apply { deleted = true }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> response.data?.run(oasysSoftDeleteResponse::addVersionedEntity)
             is OperationResult.Failure -> {
@@ -582,8 +582,6 @@ class OasysCoordinatorService(
 
     val oasysUndeleteResponse = OasysVersionedEntityResponse()
     for (association in associations) {
-      if (association.entityType != EntityType.AAP_PLAN) continue
-
       val strategy = association.entityType?.let(strategyFactory::getStrategy)
         ?: return UndeleteOperationResult.Failure("Strategy not initialized for ${association.entityType}")
 
@@ -611,7 +609,9 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
-          oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
+          if (association.entityType == EntityType.AAP_PLAN) {
+            oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
+          }
           when (association.apply { deleted = false }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> oasysUndeleteResponse.addVersionedEntity(response.data)
             is OperationResult.Failure -> {
