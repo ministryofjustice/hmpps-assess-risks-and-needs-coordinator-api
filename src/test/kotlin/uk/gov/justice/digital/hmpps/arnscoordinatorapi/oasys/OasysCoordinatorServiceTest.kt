@@ -23,13 +23,15 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.AssociationPayload
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
@@ -37,8 +39,11 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysA
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
@@ -986,6 +991,192 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.NoAssociations)
       assertEquals("No associations found for the provided entityUuid", (result as OasysCoordinatorService.GetOperationResult.NoAssociations).errorMessage)
+    }
+  }
+
+  // Add these nested classes / tests to OasysCoordinatorServiceTest
+
+  @Nested
+  inner class Sign {
+
+    @Test
+    fun `should publish sign event for AAP_PLAN association`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        baseVersion = 1L,
+      )
+      val strategy: EntityStrategy = mock()
+
+      `when`(oasysAssociationsService.findAssociationsByPk(eq("CY/12ZX56"), anyOrNull())).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
+      `when`(strategy.sign(any(), eq(entityUuid))).thenReturn(OperationResult.Success(VersionedEntity(entityUuid, 2, EntityType.AAP_PLAN)))
+
+      oasysCoordinatorService.sign(OasysSignRequest(SignType.SELF, OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).hasSize(1)
+      assertThat(publishedEvents.first()).isEqualTo(stubEvent)
+    }
+
+    @Test
+    fun `should not publish event when no associations found`() {
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull())).thenReturn(emptyList())
+
+      oasysCoordinatorService.sign(OasysSignRequest(SignType.SELF, OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).isEmpty()
+    }
+  }
+
+  @Nested
+  inner class Lock {
+
+    @Test
+    fun `should publish lock event for AAP_PLAN association`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        baseVersion = 1L,
+      )
+      val strategy: EntityStrategy = mock()
+
+      `when`(oasysAssociationsService.findAssociationsByPk(eq("CY/12ZX56"), anyOrNull())).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
+      `when`(strategy.lock(any(), eq(entityUuid))).thenReturn(OperationResult.Success(VersionedEntity(entityUuid, 2, EntityType.AAP_PLAN)))
+
+      oasysCoordinatorService.lock(OasysGenericRequest(OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).hasSize(1)
+      assertThat(publishedEvents.first()).isEqualTo(stubEvent)
+    }
+
+    @Test
+    fun `should not publish event when no associations found`() {
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull())).thenReturn(emptyList())
+
+      oasysCoordinatorService.lock(OasysGenericRequest(OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).isEmpty()
+    }
+  }
+
+  @Nested
+  inner class Rollback {
+
+    @Test
+    fun `should publish rollback event for AAP_PLAN association`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        baseVersion = 1L,
+      )
+      val strategy: EntityStrategy = mock()
+
+      `when`(oasysAssociationsService.findAssociationsByPk(eq("CY/12ZX56"), anyOrNull())).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
+      `when`(strategy.rollback(any(), eq(entityUuid))).thenReturn(OperationResult.Success(VersionedEntity(entityUuid, 2, EntityType.AAP_PLAN)))
+
+      oasysCoordinatorService.rollback(OasysRollbackRequest(sanVersionNumber = null, sentencePlanVersionNumber = null, userDetails = OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).hasSize(1)
+      assertThat(publishedEvents.first()).isEqualTo(stubEvent)
+    }
+
+    @Test
+    fun `should not publish event when no associations found`() {
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull())).thenReturn(emptyList())
+
+      oasysCoordinatorService.rollback(OasysRollbackRequest(sanVersionNumber = null, sentencePlanVersionNumber = null, userDetails = OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).isEmpty()
+    }
+  }
+
+  @Nested
+  inner class CounterSign {
+
+    @Test
+    fun `should publish counterSign event for AAP_PLAN association`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        baseVersion = 1L,
+      )
+      val strategy: EntityStrategy = mock()
+      val request = OasysCounterSignRequest(
+        sanVersionNumber = 1,
+        sentencePlanVersionNumber = 1,
+        outcome = CounterSignOutcome.COUNTERSIGNED,
+        userDetails = OasysUserDetails(),
+      )
+
+      `when`(oasysAssociationsService.findAssociationsByPk(eq("CY/12ZX56"), anyOrNull())).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
+      `when`(strategy.counterSign(eq(entityUuid), any())).thenReturn(OperationResult.Success(VersionedEntity(entityUuid, 2, EntityType.AAP_PLAN)))
+
+      oasysCoordinatorService.counterSign("CY/12ZX56", request)
+
+      assertThat(publishedEvents).hasSize(1)
+      assertThat(publishedEvents.first()).isEqualTo(stubEvent)
+    }
+
+    @Test
+    fun `should not publish event when no associations found`() {
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull())).thenReturn(emptyList())
+
+      oasysCoordinatorService.counterSign("CY/12ZX56", OasysCounterSignRequest(null, null, CounterSignOutcome.COUNTERSIGNED, OasysUserDetails()))
+
+      assertThat(publishedEvents).isEmpty()
+    }
+  }
+
+  @Nested
+  inner class Undelete {
+
+    @Test
+    fun `should publish undelete event for AAP_PLAN association`() {
+      val entityUuid = UUID.randomUUID()
+      val association = OasysAssociation(
+        id = 1L,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = entityUuid,
+        oasysAssessmentPk = "CY/12ZX56",
+        baseVersion = 1L,
+        deleted = true,
+      )
+      val strategy: EntityStrategy = mock()
+
+      `when`(oasysAssociationsService.findDeletedAssociations(eq("CY/12ZX56"))).thenReturn(listOf(association))
+      `when`(oasysAssociationsService.findAllIncludingDeleted(entityUuid)).thenReturn(listOf(association))
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
+      `when`(strategy.undelete(any(), eq(entityUuid))).thenReturn(OperationResult.Success(VersionedEntity(entityUuid, 2, EntityType.AAP_PLAN)))
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
+
+      oasysCoordinatorService.undelete(OasysGenericRequest(OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).hasSize(1)
+      assertThat(publishedEvents.first()).isEqualTo(stubEvent)
+    }
+
+    @Test
+    fun `should not publish event when no deleted associations found`() {
+      `when`(oasysAssociationsService.findDeletedAssociations(anyString())).thenReturn(emptyList())
+
+      oasysCoordinatorService.undelete(OasysGenericRequest(OasysUserDetails()), "CY/12ZX56")
+
+      assertThat(publishedEvents).isEmpty()
     }
   }
 }
