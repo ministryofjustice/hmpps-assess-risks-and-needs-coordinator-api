@@ -42,7 +42,6 @@ class SqsOasysEventPublisher(
       log.info("Published OASys event type={}", event.eventType)
     } catch (ex: Exception) {
       log.error("Failed to publish OASys event type={}", event.eventType, ex)
-      throw ex
     }
   }
 }
