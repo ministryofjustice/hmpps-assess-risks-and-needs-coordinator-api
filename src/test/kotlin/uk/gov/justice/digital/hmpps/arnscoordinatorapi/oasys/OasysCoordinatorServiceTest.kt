@@ -20,9 +20,12 @@ import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.CoordinatorEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.AssociationPayload
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.EventType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
@@ -52,7 +55,7 @@ class OasysCoordinatorServiceTest {
   private val oasysEventFactory: OasysEventFactory = mock()
 
   private val publishedEvents = mutableListOf<CoordinatorEvent>()
-  private val oasysEventPublisher: OasysEventPublisher = OasysEventPublisher { it?.let(publishedEvents::add) }
+  private val oasysEventPublisher: OasysEventPublisher = OasysEventPublisher { publishedEvents.add(it) }
 
   private lateinit var oasysCoordinatorService: OasysCoordinatorService
 
@@ -66,9 +69,31 @@ class OasysCoordinatorServiceTest {
 
   private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
 
+  private val stubEvent = CoordinatorEvent(
+    eventType = EventType.OASYS_VERSION_EVENT,
+    entityType = "AAP_PLAN",
+    entityUuid = UUID.randomUUID(),
+    occurredAt = LocalDateTime.now(),
+    message = VersionPayload(
+      version = 1L,
+      oasysEvent = uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEvent.CREATED,
+      incrementedAt = LocalDateTime.now(),
+      deleted = false,
+      association = AssociationPayload("pk", null, 1L),
+    ),
+  )
+
   @BeforeEach
   fun setup() {
     publishedEvents.clear()
+    whenever(oasysEventFactory.createVersionEvent(any(), any())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.signVersionEvent(any(), any())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.lockVersionEvent(any(), any())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.rollbackVersionEvent(any(), any())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.counterSignVersionEvent(any(), any(), any())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.softDeleteEvent(any(), anyOrNull())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.undeleteEvent(any(), anyOrNull())).thenReturn(stubEvent)
+
     oasysCoordinatorService = OasysCoordinatorService(
       strategyFactory,
       oasysAssociationsService,
