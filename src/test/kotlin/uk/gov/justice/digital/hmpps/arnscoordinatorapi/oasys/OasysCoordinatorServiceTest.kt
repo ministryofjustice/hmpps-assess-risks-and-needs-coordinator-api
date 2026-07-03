@@ -994,8 +994,6 @@ class OasysCoordinatorServiceTest {
     }
   }
 
-  // Add these nested classes / tests to OasysCoordinatorServiceTest
-
   @Nested
   inner class Sign {
 

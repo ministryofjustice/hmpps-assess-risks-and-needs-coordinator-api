@@ -121,7 +121,7 @@ class CreateTest : IntegrationTestBase() {
 
     assertThat(messages).hasSize(1)
     assertThat(messages.first().messageAttributes()["eventType"]?.stringValue()).isEqualTo("OASYS_VERSION_EVENT")
-    // assertThat(messages.first().body()).contains(oasysAssessmentPk) // TODO: Find out what's going on here
+    assertThat(messages.first().body()).contains(oasysAssessmentPk)
     assertThat(messages.first().body()).contains("\"entityType\":\"AAP_PLAN\"")
   }
 
