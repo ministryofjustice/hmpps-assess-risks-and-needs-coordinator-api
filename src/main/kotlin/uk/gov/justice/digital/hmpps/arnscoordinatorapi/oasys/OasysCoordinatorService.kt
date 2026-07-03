@@ -553,6 +553,7 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          // TODO: This might not belong here
           if (association.entityType == EntityType.AAP_PLAN) {
             oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
           }
@@ -609,6 +610,7 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          // TODO: This might not belong here
           if (association.entityType == EntityType.AAP_PLAN) {
             oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
           }

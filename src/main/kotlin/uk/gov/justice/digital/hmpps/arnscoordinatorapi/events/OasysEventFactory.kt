@@ -51,6 +51,7 @@ class OasysEventFactory(
     result: OasysVersionedEntityResponse,
   ): CoordinatorEvent {
     val oasysEvent = when (request.outcome) {
+      // TODO: Why does CounterSignOutcome not have AWAITING_COUNTERSIGN?
       CounterSignOutcome.COUNTERSIGNED -> OasysEvent.COUNTERSIGNED
       CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> OasysEvent.AWAITING_DOUBLE_COUNTERSIGN
       CounterSignOutcome.DOUBLE_COUNTERSIGNED -> OasysEvent.DOUBLE_COUNTERSIGNED
@@ -82,12 +83,12 @@ class OasysEventFactory(
       eventType = EventType.OASYS_VERSION_EVENT,
       entityType = "AAP_PLAN",
       entityUuid = result.sentencePlanId,
-      occurredAt = now,
+      occurredAt = now, // TODO: Is this right?
       message = VersionPayload(
         version = result.sentencePlanVersion,
         oasysEvent = oasysEvent,
-        incrementedAt = now,
-        deleted = false,
+        incrementedAt = now, // TODO: Is this right?
+        deleted = false, // TODO: Figure out where to get the right answer.
         association = AssociationPayload(
           oasysAssessmentPk = oasysAssessmentPk,
           regionPrisonCode = regionPrisonCode,

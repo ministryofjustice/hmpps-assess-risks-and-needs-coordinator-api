@@ -54,6 +54,7 @@ data class AssociationPayload(
   val baseVersion: Long,
 )
 
+// TODO: Do I need to this duplicate of persistence.OasysEvent?
 enum class OasysEvent {
   AWAITING_COUNTERSIGN,
   AWAITING_DOUBLE_COUNTERSIGN,
