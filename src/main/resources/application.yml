@@ -139,8 +139,6 @@ management:
 
 hmpps:
   sqs:
-    provider: localstack # TODO: Move this
-    localstackUrl: http://localstack:4566 # TODO: Move this
     queues:
       coordinator:
         queue-name: ${HMPPS_SQS_QUEUES_COORDINATOR_QUEUE_NAME:coordinator-queue}
