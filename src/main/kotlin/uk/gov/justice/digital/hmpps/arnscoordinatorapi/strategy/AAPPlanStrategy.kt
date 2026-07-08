@@ -314,7 +314,7 @@ class AAPPlanStrategy(
     }
   }
 
-  private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
+  private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType, deleted, updatedAt))
 
   private fun CollectionsView.derivePlanComplete(): PlanState {
     val latestAgreement = this

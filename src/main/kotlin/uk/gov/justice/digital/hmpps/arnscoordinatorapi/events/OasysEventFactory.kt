@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
+import java.time.ZoneOffset
 
 @Component
 class OasysEventFactory(
@@ -79,16 +80,17 @@ class OasysEventFactory(
     result: OasysVersionedEntityResponse,
   ): CoordinatorEvent {
     val now = clock.now()
+    val aapVersion = result.aapPlanVersionedEntity
     return CoordinatorEvent(
       eventType = EventType.OASYS_VERSION_EVENT,
       entityType = "AAP_PLAN",
       entityUuid = result.sentencePlanId,
-      occurredAt = now, // TODO: Is this right?
+      occurredAt = clock.now(),
       message = VersionPayload(
         version = result.sentencePlanVersion,
         oasysEvent = oasysEvent,
-        incrementedAt = now, // TODO: Is this right?
-        deleted = false, // TODO: Figure out where to get the right answer.
+        incrementedAt = aapVersion?.updatedAt ?: now,
+        deleted = aapVersion?.deleted ?: false,
         association = AssociationPayload(
           oasysAssessmentPk = oasysAssessmentPk,
           regionPrisonCode = regionPrisonCode,
