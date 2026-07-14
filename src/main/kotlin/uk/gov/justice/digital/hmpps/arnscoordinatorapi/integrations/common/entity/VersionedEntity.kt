@@ -11,4 +11,5 @@ data class VersionedEntity(
   val entityType: EntityType,
   val deleted: Boolean = false,
   val updatedAt: LocalDateTime? = null,
+  val createdBy: OasysEvent? = null,
 )

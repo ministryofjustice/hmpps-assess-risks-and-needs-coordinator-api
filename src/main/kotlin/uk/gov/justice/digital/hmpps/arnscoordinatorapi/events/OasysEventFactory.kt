@@ -17,10 +17,10 @@ class OasysEventFactory(
 ) {
 
   fun createVersionEvent(request: OasysCreateRequest, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
-    oasysEvent = OasysEvent.CREATED, // TODO: Misses the CLONED path?
+    oasysEvent = result.aapPlanVersionedEntity?.createdBy ?: OasysEvent.CREATED,
     oasysAssessmentPk = request.oasysAssessmentPk,
     regionPrisonCode = request.regionPrisonCode,
-    baseVersion = result.sentencePlanVersion,
+    baseVersion = result.aapPlanVersionedEntity?.version ?: 0L,
     result = result,
   )
 

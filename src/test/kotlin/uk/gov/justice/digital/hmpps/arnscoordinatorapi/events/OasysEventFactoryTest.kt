@@ -10,6 +10,7 @@ import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -26,6 +27,7 @@ import java.util.UUID
 class OasysEventFactoryTest {
 
   private val fixedNow = LocalDateTime.of(2026, 1, 1, 12, 0, 0)
+  private val updatedAt = LocalDateTime.of(2026, 1, 1, 11, 0, 0)
   private val clock: Clock = mock()
   private val factory = OasysEventFactory(clock)
 
@@ -43,6 +45,25 @@ class OasysEventFactoryTest {
     sentencePlanId = planId,
     sentencePlanVersion = 3L,
   )
+
+  private fun resultWithAapVersion(
+    deleted: Boolean = false,
+    updatedAt: LocalDateTime = LocalDateTime.of(2026, 1, 1, 11, 0, 0),
+    createdBy: OasysEvent = OasysEvent.CREATED,
+  ): OasysVersionedEntityResponse {
+    val response = OasysVersionedEntityResponse(sentencePlanId = planId, sentencePlanVersion = 3L)
+    response.addVersionedEntity(
+      VersionedEntity(
+        id = planId,
+        version = 3L,
+        entityType = EntityType.AAP_PLAN,
+        deleted = deleted,
+        updatedAt = updatedAt,
+        createdBy = createdBy,
+      ),
+    )
+    return response
+  }
 
   @BeforeEach
   fun setup() {
@@ -135,5 +156,55 @@ class OasysEventFactoryTest {
     val payload = event.message as DeleteFlagUpdatePayload
     assertThat(payload.deleted).isFalse()
     assertThat(payload.versionTo).isNull()
+  }
+
+  @Test
+  fun `versionEvent uses incrementedAt from aapPlanVersionedEntity updatedAt, not clock`() {
+    val request = OasysCreateRequest(
+      oasysAssessmentPk = "12345",
+      regionPrisonCode = "MDI",
+      planType = PlanType.INITIAL,
+      assessmentType = AssessmentType.SAN_SP,
+      userDetails = OasysUserDetails(id = "1", name = "Test"),
+    )
+    val payload = factory.createVersionEvent(request, resultWithAapVersion()).message as VersionPayload
+    assertThat(payload.incrementedAt).isEqualTo(updatedAt)
+    assertThat(payload.incrementedAt).isNotEqualTo(fixedNow)
+  }
+
+  @Test
+  fun `versionEvent uses deleted=true from aapPlanVersionedEntity`() {
+    val request = OasysCreateRequest(
+      oasysAssessmentPk = "12345",
+      regionPrisonCode = "MDI",
+      planType = PlanType.INITIAL,
+      assessmentType = AssessmentType.SAN_SP,
+      userDetails = OasysUserDetails(id = "1", name = "Test"),
+    )
+    val payload = factory.createVersionEvent(request, resultWithAapVersion(deleted = true)).message as VersionPayload
+    assertThat(payload.deleted).isTrue()
+  }
+
+  @Test
+  fun `createVersionEvent uses CLONED when aapPlanVersionedEntity createdBy is CLONED`() {
+    val request = OasysCreateRequest(
+      oasysAssessmentPk = "12345",
+      regionPrisonCode = "MDI",
+      planType = PlanType.INITIAL,
+      assessmentType = AssessmentType.SAN_SP,
+      userDetails = OasysUserDetails(id = "1", name = "Test"),
+    )
+    val payload = factory.createVersionEvent(request, resultWithAapVersion(createdBy = OasysEvent.CLONED)).message as VersionPayload
+    assertThat(payload.oasysEvent).isEqualTo(OasysEvent.CLONED)
+  }
+
+  @Test
+  fun `signVersionEvent uses AWAITING_COUNTERSIGN when sign type is COUNTERSIGN`() {
+    val request = OasysSignRequest(
+      signType = SignType.COUNTERSIGN,
+      userDetails = OasysUserDetails(id = "1", name = "Test"),
+    )
+    val payload = factory.signVersionEvent(association, request, result).message as VersionPayload
+    assertThat(payload.oasysEvent).isEqualTo(OasysEvent.AWAITING_COUNTERSIGN)
   }
 }

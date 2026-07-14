@@ -54,4 +54,3 @@ data class AssociationPayload(
   val regionPrisonCode: String?,
   val baseVersion: Long,
 )
-
