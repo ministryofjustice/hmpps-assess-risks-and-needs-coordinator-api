@@ -61,7 +61,6 @@ class OasysEventFactory(
     result: OasysVersionedEntityResponse,
   ): CoordinatorEvent {
     val oasysEvent = when (request.outcome) {
-      // TODO: Why does CounterSignOutcome not have AWAITING_COUNTERSIGN?
       CounterSignOutcome.COUNTERSIGNED -> OasysEvent.COUNTERSIGNED
       CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> OasysEvent.AWAITING_DOUBLE_COUNTERSIGN
       CounterSignOutcome.DOUBLE_COUNTERSIGNED -> OasysEvent.DOUBLE_COUNTERSIGNED

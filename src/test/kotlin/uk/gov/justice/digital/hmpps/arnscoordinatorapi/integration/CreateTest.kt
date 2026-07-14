@@ -31,15 +31,17 @@ class CreateTest : IntegrationTestBase() {
 
   val queueUrl get() = "$localStackUrl/000000000000/coordinator-queue"
 
-  fun createClient(): SqsClient = SqsClient.builder()
-    .endpointOverride(URI.create(localStackUrl))
-    .region(Region.EU_WEST_2)
-    .credentialsProvider(
-      StaticCredentialsProvider.create(
-        AwsBasicCredentials.create("test", "test"),
-      ),
-    )
-    .build()
+  val sqsClient: SqsClient by lazy {
+    SqsClient.builder()
+      .endpointOverride(URI.create(localStackUrl))
+      .region(Region.EU_WEST_2)
+      .credentialsProvider(
+        StaticCredentialsProvider.create(
+          AwsBasicCredentials.create("test", "test"),
+        ),
+      )
+      .build()
+  }
 
   @BeforeEach
   fun setUp() {
@@ -51,7 +53,6 @@ class CreateTest : IntegrationTestBase() {
 
   @BeforeEach
   fun clearQueue() {
-    val sqsClient = createClient()
     while (true) {
       val messages = sqsClient.receiveMessage {
         it.queueUrl(queueUrl)
@@ -96,7 +97,6 @@ class CreateTest : IntegrationTestBase() {
   @Test
   fun `it publishes an OASYS_VERSION_EVENT to SQS when create succeeds`() {
     val oasysAssessmentPk = getRandomOasysPk()
-    val sqsClient = createClient()
 
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
@@ -150,7 +150,6 @@ class CreateTest : IntegrationTestBase() {
   fun `it does not publish an event when create fails`() {
     stubAAPCreateAssessment(500)
     val oasysAssessmentPk = getRandomOasysPk()
-    val sqsClient = createClient()
 
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))

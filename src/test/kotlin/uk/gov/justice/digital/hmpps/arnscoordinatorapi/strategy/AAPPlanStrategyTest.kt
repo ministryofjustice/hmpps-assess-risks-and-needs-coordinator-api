@@ -133,7 +133,7 @@ class AAPPlanStrategyTest {
       val createData = CreateData(
         plan = CreatePlanData(PlanType.INITIAL, UserDetails("id", "name")),
       )
-      val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, entityType, updatedAt = now)
+      val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, entityType, updatedAt = now, createdBy = OasysEvent.CLONED)
 
       whenever(oasysVersionService.createVersionFor(OasysEvent.CLONED, versionedEntity.id))
         .thenReturn(
