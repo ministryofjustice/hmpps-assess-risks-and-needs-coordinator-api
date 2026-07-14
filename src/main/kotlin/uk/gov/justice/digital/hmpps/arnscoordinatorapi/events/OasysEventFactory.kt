@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import java.time.ZoneOffset
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 
 @Component
 class OasysEventFactory(
@@ -15,7 +15,7 @@ class OasysEventFactory(
 ) {
 
   fun createVersionEvent(request: OasysCreateRequest, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
-    oasysEvent = OasysEvent.CREATED,
+    oasysEvent = OasysEvent.CREATED, // TODO: Misses the CLONED path?
     oasysAssessmentPk = request.oasysAssessmentPk,
     regionPrisonCode = request.regionPrisonCode,
     baseVersion = result.sentencePlanVersion,
@@ -23,7 +23,7 @@ class OasysEventFactory(
   )
 
   fun signVersionEvent(association: OasysAssociation, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
-    oasysEvent = OasysEvent.SELF_SIGNED,
+    oasysEvent = OasysEvent.SELF_SIGNED, // TODO: Is this missing states?
     oasysAssessmentPk = association.oasysAssessmentPk!!,
     regionPrisonCode = association.regionPrisonCode,
     baseVersion = association.baseVersion,

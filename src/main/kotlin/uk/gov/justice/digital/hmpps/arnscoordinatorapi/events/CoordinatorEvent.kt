@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.events
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -54,16 +55,3 @@ data class AssociationPayload(
   val baseVersion: Long,
 )
 
-// TODO: Do I need to this duplicate of persistence.OasysEvent?
-enum class OasysEvent {
-  AWAITING_COUNTERSIGN,
-  AWAITING_DOUBLE_COUNTERSIGN,
-  CLONED,
-  COUNTERSIGNED,
-  CREATED,
-  DOUBLE_COUNTERSIGNED,
-  LOCKED,
-  REJECTED,
-  ROLLED_BACK,
-  SELF_SIGNED,
-}

@@ -81,7 +81,7 @@ class OasysCoordinatorServiceTest {
     occurredAt = LocalDateTime.now(),
     message = VersionPayload(
       version = 1L,
-      oasysEvent = uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEvent.CREATED,
+      oasysEvent = OasysEvent.CREATED,
       incrementedAt = LocalDateTime.now(),
       deleted = false,
       association = AssociationPayload("pk", null, 1L),
