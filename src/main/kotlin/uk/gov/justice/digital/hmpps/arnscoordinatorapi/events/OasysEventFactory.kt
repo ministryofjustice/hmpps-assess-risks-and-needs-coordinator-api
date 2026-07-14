@@ -3,9 +3,11 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.events
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 
@@ -22,8 +24,15 @@ class OasysEventFactory(
     result = result,
   )
 
-  fun signVersionEvent(association: OasysAssociation, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
-    oasysEvent = OasysEvent.SELF_SIGNED, // TODO: Is this missing states?
+  fun signVersionEvent(
+    association: OasysAssociation,
+    request: OasysSignRequest,
+    result: OasysVersionedEntityResponse,
+  ): CoordinatorEvent = versionEvent(
+    oasysEvent = when (request.signType) {
+      SignType.SELF -> OasysEvent.SELF_SIGNED
+      SignType.COUNTERSIGN -> OasysEvent.AWAITING_COUNTERSIGN
+    },
     oasysAssessmentPk = association.oasysAssessmentPk!!,
     regionPrisonCode = association.regionPrisonCode,
     baseVersion = association.baseVersion,
@@ -85,7 +94,7 @@ class OasysEventFactory(
       eventType = EventType.OASYS_VERSION_EVENT,
       entityType = "AAP_PLAN",
       entityUuid = result.sentencePlanId,
-      occurredAt = clock.now(),
+      occurredAt = now,
       message = VersionPayload(
         version = result.sentencePlanVersion,
         oasysEvent = oasysEvent,

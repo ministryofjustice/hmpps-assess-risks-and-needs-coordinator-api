@@ -320,7 +320,9 @@ class OasysCoordinatorService(
     }
 
     associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
-      oasysEventPublisher.publish(oasysEventFactory.signVersionEvent(aapAssociation, oasysSignResponse))
+      oasysEventPublisher.publish(
+        oasysEventFactory.signVersionEvent(aapAssociation, oasysSignRequest, oasysSignResponse),
+      )
     }
 
     return SignOperationResult.Success(oasysSignResponse)
@@ -553,7 +555,6 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
-          // TODO: This might not belong here
           if (association.entityType == EntityType.AAP_PLAN) {
             oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
           }
@@ -610,7 +611,6 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
-          // TODO: This might not belong here
           if (association.entityType == EntityType.AAP_PLAN) {
             oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
           }

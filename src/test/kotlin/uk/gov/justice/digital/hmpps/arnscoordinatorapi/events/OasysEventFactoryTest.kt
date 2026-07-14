@@ -9,12 +9,14 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
@@ -28,10 +30,6 @@ class OasysEventFactoryTest {
   private val factory = OasysEventFactory(clock)
 
   private val planId = UUID.randomUUID()
-  private val result = OasysVersionedEntityResponse(
-    sentencePlanId = planId,
-    sentencePlanVersion = 3L,
-  )
 
   private val association = OasysAssociation(
     oasysAssessmentPk = "12345",
@@ -39,6 +37,11 @@ class OasysEventFactoryTest {
     entityUuid = planId,
     regionPrisonCode = "MDI",
     baseVersion = 2L,
+  )
+
+  private val result = OasysVersionedEntityResponse(
+    sentencePlanId = planId,
+    sentencePlanVersion = 3L,
   )
 
   @BeforeEach
@@ -72,7 +75,9 @@ class OasysEventFactoryTest {
 
   @Test
   fun `signVersionEvent produces OASYS_VERSION_EVENT with SELF_SIGNED`() {
-    val event = factory.signVersionEvent(association, result)
+    val request = OasysSignRequest(signType = SignType.SELF, userDetails = OasysUserDetails(id = "1", name = "Test"))
+
+    val event = factory.signVersionEvent(association, request, result)
 
     val payload = event.message as VersionPayload
     assertThat(payload.oasysEvent).isEqualTo(OasysEvent.SELF_SIGNED)

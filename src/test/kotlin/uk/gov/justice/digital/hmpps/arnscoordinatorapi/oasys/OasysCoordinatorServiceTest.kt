@@ -92,7 +92,7 @@ class OasysCoordinatorServiceTest {
   fun setup() {
     publishedEvents.clear()
     whenever(oasysEventFactory.createVersionEvent(any(), any())).thenReturn(stubEvent)
-    whenever(oasysEventFactory.signVersionEvent(any(), any())).thenReturn(stubEvent)
+    whenever(oasysEventFactory.signVersionEvent(any(), any(), any())).thenReturn(stubEvent)
     whenever(oasysEventFactory.lockVersionEvent(any(), any())).thenReturn(stubEvent)
     whenever(oasysEventFactory.rollbackVersionEvent(any(), any())).thenReturn(stubEvent)
     whenever(oasysEventFactory.counterSignVersionEvent(any(), any(), any())).thenReturn(stubEvent)

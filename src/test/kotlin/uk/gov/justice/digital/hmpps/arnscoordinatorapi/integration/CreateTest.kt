@@ -56,7 +56,7 @@ class CreateTest : IntegrationTestBase() {
       val messages = sqsClient.receiveMessage {
         it.queueUrl(queueUrl)
           .maxNumberOfMessages(10)
-          .waitTimeSeconds(1)
+          .waitTimeSeconds(0)
       }.messages()
 
       if (messages.isEmpty()) break
