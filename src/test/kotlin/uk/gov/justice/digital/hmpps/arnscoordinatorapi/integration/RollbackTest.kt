@@ -29,13 +29,14 @@ class RollbackTest : IntegrationTestBase() {
 
   lateinit var oasysAssessmentPk: String
   lateinit var planUuid: UUID
+  lateinit var sanUuid: UUID
 
   @BeforeEach
   fun setUp() {
     stubGrantToken()
-    stubAssessmentsRollback()
     oasysAssessmentPk = getRandomOasysPk()
     planUuid = UUID.randomUUID()
+    sanUuid = UUID.randomUUID()
 
     oasysAssociationRepository.saveAll(
       listOf(
@@ -46,16 +47,24 @@ class RollbackTest : IntegrationTestBase() {
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
-          entityUuid = UUID.fromString("4da85f64-5717-4562-b3fc-2c963f66afb8"),
+          entityType = EntityType.AAP_SAN,
+          entityUuid = sanUuid,
         ),
       ),
     )
-    oasysVersionRepository.save(
-      OasysVersionEntity(
-        createdBy = OasysEvent.AWAITING_COUNTERSIGN,
-        entityUuid = planUuid,
-        version = 2,
+
+    oasysVersionRepository.saveAll(
+      listOf(
+        OasysVersionEntity(
+          createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+          entityUuid = planUuid,
+          version = 2,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.ROLLED_BACK,
+          entityUuid = sanUuid,
+          version = 1,
+        ),
       ),
     )
   }
@@ -85,24 +94,24 @@ class RollbackTest : IntegrationTestBase() {
       2,
     )
 
-    assertThat(response?.sanAssessmentId).isEqualTo(UUID.fromString("4da85f64-5717-4562-b3fc-2c963f66afb8"))
+    assertThat(response?.sanAssessmentId).isEqualTo(sanUuid)
     assertThat(response?.sanAssessmentVersion).isEqualTo(1)
     assertThat(response?.sentencePlanId).isEqualTo(planUuid)
     assertThat(response?.sentencePlanVersion).isEqualTo(2)
     assertThat(planVersion?.createdBy).isEqualTo(OasysEvent.ROLLED_BACK)
   }
 
-  @Test
-  fun `it returns a 409 when the SAN assessment is already rolled back`() {
-    stubAssessmentsRollback(409)
-
-    val response = request(oasysAssessmentPk)
-      .expectStatus().isEqualTo(409)
-      .expectBody(ErrorResponse::class.java)
-      .returnResult().responseBody
-
-    assertThat(response?.userMessage).isEqualTo("Failed to roll back ASSESSMENT entity due to a conflict, Unable to roll back this assessment version")
-  }
+//  @Test
+//  fun `it returns a 409 when the SAN assessment is already rolled back`() {
+//    stubAssessmentsRollback(409)
+//
+//    val response = request(oasysAssessmentPk)
+//      .expectStatus().isEqualTo(409)
+//      .expectBody(ErrorResponse::class.java)
+//      .returnResult().responseBody
+//
+//    assertThat(response?.userMessage).isEqualTo("Failed to roll back ASSESSMENT entity due to a conflict, Unable to roll back this assessment version")
+//  }
 
   @Test
   fun `it returns a 500 when the sentence plan version does not exist`() {

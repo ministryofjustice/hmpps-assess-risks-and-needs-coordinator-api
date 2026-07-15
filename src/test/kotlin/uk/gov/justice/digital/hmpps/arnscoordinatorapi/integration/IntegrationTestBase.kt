@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.Sent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension.Companion.sanServer
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.RandomOasysPk
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentTypeConfig
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.util.UUID
 
@@ -38,6 +39,8 @@ abstract class IntegrationTestBase {
   @Autowired
   lateinit var randomOasysPk: RandomOasysPk
 
+  @Autowired lateinit var assessmentTypeConfig: AssessmentTypeConfig
+
   fun getRandomOasysPk() = randomOasysPk.get()
 
   internal fun setAuthorisation(
@@ -50,94 +53,6 @@ abstract class IntegrationTestBase {
     hmppsAuth.stubGrantToken()
   }
 
-  protected fun stubAssessmentsCreate(status: Int = 201) {
-    sanServer.stubAssessmentsCreate(status)
-  }
-
-  protected fun stubAssessmentsClone(status: Int = 200) {
-    sanServer.stubAssessmentsClone(status)
-  }
-
-  protected fun stubAssessmentsDelete(status: Int = 200) {
-    sanServer.stubAssessmentsDelete(status)
-  }
-
-  protected fun stubAssessmentsGet(status: Int = 200) {
-    sanServer.stubAssessmentsGet(status)
-  }
-
-  protected fun stubAssessmentsGetVersions(status: Int = 200) {
-    sanServer.stubAssessmentsGetVersions(status)
-  }
-
-  protected fun stubAssessmentsSign(status: Int = 200) {
-    sanServer.stubAssessmentsSign(status)
-  }
-
-  protected fun stubAssessmentsLock(status: Int = 200) {
-    sanServer.stubAssessmentsLock(status)
-  }
-
-  protected fun stubAssessmentsCounterSign(status: Int = 200) {
-    sanServer.stubAssessmentsCounterSign(status)
-  }
-
-  protected fun stubAssessmentsRollback(status: Int = 200) {
-    sanServer.stubAssessmentsRollback(status)
-  }
-
-  protected fun stubAssessmentsUndelete(status: Int = 200) {
-    sanServer.stubAssessmentsUndelete(status)
-  }
-
-  protected fun stubAssessmentsSoftDelete(status: Int = 200, emptyBody: Boolean = false) {
-    sanServer.stubAssessmentsSoftDelete(status, emptyBody)
-  }
-
-  protected fun stubSentencePlanCreate(status: Int = 201) {
-    sentencePlanApiMock.stubSentencePlanCreate(status)
-  }
-
-  protected fun stubSentencePlanGet(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanGet(status)
-  }
-
-  protected fun stubSentencePlanGetVersions(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanGetVersions(status)
-  }
-
-  protected fun stubSentencePlanSign(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanSign(status)
-  }
-
-  protected fun stubSentencePlanClone(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanClone(status)
-  }
-
-  protected fun stubSentencePlanDelete(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanDelete(status)
-  }
-
-  protected fun stubSentencePlanLock(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanLock(status)
-  }
-
-  protected fun stubSentencePlanRollback(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanRollback(status)
-  }
-
-  protected fun stubSentencePlanCounterSign(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanCounterSign(status)
-  }
-
-  protected fun stubSentencePlanUndelete(status: Int = 200) {
-    sentencePlanApiMock.stubSentencePlanUndelete(status)
-  }
-
-  protected fun stubSentencePlanSoftDelete(status: Int = 200, uuid: UUID = UUID.fromString("3fc52df3-ad01-40d5-b29c-eba6573faf91")) {
-    sentencePlanApiMock.stubSentencePlanSoftDelete(status, uuid)
-  }
-
   protected fun stubPingWithResponse(status: Int) {
     hmppsAuth.stubHealthPing(status)
     sanServer.stubHealthPing(status)
@@ -145,16 +60,20 @@ abstract class IntegrationTestBase {
     aapApiMock.stubHealthPing(status)
   }
 
-  protected fun stubAAPCreateAssessment(status: Int = 201) {
-    aapApiMock.stubCreateAssessment(status)
+  protected fun stubAAPCreateAssessment(status: Int = 201, assessmentType: String, uuid: UUID) {
+    aapApiMock.stubCreateAssessment(status, assessmentType, uuid)
   }
 
-  protected fun stubAAPQueryAssessment(status: Int = 200) {
-    aapApiMock.stubQueryAssessment(status)
+  protected fun stubAAPQueryAssessment(status: Int = 200, assessmentType: String, uuid: UUID) {
+    aapApiMock.stubQueryAssessment(status, assessmentType, uuid)
   }
 
-  protected fun stubAAPQueryAssessmentVersions(status: Int = 200) {
-    aapApiMock.stubQueryAssessmentVersions(status)
+  protected fun stubAAPQueryPlanVersions(status: Int = 200, uuid: UUID) {
+    aapApiMock.stubQueryPlanVersions(status, uuid)
+  }
+
+  protected fun stubAAPQuerySanVersions(status: Int = 200, uuid: UUID) {
+    aapApiMock.stubQuerySanVersions(status, uuid)
   }
 
   protected fun stubAAPMarkMerged(status: Int = 200) {

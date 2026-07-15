@@ -47,6 +47,8 @@ services:
       # TODO: Need to get some proper credentials for below
       CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
       CLIENT_SECRET: clientsecret
+      PLAN_TYPE: AAP_PLAN
+      ASSESSMENT_TYPE: AAP_SAN
 
   localstack:
     image: localstack/localstack:4

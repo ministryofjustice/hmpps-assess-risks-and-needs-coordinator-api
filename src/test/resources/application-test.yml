@@ -40,3 +40,6 @@ hmpps:
       coordinator:
         queue-name: coordinator-queue
         error-visibility-timeout: 30
+
+plan-type: AAP_PLAN
+assessment-type: AAP_SAN

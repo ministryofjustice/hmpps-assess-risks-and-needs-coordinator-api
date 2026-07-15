@@ -46,9 +46,8 @@ class CreateTest : IntegrationTestBase() {
   @BeforeEach
   fun setUp() {
     stubGrantToken()
-    stubAssessmentsCreate()
-    stubAAPCreateAssessment()
-    stubAssessmentsClone()
+    stubAAPCreateAssessment(201, "SENTENCE_PLAN", UUID.randomUUID())
+    stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", UUID.randomUUID())
   }
 
   @BeforeEach
@@ -72,6 +71,12 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully creates a new SP and SAN with no previous oasys PK`() {
+    val planUuid = UUID.randomUUID()
+    val sanUuid = UUID.randomUUID()
+
+    stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
+    stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
+
     val oasysAssessmentPk = getRandomOasysPk()
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
@@ -85,13 +90,13 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isCreated
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
     val aapPlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
-    val sanAssociation = associations.firstOrNull { it.entityType == EntityType.ASSESSMENT }
+    val sanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
     assertThat(aapPlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
     assertThat(sanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
-    assertThat(aapPlanAssociation?.entityUuid).isEqualTo(UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"))
-    assertThat(sanAssociation?.entityUuid).isEqualTo(UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"))
+    assertThat(aapPlanAssociation?.entityUuid).isEqualTo(planUuid)
+    assertThat(sanAssociation?.entityUuid).isEqualTo(sanUuid)
   }
 
   @Test
@@ -127,7 +132,7 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it returns a 500 status where a call to the downstream AAP service returns 500`() {
-    stubAAPCreateAssessment(500)
+    stubAAPCreateAssessment(500, "SENTENCE_PLAN", UUID.randomUUID())
     val oasysAssessmentPk = getRandomOasysPk()
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
@@ -142,7 +147,7 @@ class CreateTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isEqualTo(500)
 
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
     assertThat(associations).isEmpty()
   }
 
@@ -185,20 +190,26 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it successfully links existing SP and SAN when previous PKs are supplied`() {
+    val planUuid = UUID.randomUUID()
+    val sanUuid = UUID.randomUUID()
+
+    stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
+    stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
+
     val previousOasysPk = getRandomOasysPk()
     val oasysAssessmentPk = getRandomOasysPk()
 
-    oasysAssociationRepository.saveAll(
+    val (planAssociation, sanAssociation) = oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
           oasysAssessmentPk = previousOasysPk,
           entityType = EntityType.AAP_PLAN,
-          entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityUuid = planUuid,
         ),
         OasysAssociation(
           oasysAssessmentPk = previousOasysPk,
-          entityType = EntityType.ASSESSMENT,
-          entityUuid = UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"),
+          entityType = EntityType.AAP_SAN,
+          entityUuid = sanUuid,
         ),
       ),
     )
@@ -217,13 +228,13 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isCreated
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
-    val sentencePlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
-    val sanAssociation = associations.firstOrNull { it.entityType == EntityType.ASSESSMENT }
-    assertThat(sentencePlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
-    assertThat(sanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
-    assertThat(sentencePlanAssociation?.entityUuid).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
-    assertThat(sanAssociation?.entityUuid).isEqualTo(UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"))
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
+    val persistedSentencePlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
+    val persistedSanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
+    assertThat(persistedSentencePlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
+    assertThat(persistedSanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
+    assertThat(persistedSentencePlanAssociation?.entityUuid).isEqualTo(planAssociation.entityUuid)
+    assertThat(persistedSanAssociation?.entityUuid).isEqualTo(sanAssociation.entityUuid)
   }
 
   @Test
@@ -234,7 +245,7 @@ class CreateTest : IntegrationTestBase() {
       OasysAssociation(
         oasysAssessmentPk = oasysAssessmentPk,
         entityUuid = UUID.randomUUID(),
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
     )
 

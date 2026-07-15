@@ -3,12 +3,16 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
+import java.util.UUID
+import kotlin.String
 
 class AAPApiMock : WireMockServer(8093) {
 
@@ -23,58 +27,66 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun stubCreateAssessment(status: Int = 201) {
+  fun stubCreateAssessment(status: Int = 201, assessmentType: String, uuid: UUID) {
     stubFor(
-      post("/command").willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
+      post("/command")
+        .withRequestBody(
+          matchingJsonPath("$.commands.[0].assessmentType", equalTo(assessmentType)),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
               {
                 "commands": [
                   {
                     "request": {
                       "type": "CreateAssessmentCommand",
-                      "assessmentType": "SENTENCE_PLAN",
+                      "assessmentType": "$assessmentType",
                       "formVersion": "",
                       "user": { "id": 1, "name": "Test Name" }
                     },
                     "result": {
                       "type": "CreateAssessmentCommandResult",
-                      "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "assessmentUuid": "$uuid",
                       "message": "Assessment created successfully",
                       "success": true
                     }
                   }
                 ]
               }
-            """.trimIndent(),
-          )
-          .withStatus(status),
-      ),
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 
-  fun stubQueryAssessment(status: Int = 200) {
+  fun stubQueryAssessment(status: Int = 200, assessmentType: String, uuid: UUID) {
     stubFor(
-      post("/query").willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
+      post("/query")
+        .withRequestBody(
+          matchingJsonPath("$.queries.[0].assessmentIdentifier.uuid", equalTo(uuid.toString())),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
               {
                 "queries": [
                   {
                     "request": {
                       "type": "AssessmentVersionQuery",
                       "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
-                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
                     },
                     "result": {
                       "type": "AssessmentVersionQueryResult",
-                      "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "assessmentUuid": "$uuid",
                       "aggregateUuid": "6fa85f64-5717-4562-b3fc-2c963f66afa6",
-                      "assessmentType": "SENTENCE_PLAN",
+                      "assessmentType": "$assessmentType",
                       "formVersion": "1.0",
                       "createdAt": "2026-01-09T12:00:00",
                       "updatedAt": "2026-01-09T12:30:00",
@@ -89,10 +101,10 @@ class AAPApiMock : WireMockServer(8093) {
                   }
                 ]
               }
-            """.trimIndent(),
-          )
-          .withStatus(status),
-      ),
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 
@@ -163,20 +175,24 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun stubQueryAssessmentVersions(status: Int = 200) {
+  fun stubQueryPlanVersions(status: Int = 200, uuid: UUID) {
     stubFor(
-      post("/query").willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
+      post("/query")
+        .withRequestBody(
+          matchingJsonPath("$.queries.[0].assessmentIdentifier.uuid", equalTo(uuid.toString())),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
               {
                 "queries": [
                   {
                     "request": {
                       "type": "DailyVersionsQuery",
                       "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
-                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
                     },
                     "result": {
                       "type": "DailyVersionsQueryResult",
@@ -198,7 +214,7 @@ class AAPApiMock : WireMockServer(8093) {
                     "request": {
                       "type": "TimelineQuery",
                       "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
-                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
                     },
                     "result": {
                       "type": "TimelineQueryResult",
@@ -211,7 +227,7 @@ class AAPApiMock : WireMockServer(8093) {
                           "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                           "timestamp": "2025-04-23T14:40:53.105Z",
                           "user": { "id": 1, "name": "Test User" },
-                          "assessment": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "assessment": "$uuid",
                           "event": "ASSESSMENT_ANSWERS_UPDATED",
                           "customType": "PLAN_AGREEMENT_STATUS_CHANGED",
                           "customData": { "status": "AGREED" }
@@ -221,10 +237,49 @@ class AAPApiMock : WireMockServer(8093) {
                   }
                 ]
               }
-            """.trimIndent(),
-          )
-          .withStatus(status),
-      ),
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
+    )
+  }
+
+  fun stubQuerySanVersions(status: Int = 200, uuid: UUID) {
+    stubFor(
+      post("/query")
+        .withRequestBody(
+          matchingJsonPath("$.queries.[0].assessmentIdentifier.uuid", equalTo(uuid.toString())),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+              {
+                "queries": [
+                  {
+                    "request": {
+                      "type": "DailyVersionsQuery",
+                      "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
+                    },
+                    "result": {
+                      "type": "DailyVersionsQueryResult",
+                      "versions": [
+                        {
+                          "createdAt": "2025-05-23T13:22:54.105",
+                          "updatedAt": "2025-05-23T13:22:54.105",
+                          "lastTimelineItemUuid": "61369578-18f5-488c-bc99-7cc6249f39a2"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 }
