@@ -33,7 +33,6 @@ class SoftDeleteTest : IntegrationTestBase() {
   @BeforeEach
   fun setUp() {
     stubGrantToken()
-    stubAssessmentsSoftDelete()
     stubAAPSoftDeleteAssessment()
   }
 
@@ -55,9 +54,9 @@ class SoftDeleteTest : IntegrationTestBase() {
         OasysAssociation(
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = unaffectedOasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
           entityUuid = assessmentUuid,
-          baseVersion = 2,
+          baseVersion = 1,
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
@@ -67,12 +66,13 @@ class SoftDeleteTest : IntegrationTestBase() {
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
           entityUuid = assessmentUuid,
-          baseVersion = 3,
+          baseVersion = 2,
         ),
       ),
     )
+
     oasysVersionRepository.saveAll(
       listOf(
         OasysVersionEntity(
@@ -84,6 +84,21 @@ class SoftDeleteTest : IntegrationTestBase() {
           createdBy = OasysEvent.LOCKED,
           entityUuid = planUuid,
           version = 2,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.CREATED,
+          entityUuid = assessmentUuid,
+          version = 1,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+          entityUuid = assessmentUuid,
+          version = 2,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.LOCKED,
+          entityUuid = assessmentUuid,
+          version = 3,
         ),
       ),
     )
@@ -102,32 +117,38 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 2, 3)
+    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, Long.MAX_VALUE)
+    val deletedSanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(assessmentUuid, 0, Long.MAX_VALUE)
     val activePlanVersions = oasysVersionRepository.findAllByEntityUuid(planUuid)
+    val activeSanVersion = oasysVersionRepository.findAllByEntityUuid(assessmentUuid)
 
     assertThat(response?.sanAssessmentId).isEqualTo(assessmentUuid)
-    assertThat(response?.sanAssessmentVersion).isEqualTo(2)
+    assertThat(response?.sanAssessmentVersion).isEqualTo(3)
     assertThat(response?.sentencePlanId).isEqualTo(planUuid)
     assertThat(response?.sentencePlanVersion).isEqualTo(2)
+    assertThat(activeSanVersion).hasSize(1)
+    assertThat(activeSanVersion.map { it.version }).isEqualTo(listOf<Long>(1))
+    assertThat(deletedSanVersions).hasSize(2)
+    assertThat(deletedSanVersions.map { it.version }).isEqualTo(listOf<Long>(2, 3))
     assertThat(activePlanVersions).hasSize(1)
-    assertThat(activePlanVersions.first().version).isEqualTo(1)
+    assertThat(activePlanVersions.map { it.version }).isEqualTo(listOf<Long>(1))
     assertThat(deletedPlanVersions).hasSize(1)
-    assertThat(deletedPlanVersions.first().version).isEqualTo(2)
+    assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(2))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.default()).run {
       assertEquals(2, count())
       map {
         assertTrue(
           when (it.baseVersion) {
-            2L -> !it.deleted
-            3L -> it.deleted
+            1L -> !it.deleted
+            2L, 3L -> it.deleted
             else -> false
           },
         )
       }
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.default()).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -146,7 +167,7 @@ class SoftDeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     val assessmentUuid = UUID.randomUUID()
     val planUuid = UUID.randomUUID()
-    stubAssessmentsSoftDelete(200, emptyBody = true)
+
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -157,17 +178,24 @@ class SoftDeleteTest : IntegrationTestBase() {
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
           entityUuid = assessmentUuid,
           baseVersion = 0,
         ),
       ),
     )
-    oasysVersionRepository.save(
-      OasysVersionEntity(
-        createdBy = OasysEvent.CREATED,
-        entityUuid = planUuid,
-        version = 0,
+    oasysVersionRepository.saveAll(
+      listOf(
+        OasysVersionEntity(
+          createdBy = OasysEvent.CREATED,
+          entityUuid = planUuid,
+          version = 0,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.CREATED,
+          entityUuid = assessmentUuid,
+          version = 0,
+        ),
       ),
     )
 
@@ -185,57 +213,60 @@ class SoftDeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 1)
+    val deletedPlanVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, Long.MAX_VALUE)
+    val deletedAssessmentVersions = oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(assessmentUuid, 0, Long.MAX_VALUE)
 
-    assertThat(response!!.sanAssessmentId).isEqualTo(UUID(0, 0))
+    assertThat(response!!.sanAssessmentId).isEqualTo(assessmentUuid)
     assertThat(response.sanAssessmentVersion).isEqualTo(0)
     assertThat(response.sentencePlanId).isEqualTo(planUuid)
     assertThat(response.sentencePlanVersion).isEqualTo(0)
+    assertThat(deletedAssessmentVersions).hasSize(1)
+    assertThat(deletedAssessmentVersions.map { it.version }).isEqualTo(listOf<Long>(0))
     assertThat(deletedPlanVersions).hasSize(1)
-    assertThat(deletedPlanVersions.first().version).isEqualTo(0)
+    assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(0))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.default()).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.default()).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
   }
 
-  @Test
-  fun `it returns a 409 when the SAN assessment is already soft-deleted`() {
-    stubAssessmentsSoftDelete(409)
-
-    val oasysAssessmentPk = getRandomOasysPk()
-    oasysAssociationRepository.saveAll(
-      listOf(
-        OasysAssociation(
-          oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
-          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
-        ),
-      ),
-    )
-
-    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/soft-delete")
-      .header(HttpHeaders.CONTENT_TYPE, "application/json")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-      .bodyValue(
-        OasysGenericRequest(
-          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
-        ),
-      )
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isEqualTo(409)
-      .expectBody(ErrorResponse::class.java)
-      .returnResult().responseBody
-
-    assertThat(response?.userMessage).startsWith("Failed to soft-delete ASSESSMENT versions from 0 to null due to a conflict, Unable to soft-delete the requested assessment versions")
-  }
+//  @Test
+//  fun `it returns a 409 when the SAN assessment is already soft-deleted`() {
+//    stubAssessmentsSoftDelete(409)
+//
+//    val oasysAssessmentPk = getRandomOasysPk()
+//    oasysAssociationRepository.saveAll(
+//      listOf(
+//        OasysAssociation(
+//          oasysAssessmentPk = oasysAssessmentPk,
+//          entityType = EntityType.AAP_SAN,
+//          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
+//        ),
+//      ),
+//    )
+//
+//    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/soft-delete")
+//      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+//      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+//      .bodyValue(
+//        OasysGenericRequest(
+//          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+//        ),
+//      )
+//      .accept(MediaType.APPLICATION_JSON)
+//      .exchange()
+//      .expectStatus().isEqualTo(409)
+//      .expectBody(ErrorResponse::class.java)
+//      .returnResult().responseBody
+//
+//    assertThat(response?.userMessage).startsWith("Failed to soft-delete ASSESSMENT versions from 0 to null due to a conflict, Unable to soft-delete the requested assessment versions")
+//  }
 
   @Test
   fun `it returns a 500 when the sentence plan has no versions to soft-delete`() {

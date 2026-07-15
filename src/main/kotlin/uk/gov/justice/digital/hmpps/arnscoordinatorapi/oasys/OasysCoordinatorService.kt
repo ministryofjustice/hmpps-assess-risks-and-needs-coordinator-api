@@ -33,7 +33,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService.GetOperationResult.*
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -98,7 +97,6 @@ class OasysCoordinatorService(
           oasysVersionService
             .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
             .version
-
       },
       regionPrisonCode = regionPrisonCode,
     )
@@ -493,7 +491,7 @@ class OasysCoordinatorService(
           }
         }
 
-        null -> return Failure("Misconfigured association found")
+        null -> return GetOperationResult.Failure("Misconfigured association found")
       }
     }
 

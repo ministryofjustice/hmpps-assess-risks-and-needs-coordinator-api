@@ -3,13 +3,15 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentTypeConfig
 
 @Component
 class StrategyFactory(
   private val assessmentStrategy: AssessmentStrategy?,
   private val planStrategy: PlanStrategy?,
   private val aapPlanStrategy: AAPPlanStrategy?,
-  private val aapStrengthsAndNeedsStrategy: AAPStrengthsAndNeedsStrategy?
+  private val aapStrengthsAndNeedsStrategy: AAPStrengthsAndNeedsStrategy?,
+  private val assessmentTypeConfig: AssessmentTypeConfig,
 ) {
 
   fun getStrategy(entityType: EntityType): EntityStrategy = when (entityType) {
@@ -27,5 +29,5 @@ class StrategyFactory(
   )
 
   fun getStrategiesFor(assessmentType: AssessmentType): List<EntityStrategy> = getStrategies()
-    .filter { it.entityType in assessmentType.entityTypes }
+    .filter { it.entityType in assessmentTypeConfig.getEntityTypesFor(assessmentType) }
 }

@@ -75,7 +75,7 @@ class AAPApiTest {
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
 
-      val result = aapApi.createAssessment(createPlanData)
+      val result = aapApi.createSentencePlan(createPlanData)
 
       assertTrue(result is AAPApi.ApiOperationResult.Success)
       val successResult = result as AAPApi.ApiOperationResult.Success
@@ -95,7 +95,7 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
         .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
-      val result = aapApi.createAssessment(createPlanData)
+      val result = aapApi.createSentencePlan(createPlanData)
 
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
@@ -113,7 +113,7 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
         .thenReturn(Mono.error(RuntimeException("Unexpected error")))
 
-      val result = aapApi.createAssessment(createPlanData)
+      val result = aapApi.createSentencePlan(createPlanData)
 
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure

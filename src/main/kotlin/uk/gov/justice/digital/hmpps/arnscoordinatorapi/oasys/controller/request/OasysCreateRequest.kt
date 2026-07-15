@@ -66,7 +66,7 @@ data class OasysCreateRequest(
 ) {
 
   fun previousPkFor(entityType: EntityType): String? = when (entityType) {
-    EntityType.ASSESSMENT , EntityType.AAP_SAN -> previousOasysSanPk
+    EntityType.ASSESSMENT, EntityType.AAP_SAN -> previousOasysSanPk
     EntityType.PLAN, EntityType.AAP_PLAN -> previousOasysSpPk
   }
 

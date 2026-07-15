@@ -89,7 +89,7 @@ class AAPPlanStrategyTest {
       )
       val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, entityType)
 
-      whenever(aapApi.createAssessment(any())).thenReturn(
+      whenever(aapApi.createSentencePlan(any())).thenReturn(
         AAPApi.ApiOperationResult.Success(versionedEntity),
       )
 
@@ -106,7 +106,7 @@ class AAPPlanStrategyTest {
 
       assertTrue(result is OperationResult.Success)
       assertEquals(versionedEntity, (result as OperationResult.Success).data)
-      verify(aapApi).createAssessment(any())
+      verify(aapApi).createSentencePlan(any())
     }
 
     @Test
@@ -115,7 +115,7 @@ class AAPPlanStrategyTest {
         plan = CreatePlanData(PlanType.INITIAL, UserDetails("id", "name")),
       )
 
-      whenever(aapApi.createAssessment(any())).thenReturn(
+      whenever(aapApi.createSentencePlan(any())).thenReturn(
         AAPApi.ApiOperationResult.Failure("Error occurred"),
       )
 
@@ -123,7 +123,7 @@ class AAPPlanStrategyTest {
 
       assertTrue(result is OperationResult.Failure)
       assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
-      verify(aapApi).createAssessment(any())
+      verify(aapApi).createSentencePlan(any())
     }
   }
 
