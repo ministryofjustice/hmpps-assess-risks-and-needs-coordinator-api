@@ -153,7 +153,8 @@ class CreateTest : IntegrationTestBase() {
 
   @Test
   fun `it does not publish an event when create fails`() {
-    stubAAPCreateAssessment(500)
+    stubAAPCreateAssessment(500, "SENTENCE_PLAN", UUID.randomUUID())
+    stubAAPCreateAssessment(500, "STRENGTHS_AND_NEEDS", UUID.randomUUID())
     val oasysAssessmentPk = getRandomOasysPk()
 
     webTestClient.post().uri("/oasys/create")
