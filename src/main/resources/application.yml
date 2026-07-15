@@ -85,6 +85,8 @@ app:
     plan: true
     assessment: true
     aap-plan: true
+  events:
+    enabled: true
   db:
     name: postgres
     endpoint: localhost:5432
@@ -134,3 +136,10 @@ management:
     info:
       cache:
         time-to-live: 2000ms
+
+hmpps:
+  sqs:
+    queues:
+      coordinator:
+        queue-name: ${HMPPS_SQS_QUEUES_COORDINATOR_QUEUE_NAME:coordinator-queue}
+        error-visibility-timeout: 30

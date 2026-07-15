@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -12,11 +13,18 @@ open class OasysVersionedEntityResponse(
   open var sentencePlanId: UUID = UUID(0, 0),
   open var sentencePlanVersion: Long = 0,
 ) {
+  @JsonIgnore
+  var aapPlanVersionedEntity: VersionedEntity? = null
+    private set
+
   open fun addVersionedEntity(versionedEntity: VersionedEntity) {
     when (versionedEntity.entityType) {
       EntityType.PLAN, EntityType.AAP_PLAN -> {
         this.sentencePlanId = versionedEntity.id
         this.sentencePlanVersion = versionedEntity.version
+        if (versionedEntity.entityType == EntityType.AAP_PLAN) {
+          this.aapPlanVersionedEntity = versionedEntity
+        }
       }
       EntityType.ASSESSMENT -> {
         this.sanAssessmentId = versionedEntity.id

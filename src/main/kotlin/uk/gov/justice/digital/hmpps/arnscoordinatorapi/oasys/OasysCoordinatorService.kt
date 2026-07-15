@@ -21,6 +21,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SoftDeleteComman
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponseFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -55,6 +57,8 @@ class OasysCoordinatorService(
   private val strategyFactory: StrategyFactory,
   private val oasysAssociationsService: OasysAssociationsService,
   private val oasysVersionService: OasysVersionService,
+  private val oasysEventPublisher: OasysEventPublisher,
+  private val oasysEventFactory: OasysEventFactory,
 ) {
 
   private fun buildCreateData(requestData: OasysCreateRequest): CreateData = CreateData(
@@ -188,13 +192,19 @@ class OasysCoordinatorService(
     oasysAssociationsService.ensureNoExistingAssociation(requestData.oasysAssessmentPk)
       .onFailure { return CreateOperationResult.ConflictingAssociations("Cannot create due to conflicting associations: $it") }
 
-    return runBlocking {
+    val result = runBlocking {
       val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
         async(Dispatchers.IO) { handleEntity(requestData, strategy) }
       }.awaitAll()
 
       processCreateResults(results)
     }
+
+    if (result is CreateOperationResult.Success) {
+      oasysEventPublisher.publish(oasysEventFactory.createVersionEvent(requestData, result.data))
+    }
+
+    return result
   }
 
   private fun processCreateResults(
@@ -218,13 +228,10 @@ class OasysCoordinatorService(
 
     val pendingAssociations = results.mapNotNull { it.pendingAssociation }
     for (association in pendingAssociations) {
-      when (oasysAssociationsService.storeAssociation(association)) {
-        is OperationResult.Failure -> {
-          commands.forEach { it.rollback() }
-          TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
-          return CreateOperationResult.Failure("Failed to store ${association.entityType} association")
-        }
-        is OperationResult.Success -> { }
+      oasysAssociationsService.storeAssociation(association).onFailure {
+        commands.forEach { it.rollback() }
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return CreateOperationResult.Failure("Failed to store ${association.entityType} association")
       }
     }
 
@@ -265,6 +272,10 @@ class OasysCoordinatorService(
 
         is OperationResult.Success -> oasysLockResponse.addVersionedEntity(response.data)
       }
+    }
+
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.lockVersionEvent(aapAssociation, oasysLockResponse))
     }
 
     return LockOperationResult.Success(oasysLockResponse)
@@ -308,6 +319,12 @@ class OasysCoordinatorService(
       }
     }
 
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(
+        oasysEventFactory.signVersionEvent(aapAssociation, oasysSignRequest, oasysSignResponse),
+      )
+    }
+
     return SignOperationResult.Success(oasysSignResponse)
   }
 
@@ -340,6 +357,10 @@ class OasysCoordinatorService(
 
         is OperationResult.Success -> oasysRollbackResponse.addVersionedEntity(response.data)
       }
+    }
+
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.rollbackVersionEvent(aapAssociation, oasysRollbackResponse))
     }
 
     return RollbackOperationResult.Success(oasysRollbackResponse)
@@ -486,6 +507,10 @@ class OasysCoordinatorService(
       }
     }
 
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.counterSignVersionEvent(aapAssociation, request, response))
+    }
+
     return CounterSignOperationResult.Success(response)
   }
 
@@ -530,6 +555,9 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          if (association.entityType == EntityType.AAP_PLAN) {
+            oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
+          }
           when (association.apply { deleted = true }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> response.data?.run(oasysSoftDeleteResponse::addVersionedEntity)
             is OperationResult.Failure -> {
@@ -583,6 +611,9 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          if (association.entityType == EntityType.AAP_PLAN) {
+            oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
+          }
           when (association.apply { deleted = false }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> oasysUndeleteResponse.addVersionedEntity(response.data)
             is OperationResult.Failure -> {

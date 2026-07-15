@@ -4,7 +4,12 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.web.reactive.server.expectBody
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.sqs.SqsClient
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -13,12 +18,30 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.*
+import java.net.URI
+import java.util.UUID
 
 class CreateTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var oasysAssociationRepository: OasysAssociationRepository
+
+  @Value("\${hmpps.sqs.localstackUrl}")
+  lateinit var localStackUrl: String
+
+  val queueUrl get() = "$localStackUrl/000000000000/coordinator-queue"
+
+  val sqsClient: SqsClient by lazy {
+    SqsClient.builder()
+      .endpointOverride(URI.create(localStackUrl))
+      .region(Region.EU_WEST_2)
+      .credentialsProvider(
+        StaticCredentialsProvider.create(
+          AwsBasicCredentials.create("test", "test"),
+        ),
+      )
+      .build()
+  }
 
   @BeforeEach
   fun setUp() {
@@ -26,6 +49,25 @@ class CreateTest : IntegrationTestBase() {
     stubAssessmentsCreate()
     stubAAPCreateAssessment()
     stubAssessmentsClone()
+  }
+
+  @BeforeEach
+  fun clearQueue() {
+    while (true) {
+      val messages = sqsClient.receiveMessage {
+        it.queueUrl(queueUrl)
+          .maxNumberOfMessages(10)
+          .waitTimeSeconds(0)
+      }.messages()
+
+      if (messages.isEmpty()) break
+
+      messages.forEach { message ->
+        sqsClient.deleteMessage {
+          it.queueUrl(queueUrl).receiptHandle(message.receiptHandle())
+        }
+      }
+    }
   }
 
   @Test
@@ -53,6 +95,37 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `it publishes an OASYS_VERSION_EVENT to SQS when create succeeds`() {
+    val oasysAssessmentPk = getRandomOasysPk()
+
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          oasysAssessmentPk = oasysAssessmentPk,
+          regionPrisonCode = "MDI",
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isCreated
+
+    val messages = sqsClient.receiveMessage {
+      it.queueUrl(queueUrl)
+        .messageAttributeNames("All")
+        .maxNumberOfMessages(1)
+        .waitTimeSeconds(2)
+    }.messages()
+
+    assertThat(messages).hasSize(1)
+    assertThat(messages.first().messageAttributes()["eventType"]?.stringValue()).isEqualTo("OASYS_VERSION_EVENT")
+    assertThat(messages.first().body()).contains(oasysAssessmentPk)
+    assertThat(messages.first().body()).contains("\"entityType\":\"AAP_PLAN\"")
+  }
+
+  @Test
   fun `it returns a 500 status where a call to the downstream AAP service returns 500`() {
     stubAAPCreateAssessment(500)
     val oasysAssessmentPk = getRandomOasysPk()
@@ -71,6 +144,35 @@ class CreateTest : IntegrationTestBase() {
 
     val associations = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk)
     assertThat(associations).isEmpty()
+  }
+
+  @Test
+  fun `it does not publish an event when create fails`() {
+    stubAAPCreateAssessment(500)
+    val oasysAssessmentPk = getRandomOasysPk()
+
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          oasysAssessmentPk = oasysAssessmentPk,
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isEqualTo(500)
+
+    val messages = sqsClient.receiveMessage {
+      it.queueUrl(queueUrl)
+        .maxNumberOfMessages(1)
+        .waitTimeSeconds(1)
+        .visibilityTimeout(1)
+        .messageAttributeNames("All")
+    }.messages()
+
+    assertThat(messages).isEmpty()
   }
 
   @Test
