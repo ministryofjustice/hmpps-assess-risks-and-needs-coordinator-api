@@ -150,7 +150,7 @@ class HistoricalEventsReplayJob(
     occurredAt = row.updatedAt,
     message = VersionPayload(
       version = row.version,
-      oasysEvent = row.createdBy.toEventsOasysEvent(),
+      oasysEvent = row.createdBy,
       incrementedAt = row.updatedAt,
       deleted = row.deleted,
       association = AssociationPayload(

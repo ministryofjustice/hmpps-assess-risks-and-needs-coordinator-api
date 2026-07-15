@@ -74,7 +74,7 @@ class HistoricalEventsReplayJobTest {
     assertThat(first.occurredAt).isEqualTo(updatedAt)
     val firstPayload = first.message as VersionPayload
     assertThat(firstPayload.version).isEqualTo(100)
-    assertThat(firstPayload.oasysEvent).isEqualTo(OasysEvent.CREATED)
+    assertThat(firstPayload.oasysEvent).isEqualTo(PersistenceOasysEvent.CREATED)
     assertThat(firstPayload.incrementedAt).isEqualTo(updatedAt)
     assertThat(firstPayload.deleted).isFalse()
     assertThat(firstPayload.association.oasysAssessmentPk).isEqualTo("PK-123")
@@ -83,7 +83,7 @@ class HistoricalEventsReplayJobTest {
 
     val secondPayload = captor.allValues[1].message as VersionPayload
     assertThat(secondPayload.version).isEqualTo(200)
-    assertThat(secondPayload.oasysEvent).isEqualTo(OasysEvent.COUNTERSIGNED)
+    assertThat(secondPayload.oasysEvent).isEqualTo(PersistenceOasysEvent.COUNTERSIGNED)
     assertThat(secondPayload.deleted).isTrue()
   }
 

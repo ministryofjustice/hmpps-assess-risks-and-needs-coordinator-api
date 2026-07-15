@@ -12,8 +12,6 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.interceptor.TransactionAspectSupport
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchVersionsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
@@ -23,6 +21,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SoftDeleteComman
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponseFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -274,6 +274,10 @@ class OasysCoordinatorService(
       }
     }
 
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.lockVersionEvent(aapAssociation, oasysLockResponse))
+    }
+
     return LockOperationResult.Success(oasysLockResponse)
   }
 
@@ -315,6 +319,12 @@ class OasysCoordinatorService(
       }
     }
 
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(
+        oasysEventFactory.signVersionEvent(aapAssociation, oasysSignRequest, oasysSignResponse),
+      )
+    }
+
     return SignOperationResult.Success(oasysSignResponse)
   }
 
@@ -347,6 +357,10 @@ class OasysCoordinatorService(
 
         is OperationResult.Success -> oasysRollbackResponse.addVersionedEntity(response.data)
       }
+    }
+
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.rollbackVersionEvent(aapAssociation, oasysRollbackResponse))
     }
 
     return RollbackOperationResult.Success(oasysRollbackResponse)
@@ -493,6 +507,10 @@ class OasysCoordinatorService(
       }
     }
 
+    associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }?.let { aapAssociation ->
+      oasysEventPublisher.publish(oasysEventFactory.counterSignVersionEvent(aapAssociation, request, response))
+    }
+
     return CounterSignOperationResult.Success(response)
   }
 
@@ -537,6 +555,9 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          if (association.entityType == EntityType.AAP_PLAN) {
+            oasysEventPublisher.publish(oasysEventFactory.softDeleteEvent(association, versionTo))
+          }
           when (association.apply { deleted = true }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> response.data?.run(oasysSoftDeleteResponse::addVersionedEntity)
             is OperationResult.Failure -> {
@@ -590,6 +611,9 @@ class OasysCoordinatorService(
         }
 
         is OperationResult.Success -> {
+          if (association.entityType == EntityType.AAP_PLAN) {
+            oasysEventPublisher.publish(oasysEventFactory.undeleteEvent(association, versionTo))
+          }
           when (association.apply { deleted = false }.run(oasysAssociationsService::storeAssociation)) {
             is OperationResult.Success -> oasysUndeleteResponse.addVersionedEntity(response.data)
             is OperationResult.Failure -> {

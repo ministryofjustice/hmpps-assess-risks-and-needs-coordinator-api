@@ -12,6 +12,7 @@ import org.mockito.kotlin.whenever
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.hmpps.sqs.HmppsQueue
 import uk.gov.justice.hmpps.sqs.HmppsQueueService
 import java.time.LocalDateTime
@@ -33,7 +34,7 @@ class OasysEventPublisherTest {
     whenever(sqsClient.sendMessage(org.mockito.kotlin.any<SendMessageRequest>()))
       .thenReturn(CompletableFuture.completedFuture(SendMessageResponse.builder().messageId("123").build()))
 
-    val publisher = OasysEventPublisher(hmppsQueueService, objectMapper)
+    val publisher = SqsOasysEventPublisher(hmppsQueueService, objectMapper)
 
     val event = CoordinatorEvent(
       eventType = EventType.OASYS_VERSION_EVENT,

@@ -107,35 +107,33 @@ class OasysController(
   )
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
-  ): ResponseEntity<Any> {
-    return when (val result = oasysCoordinatorService.create(request)) {
-      is OasysCoordinatorService.CreateOperationResult.Success ->
-        ResponseEntity.status(HttpStatus.CREATED).body(result.data)
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.create(request)) {
+    is OasysCoordinatorService.CreateOperationResult.Success ->
+      ResponseEntity.status(HttpStatus.CREATED).body(result.data)
 
-      is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
-        ResponseEntity.status(HttpStatus.CONFLICT).body(
-          ErrorResponse(
-            status = HttpStatus.CONFLICT,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.CreateOperationResult.ConflictingAssociations ->
+      ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+          status = HttpStatus.CONFLICT,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.CreateOperationResult.Failure ->
-        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR,
-            userMessage = result.errorMessage,
-          ),
-        )
+    is OasysCoordinatorService.CreateOperationResult.Failure ->
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+        ErrorResponse(
+          status = HttpStatus.INTERNAL_SERVER_ERROR,
+          userMessage = result.errorMessage,
+        ),
+      )
 
-      is OasysCoordinatorService.CreateOperationResult.NoAssociations ->
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-          ErrorResponse(
-            status = HttpStatus.NOT_FOUND,
-            userMessage = result.errorMessage,
-          ),
-        )
-    }
+    is OasysCoordinatorService.CreateOperationResult.NoAssociations ->
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        ErrorResponse(
+          status = HttpStatus.NOT_FOUND,
+          userMessage = result.errorMessage,
+        ),
+      )
   }
 
   @RequestMapping(path = ["/merge"], method = [RequestMethod.POST])
