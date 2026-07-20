@@ -13,10 +13,10 @@ class AssessmentTypeConfig(
   @Value("\${assessment-type}")
   val assessmentType: EntityType,
 ) {
-  fun default() = setOf(assessmentType, planType)
+  fun enabledEntityTypes() = setOf(assessmentType, planType)
 
   fun getEntityTypesFor(assessmentType: AssessmentType) = when (assessmentType) {
-    AssessmentType.SAN_SP -> default()
+    AssessmentType.SAN_SP -> enabledEntityTypes()
     AssessmentType.SP -> setOf(planType)
   }
 }

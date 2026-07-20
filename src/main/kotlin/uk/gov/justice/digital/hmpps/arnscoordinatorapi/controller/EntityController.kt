@@ -122,7 +122,7 @@ class EntityController(
     @Valid entityUuid: UUID,
     @Parameter(description = "Entity Type. AAP_SAN or AAP_PLAN", required = true, example = "AAP_SAN")
     @PathVariable
-    @Pattern(regexp = "AAP_SAN|AAP_PLAN")
+    @EnabledEntityType
     @Valid entityType: String,
   ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))) {
     is OasysCoordinatorService.GetOperationResult.Success ->

@@ -135,7 +135,7 @@ class SoftDeleteTest : IntegrationTestBase() {
     assertThat(deletedPlanVersions).hasSize(1)
     assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(2))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.default()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.enabledEntityTypes()).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -148,7 +148,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       }
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.default()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -225,12 +225,12 @@ class SoftDeleteTest : IntegrationTestBase() {
     assertThat(deletedPlanVersions).hasSize(1)
     assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(0))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.default()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.enabledEntityTypes()).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.default()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }

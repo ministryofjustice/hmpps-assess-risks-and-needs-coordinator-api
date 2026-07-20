@@ -78,7 +78,7 @@ class UndeleteTest : IntegrationTestBase() {
 
     val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
       oasysAssessmentPk,
-      assessmentTypeConfig.default(),
+      assessmentTypeConfig.enabledEntityTypes(),
     ).size
 
     val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
@@ -98,7 +98,7 @@ class UndeleteTest : IntegrationTestBase() {
 
     val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
       oasysAssessmentPk,
-      assessmentTypeConfig.default(),
+      assessmentTypeConfig.enabledEntityTypes(),
     ).size
     val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(planUuid, 0)
 
