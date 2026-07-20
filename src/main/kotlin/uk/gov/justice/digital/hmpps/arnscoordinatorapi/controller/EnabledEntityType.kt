@@ -11,5 +11,5 @@ import kotlin.reflect.KClass
 annotation class EnabledEntityType(
   val message: String = "Entity type is not supported",
   val groups: Array<KClass<*>> = [],
-  val payload: Array<KClass<out Payload>> = []
+  val payload: Array<KClass<out Payload>> = [],
 )

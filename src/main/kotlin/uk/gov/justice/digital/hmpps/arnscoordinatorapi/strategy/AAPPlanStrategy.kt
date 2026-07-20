@@ -6,8 +6,11 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.TimelineQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
@@ -56,23 +59,24 @@ class AAPPlanStrategy(
 
   override val entityType = EntityType.AAP_PLAN
 
-  override fun create(createData: CreateData): OperationResult<VersionedEntity> = createData.plan
-    ?.let { createPlanData ->
-      aapApi.createSentencePlan(createPlanData).let { result ->
-        when (result) {
-          is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
-          is AAPApi.ApiOperationResult.Success -> {
-            Success(result.data)
-              .also { oasysVersionService.createVersionFor(OasysEvent.CREATED, it.data.id).toOperationResult() }
+  override fun create(request: CreateData): OperationResult<VersionedEntity> = request.toCreateAssessmentData()
+    ?.let { createData ->
+      aapApi.createAssessment(AssessmentType.SENTENCE_PLAN, createData)
+        .let { result ->
+          when (result) {
+            is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+            is AAPApi.ApiOperationResult.Success -> {
+              Success(result.data)
+                .also { oasysVersionService.createVersionFor(OasysEvent.CREATED, it.data.id).toOperationResult() }
+            }
           }
         }
-      }
     }
     ?: Failure("Request did not contain AAP plan data")
 
-  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
+  override fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
 
-  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = aapApi.deleteAssessment(entityUuid)) {
+  override fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = aapApi.deleteAssessment(entityUuid)) {
     is AAPApi.ApiOperationResult.Success -> Success(Unit)
     is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
   }
@@ -151,6 +155,7 @@ class AAPPlanStrategy(
               entityType = EntityType.AAP_PLAN,
             )
           }
+
           is TimelineQuery -> (query.result as TimelineQueryResult).timeline
             .filter { it.customData?.get("status") == "AGREED" }
             .map { timelineItem ->
@@ -164,9 +169,11 @@ class AAPPlanStrategy(
                 entityType = EntityType.AAP_PLAN,
               )
             }
+
           else -> throw IllegalStateException("Unexpected query type: ${query.request::class.simpleName}")
         }
       }
+
       is AAPApi.ApiOperationResult.Failure<*> -> return Failure<VersionDetailsList>(response.errorMessage)
     }
 
@@ -184,8 +191,8 @@ class AAPPlanStrategy(
       .let { Success(it) }
   }
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
-    when (signData.signType) {
+  override fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+    when (request.signType) {
       SignType.SELF -> oasysVersionService.createVersionFor(OasysEvent.SELF_SIGNED, entityUuid).toOperationResult()
       SignType.COUNTERSIGN -> oasysVersionService.createVersionFor(OasysEvent.AWAITING_COUNTERSIGN, entityUuid)
         .toOperationResult()
@@ -194,7 +201,7 @@ class AAPPlanStrategy(
     Failure("Failed to sign the plan for entity $entityUuid")
   }
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+  override fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
     oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
   }.getOrElse {
     Failure("Failed to lock plan for entity $entityUuid")
@@ -228,7 +235,8 @@ class AAPPlanStrategy(
     }
 
     return runCatching {
-      val result = oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
+      val result =
+        oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
 
       Success(
         VersionedEntity(
@@ -300,7 +308,9 @@ class AAPPlanStrategy(
     val user = AAPUser(id = resetData.userDetails.id, name = resetData.userDetails.name)
 
     return when (val result = aapApi.resetPlan(entityUuid, user)) {
-      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid).toOperationResult()
+      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid)
+        .toOperationResult()
+
       is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
     }
   }
@@ -330,6 +340,17 @@ class AAPPlanStrategy(
   private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
     ?.value
     ?.let(PlanType::valueOf)
+
+  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? = plan?.let {
+    CreateAssessmentData(
+      userDetails = it.userDetails,
+      subjectDetails = it.subjectDetails,
+      flags = it.flags,
+      properties = mapOf(
+        "PLAN_TYPE" to PropertyValue(type = "Single", value = it.planType.name),
+      ),
+    )
+  }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
