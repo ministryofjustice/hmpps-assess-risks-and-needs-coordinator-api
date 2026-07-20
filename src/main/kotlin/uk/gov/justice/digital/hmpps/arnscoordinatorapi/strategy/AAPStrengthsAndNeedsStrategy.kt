@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
@@ -50,9 +52,9 @@ class AAPStrengthsAndNeedsStrategy(
 
   override val entityType = EntityType.AAP_SAN
 
-  override fun create(createData: CreateData): OperationResult<VersionedEntity> = createData.assessment
-    ?.let { createAssessmentData ->
-      aapApi.createStrengthsAndNeeds(createAssessmentData).let { result ->
+  override fun create(request: CreateData): OperationResult<VersionedEntity> = request.toCreateAssessmentData()
+    ?.let { createData ->
+      aapApi.createAssessment(AssessmentType.STRENGTHS_AND_NEEDS, createData).let { result ->
         when (result) {
           is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
           is AAPApi.ApiOperationResult.Success -> {
@@ -64,9 +66,9 @@ class AAPStrengthsAndNeedsStrategy(
     }
     ?: Failure("Request did not contain AAP Strengths and Needs data")
 
-  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
+  override fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
 
-  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = aapApi.deleteAssessment(entityUuid)) {
+  override fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = aapApi.deleteAssessment(entityUuid)) {
     is AAPApi.ApiOperationResult.Success -> Success(Unit)
     is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
   }
@@ -158,8 +160,8 @@ class AAPStrengthsAndNeedsStrategy(
       .let { Success(it) }
   }
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
-    when (signData.signType) {
+  override fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+    when (request.signType) {
       SignType.SELF -> oasysVersionService.createVersionFor(OasysEvent.SELF_SIGNED, entityUuid).toOperationResult()
       SignType.COUNTERSIGN -> oasysVersionService.createVersionFor(OasysEvent.AWAITING_COUNTERSIGN, entityUuid)
         .toOperationResult()
@@ -168,7 +170,7 @@ class AAPStrengthsAndNeedsStrategy(
     Failure("Failed to sign the Strengths and Needs assessment for entity $entityUuid")
   }
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+  override fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
     oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
   }.getOrElse {
     Failure("Failed to lock Strengths and Needs assessment for entity $entityUuid")
@@ -282,6 +284,13 @@ class AAPStrengthsAndNeedsStrategy(
   }
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
+
+  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? = assessment?.let {
+    CreateAssessmentData(
+      userDetails = it.userDetails,
+      subjectDetails = plan?.subjectDetails, // We didn't originally capture this in OG SAN so let's grab it from plan
+    )
+  }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
