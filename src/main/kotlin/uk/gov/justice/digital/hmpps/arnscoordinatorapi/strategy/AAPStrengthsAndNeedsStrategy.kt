@@ -83,7 +83,7 @@ class AAPStrengthsAndNeedsStrategy(
             metaData = AssessmentMetadata(
               uuid = apiResponse.data.assessmentUuid,
               createdAt = apiResponse.data.createdAt,
-              versionUuid = apiResponse.data.assessmentUuid, // note: this would be the version UUID in this service, AFAIK I don't think this is used, but we should decide if this is required and add it here if so
+              versionUuid = UUID(0L, 0L), // note: this would be the version UUID in this service, AFAIK I don't think this is used, but we should decide if this is required and add it here if so
               versionNumber = version,
               versionCreatedAt = apiResponse.data.updatedAt, // note: versions are an exact point in time for the AAP, this should be the same as updated at
               versionUpdatedAt = apiResponse.data.updatedAt,
