@@ -90,7 +90,7 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isCreated
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     val aapPlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
     val sanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
     assertThat(aapPlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
@@ -147,7 +147,7 @@ class CreateTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isEqualTo(500)
 
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     assertThat(associations).isEmpty()
   }
 
@@ -229,7 +229,7 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isCreated
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     val persistedSentencePlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
     val persistedSanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
     assertThat(persistedSentencePlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)

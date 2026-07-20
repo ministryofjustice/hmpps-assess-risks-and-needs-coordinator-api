@@ -16,19 +16,19 @@ class OasysAssociationsService(
   private val assessmentTypeConfig: AssessmentTypeConfig,
 ) {
   fun findAssociationsByPk(oasysAssessmentPk: String, includeDeleted: Boolean = false): List<OasysAssociation> = if (includeDeleted) {
-    oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(oasysAssessmentPk, assessmentTypeConfig.default())
+    oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
   } else {
-    oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
+    oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
   }
 
   fun findAssociationsByPkAndType(oasysAssessmentPk: String, entityTypes: Collection<EntityType>): List<OasysAssociation> = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, entityTypes)
 
-  fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk, assessmentTypeConfig.default())
+  fun findDeletedAssociations(oasysAssessmentPk: String): List<OasysAssociation> = oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
 
-  fun findOasysPkByEntityId(entityUuid: UUID): String? = oasysAssociationRepository.findAllByEntityUuidAndEntityTypeIn(entityUuid, assessmentTypeConfig.default()).maxByOrNull { it.createdAt }?.oasysAssessmentPk
+  fun findOasysPkByEntityId(entityUuid: UUID): String? = oasysAssociationRepository.findAllByEntityUuidAndEntityTypeIn(entityUuid, assessmentTypeConfig.enabledEntityTypes()).maxByOrNull { it.createdAt }?.oasysAssessmentPk
 
   fun findLatestAssociationDetailsByEntityIds(entityUuids: Collection<UUID>): Map<UUID, EntityAssociationDetails> = oasysAssociationRepository
-    .findAllByEntityUuidInAndEntityTypeIn(entityUuids, assessmentTypeConfig.default())
+    .findAllByEntityUuidInAndEntityTypeIn(entityUuids, assessmentTypeConfig.enabledEntityTypes())
     .groupBy { it.entityUuid }
     .mapNotNull { (entityUuid, associations) ->
       val latest = associations.maxByOrNull { it.createdAt } ?: return@mapNotNull null
@@ -41,12 +41,12 @@ class OasysAssociationsService(
     }
     .toMap()
 
-  fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid, assessmentTypeConfig.default())
+  fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid, assessmentTypeConfig.enabledEntityTypes())
 
-  fun findAllOfAnyKindIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllOfAnyKindByEntityUuidIncludingDeleted(entityUuid, assessmentTypeConfig.default())
+  fun findAllOfAnyKindIncludingDeleted(entityUuid: UUID): List<OasysAssociation> = oasysAssociationRepository.findAllOfAnyKindByEntityUuidIncludingDeleted(entityUuid, assessmentTypeConfig.enabledEntityTypes())
 
   fun ensureNoExistingAssociation(oasysAssessmentPk: String): OperationResult<Unit> {
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.default())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
 
     return if (associations.isNotEmpty()) {
       val types = associations.map { it.entityType }.distinct()
