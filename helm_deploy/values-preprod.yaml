@@ -9,10 +9,7 @@ generic-service:
     className: modsec-non-prod
     modsecurity_enabled: true
     modsecurity_snippet: |
-      # Required for DetectionOnly: default audit logging is RelevantOnly (warnings/errors only);
-      # SecAuditEngine On gives full request visibility in OpenSearch while we monitor the rollout.
-      SecAuditEngine On
-      SecRuleEngine DetectionOnly
+      SecRuleEngine On
       # Team here grants access to the OpenSearch logs to delve into the cause of the blockage
       SecDefaultAction "phase:2,pass,log,tag:github_team=hmpps-assessments,tag:namespace={{ .Release.Namespace }}"
       # Disables request body scanning so free-text form fields (goal titles, step descriptions) do not trigger false positives
