@@ -7,6 +7,23 @@ import java.util.UUID
 
 @Repository
 interface OasysVersionRepository : JpaRepository<OasysVersionEntity, Long> {
+  /**
+   * Pages through every version row, including soft deleted ones.
+   * Paging is by `(entity_uuid, version)`, which never changes once a row exists, so concurrent
+   * writes can't move a row between pages.
+   */
+  @Query(
+    value = """
+      SELECT * FROM coordinator.oasys_version
+      WHERE entity_uuid > :lastEntityUuid
+         OR (entity_uuid = :lastEntityUuid AND version > :lastVersion)
+      ORDER BY entity_uuid, version
+      LIMIT :limit
+    """,
+    nativeQuery = true,
+  )
+  fun findNextPageIncludingDeleted(lastEntityUuid: UUID, lastVersion: Long, limit: Int): List<OasysVersionEntity>
+
   fun findTopByEntityUuidOrderByVersionDesc(
     entityUuid: UUID,
   ): OasysVersionEntity?

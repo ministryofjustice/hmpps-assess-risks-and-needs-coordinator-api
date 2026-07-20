@@ -31,6 +31,7 @@ services:
       - postgres
       - hmpps-auth
       - localstack
+      - sqs-admin
     healthcheck:
       test: ["CMD", "curl", "-f", "http://coordinator-api:8080/health/ping"]
       interval: 5s
@@ -72,6 +73,20 @@ services:
       interval: 5s
       timeout: 10s
       retries: 50
+
+  sqs-admin:
+    image: pacovk/sqs-admin:latest
+    networks:
+      - hmpps
+    ports:
+      - "3999:3999"
+    environment:
+      SQS_ENDPOINT_URL: http://localstack:4566
+      SQS_AWS_REGION: eu-west-2
+      SQS_AWS_ACCESS_KEY_ID: test
+      SQS_AWS_SECRET_ACCESS_KEY: test
+    depends_on:
+      - localstack
 
 networks:
   hmpps:
