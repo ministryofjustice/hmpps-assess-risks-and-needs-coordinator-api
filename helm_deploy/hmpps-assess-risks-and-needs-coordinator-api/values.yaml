@@ -22,7 +22,7 @@ generic-service:
     APPLICATIONINSIGHTS_CONNECTION_STRING: "InstrumentationKey=$(APPINSIGHTS_INSTRUMENTATIONKEY)"
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: applicationinsights.json
     PLAN_TYPE: AAP_PLAN
-    ASSESSMENT_TYPE: AAP_SAN
+    ASSESSMENT_TYPE: ASSESSMENT
 
   # Pre-existing kubernetes secrets to load as environment variables in the deployment.
   # namespace_secrets:
