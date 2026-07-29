@@ -11,6 +11,10 @@ on:
         description: Tag image as latest
         type: boolean
         default: false
+      additional_docker_tag:
+        description: Additional tag to apply to the image (e.g. aap-san)
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -24,5 +28,6 @@ jobs:
       docker_registry: 'ghcr.io'
       registry_org: 'ministryofjustice'
       tag_latest: ${{ inputs.tag_latest }}
+      additional_docker_tag: ${{ inputs.additional_docker_tag }}
       push: ${{ inputs.push }}
       docker_multiplatform: true
