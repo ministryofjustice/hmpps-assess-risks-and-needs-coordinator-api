@@ -35,7 +35,7 @@ class CounterSignCommandTest {
 
   @Test
   fun `should execute counter-sign with correct UUID and return success result`() {
-    val successfulRequest = OperationResult.Success(VersionedEntity(UUID.randomUUID(), 2, EntityType.ASSESSMENT))
+    val successfulRequest = OperationResult.Success(VersionedEntity(UUID.randomUUID(), 2, EntityType.AAP_SAN))
     `when`(entityStrategy.counterSign(entityUuid, request)).thenReturn(successfulRequest)
 
     val result = command.execute()

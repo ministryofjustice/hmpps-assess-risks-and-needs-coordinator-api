@@ -26,7 +26,7 @@ class RollbackCommandTest {
     userDetails = OasysUserDetails("id", "name"),
   )
 
-  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
 
   @BeforeEach
   fun setup() {

@@ -10,15 +10,12 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.Asse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.TimelineQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.CollectionsView
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.TimelineQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -34,9 +31,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.response.GetPlanResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
@@ -46,33 +40,31 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.UUID
-import kotlin.getOrElse
+import java.util.*
 
 @Service
-@ConditionalOnProperty(name = ["app.strategies.aap-plan"], havingValue = "true")
-class AAPPlanStrategy(
+@ConditionalOnProperty(name = ["app.strategies.aap-san"], havingValue = "true")
+class AAPStrengthsAndNeedsStrategy(
   private val aapApi: AAPApi,
   private val oasysVersionService: OasysVersionService,
   private val clock: Clock,
 ) : EntityStrategy {
 
-  override val entityType = EntityType.AAP_PLAN
+  override val entityType = EntityType.AAP_SAN
 
   override fun create(request: CreateData): OperationResult<VersionedEntity> = request.toCreateAssessmentData()
     ?.let { createData ->
-      aapApi.createAssessment(AssessmentType.SENTENCE_PLAN, createData)
-        .let { result ->
-          when (result) {
-            is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
-            is AAPApi.ApiOperationResult.Success -> {
-              Success(result.data)
-                .also { oasysVersionService.createVersionFor(OasysEvent.CREATED, it.data.id).toOperationResult() }
-            }
+      aapApi.createAssessment(AssessmentType.STRENGTHS_AND_NEEDS, createData).let { result ->
+        when (result) {
+          is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+          is AAPApi.ApiOperationResult.Success -> {
+            Success(result.data)
+              .also { oasysVersionService.createVersionFor(OasysEvent.CREATED, it.data.id).toOperationResult() }
           }
         }
+      }
     }
-    ?: Failure("Request did not contain AAP plan data")
+    ?: Failure("Request did not contain AAP Strengths and Needs data")
 
   override fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
 
@@ -87,23 +79,25 @@ class AAPPlanStrategy(
         is AAPApi.ApiOperationResult.Success<AssessmentVersionQueryResult> -> runCatching {
           val version = apiResponse.data.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli()
 
-          val planComplete = apiResponse.data.collections.derivePlanComplete()
-          val planType = apiResponse.data.properties.planTypeOrNull()
-            ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_TYPE for entity $entityUuid")
-
-          GetPlanResponse(
-            sentencePlanId = entityUuid,
-            sentencePlanVersion = version,
-            planComplete = planComplete,
-            planType = planType,
-            lastUpdatedTimestampSP = apiResponse.data.updatedAt,
+          AssessmentResponse(
+            metaData = AssessmentMetadata(
+              uuid = apiResponse.data.assessmentUuid,
+              createdAt = apiResponse.data.createdAt,
+              versionUuid = UUID(0L, 0L), // note: this would be the version UUID in this service, AFAIK I don't think this is used, but we should decide if this is required and add it here if so
+              versionNumber = version,
+              versionCreatedAt = apiResponse.data.updatedAt, // note: versions are an exact point in time for the AAP, this should be the same as updated at
+              versionUpdatedAt = apiResponse.data.updatedAt,
+              formVersion = apiResponse.data.formVersion,
+            ),
+            assessment = emptyMap<String, Any>(), // TODO: we need to map answers from the version response here
+            oasysEquivalent = emptyMap<String, Any>(),
           )
         }.fold(
           onSuccess = { data -> Success(data) },
           onFailure = { ex ->
             when (ex) {
               is IllegalArgumentException -> Failure("Unable to parse version for entity $entityUuid")
-              else -> Failure("Failed to fetch plan for entity $entityUuid")
+              else -> Failure("Failed to fetch Strengths and Needs assessment for entity $entityUuid")
             }
           },
         )
@@ -120,7 +114,6 @@ class AAPPlanStrategy(
         createdAt = it.createdAt,
         updatedAt = it.updatedAt,
         status = it.createdBy.name,
-        planAgreementStatus = "",
         entityType = entityType,
       )
     }
@@ -131,12 +124,6 @@ class AAPPlanStrategy(
           DailyVersionsQuery(
             user = user,
             assessmentIdentifier = AssessmentIdentifier(entityUuid),
-          ),
-          TimelineQuery(
-            user = user,
-            assessmentIdentifier = AssessmentIdentifier(entityUuid),
-            pageSize = 99999,
-            includeCustomTypes = setOf("PLAN_AGREEMENT_STATUS_CHANGED"),
           ),
         )
       }
@@ -151,29 +138,12 @@ class AAPPlanStrategy(
               createdAt = it.createdAt,
               updatedAt = it.updatedAt,
               status = "UNSIGNED",
-              planAgreementStatus = "",
-              entityType = EntityType.AAP_PLAN,
+              entityType = entityType,
             )
           }
-
-          is TimelineQuery -> (query.result as TimelineQueryResult).timeline
-            .filter { it.customData?.get("status") == "AGREED" }
-            .map { timelineItem ->
-              VersionDetails(
-                uuid = timelineItem.uuid,
-                version = timelineItem.timestamp.toInstant(ZoneOffset.UTC).toEpochMilli(),
-                createdAt = timelineItem.timestamp,
-                updatedAt = timelineItem.timestamp,
-                status = "UNSIGNED",
-                planAgreementStatus = "AGREED",
-                entityType = EntityType.AAP_PLAN,
-              )
-            }
-
           else -> throw IllegalStateException("Unexpected query type: ${query.request::class.simpleName}")
         }
       }
-
       is AAPApi.ApiOperationResult.Failure<*> -> return Failure<VersionDetailsList>(response.errorMessage)
     }
 
@@ -184,7 +154,6 @@ class AAPPlanStrategy(
         versions.reduce { acc, next ->
           acc.copy(
             status = acc.status.ifBlank { next.status },
-            planAgreementStatus = acc.planAgreementStatus?.takeIf { it.isNotBlank() } ?: next.planAgreementStatus,
           )
         }
       }
@@ -198,25 +167,25 @@ class AAPPlanStrategy(
         .toOperationResult()
     }
   }.getOrElse {
-    Failure("Failed to sign the plan for entity $entityUuid")
+    Failure("Failed to sign the Strengths and Needs assessment for entity $entityUuid")
   }
 
   override fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
     oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
   }.getOrElse {
-    Failure("Failed to lock plan for entity $entityUuid")
+    Failure("Failed to lock Strengths and Needs assessment for entity $entityUuid")
   }
 
   override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
-    request.sentencePlanVersionNumber?.let { version ->
+    request.sanVersionNumber?.let { version ->
       oasysVersionService
         .updateVersion(OasysEvent.ROLLED_BACK, entityUuid, version)
         .toOperationResult()
-    } ?: Failure("Plan version does not exist on the request")
+    } ?: Failure("Strengths and Needs assessment version does not exist on the request")
   }.fold(
     onSuccess = { it },
     onFailure = {
-      Failure("Unable to update version '${request.sentencePlanVersionNumber}' for entity $entityUuid")
+      Failure("Unable to update version '${request.sanVersionNumber}' for entity $entityUuid")
     },
   )
 
@@ -235,14 +204,13 @@ class AAPPlanStrategy(
     }
 
     return runCatching {
-      val result =
-        oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
+      val result = oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
 
       Success(
         VersionedEntity(
           id = entityUuid,
           version = result.version,
-          entityType = EntityType.AAP_PLAN,
+          entityType = entityType,
         ),
       )
     }.fold(
@@ -274,7 +242,7 @@ class AAPPlanStrategy(
   }
 
   override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = runCatching {
-    request.sentencePlanVersionNumber?.let { version ->
+    request.sanVersionNumber?.let { version ->
       when (request.outcome) {
         CounterSignOutcome.COUNTERSIGNED -> oasysVersionService.updateVersion(
           OasysEvent.COUNTERSIGNED,
@@ -296,24 +264,15 @@ class AAPPlanStrategy(
 
         CounterSignOutcome.REJECTED -> oasysVersionService.updateVersion(OasysEvent.REJECTED, entityUuid, version)
       }.toOperationResult()
-    } ?: Failure("Unable to countersign, no plan version number provided for entity $entityUuid")
+    } ?: Failure("Unable to countersign, no Strengths and Needs assessment version number provided for entity $entityUuid")
   }.fold(
     onSuccess = { it },
     onFailure = {
-      Failure("Unable to countersign version '${request.sentencePlanVersionNumber}' for entity $entityUuid")
+      Failure("Unable to countersign version '${request.sanVersionNumber}' for entity $entityUuid")
     },
   )
 
-  override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> {
-    val user = AAPUser(id = resetData.userDetails.id, name = resetData.userDetails.name)
-
-    return when (val result = aapApi.resetPlan(entityUuid, user)) {
-      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CREATED, entityUuid)
-        .toOperationResult()
-
-      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
-    }
-  }
+  override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = Failure("Reset is not applicable for Assessment entities")
 
   override fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> {
     val user = AAPUser(id = userDetails.id, name = userDetails.name)
@@ -324,31 +283,12 @@ class AAPPlanStrategy(
     }
   }
 
-  private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType, deleted, updatedAt, createdBy))
+  private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
 
-  private fun CollectionsView.derivePlanComplete(): PlanState {
-    val latestAgreement = this
-      .find { it.name == "PLAN_AGREEMENTS" }
-      ?.items
-      ?.maxByOrNull { it.updatedAt }
-      ?: return PlanState.INCOMPLETE
-
-    val status = (latestAgreement.properties["status"] as? SingleValue)?.value
-    return if (status != null && status != "DRAFT") PlanState.COMPLETE else PlanState.INCOMPLETE
-  }
-
-  private fun Map<String, Any>.planTypeOrNull(): PlanType? = (this["PLAN_TYPE"] as? SingleValue)
-    ?.value
-    ?.let(PlanType::valueOf)
-
-  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? = plan?.let {
+  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? = assessment?.let {
     CreateAssessmentData(
       userDetails = it.userDetails,
-      subjectDetails = it.subjectDetails,
-      flags = it.flags,
-      properties = mapOf(
-        "PLAN_TYPE" to PropertyValue(type = "Single", value = it.planType.name),
-      ),
+      subjectDetails = plan?.subjectDetails, // We didn't originally capture this in OG SAN so let's grab it from plan
     )
   }
 

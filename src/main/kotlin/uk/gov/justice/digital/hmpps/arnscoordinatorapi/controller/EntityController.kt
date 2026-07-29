@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Pattern
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -120,9 +119,9 @@ class EntityController(
     @Parameter(description = "Entity UUID. SAN or SP Entity Id", required = true, example = "90a71d16-fecd-4e1a-85b9-98178bf0f8d0")
     @PathVariable
     @Valid entityUuid: UUID,
-    @Parameter(description = "Entity Type. ASSESSMENT or AAP_PLAN", required = true, example = "ASSESSMENT")
+    @Parameter(description = "Entity Type. AAP_SAN or AAP_PLAN", required = true, example = "AAP_SAN")
     @PathVariable
-    @Pattern(regexp = "ASSESSMENT|AAP_PLAN")
+    @EnabledEntityType
     @Valid entityType: String,
   ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))) {
     is OasysCoordinatorService.GetOperationResult.Success ->

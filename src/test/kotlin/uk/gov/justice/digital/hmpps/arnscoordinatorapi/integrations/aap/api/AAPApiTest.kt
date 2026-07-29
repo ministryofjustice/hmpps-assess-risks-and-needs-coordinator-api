@@ -16,6 +16,8 @@ import reactor.core.publisher.Mono
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
@@ -73,7 +75,17 @@ class AAPApiTest {
       `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
 
-      val result = aapApi.createAssessment(createPlanData)
+      val result = aapApi.createAssessment(
+        AssessmentType.SENTENCE_PLAN,
+        CreateAssessmentData(
+          userDetails = createPlanData.userDetails,
+          subjectDetails = createPlanData.subjectDetails,
+          flags = createPlanData.flags,
+          properties = mapOf(
+            "PLAN_TYPE" to PropertyValue(type = "Single", value = createPlanData.planType.name),
+          ),
+        ),
+      )
 
       assertTrue(result is AAPApi.ApiOperationResult.Success)
       val successResult = result as AAPApi.ApiOperationResult.Success
@@ -93,7 +105,17 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
         .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
-      val result = aapApi.createAssessment(createPlanData)
+      val result = aapApi.createAssessment(
+        AssessmentType.SENTENCE_PLAN,
+        CreateAssessmentData(
+          userDetails = createPlanData.userDetails,
+          subjectDetails = createPlanData.subjectDetails,
+          flags = createPlanData.flags,
+          properties = mapOf(
+            "PLAN_TYPE" to PropertyValue(type = "Single", value = createPlanData.planType.name),
+          ),
+        ),
+      )
 
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
@@ -111,7 +133,17 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
         .thenReturn(Mono.error(RuntimeException("Unexpected error")))
 
-      val result = aapApi.createAssessment(createPlanData)
+      val result = aapApi.createAssessment(
+        AssessmentType.SENTENCE_PLAN,
+        CreateAssessmentData(
+          userDetails = createPlanData.userDetails,
+          subjectDetails = createPlanData.subjectDetails,
+          flags = createPlanData.flags,
+          properties = mapOf(
+            "PLAN_TYPE" to PropertyValue(type = "Single", value = createPlanData.planType.name),
+          ),
+        ),
+      )
 
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure

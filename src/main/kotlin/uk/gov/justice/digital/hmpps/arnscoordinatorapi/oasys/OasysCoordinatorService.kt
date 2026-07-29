@@ -91,7 +91,7 @@ class OasysCoordinatorService(
       baseVersion = when (entityType) {
         EntityType.ASSESSMENT -> existingAssociation.baseVersion
         EntityType.PLAN -> existingAssociation.baseVersion
-        EntityType.AAP_PLAN ->
+        EntityType.AAP_PLAN, EntityType.AAP_SAN ->
           oasysVersionService
             .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
             .version
@@ -194,9 +194,8 @@ class OasysCoordinatorService(
 
     val result = runBlocking {
       val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
-        async(Dispatchers.IO) { handleEntity(requestData, strategy) }
-      }.awaitAll()
-
+        handleEntity(requestData, strategy)
+      }
       processCreateResults(results)
     }
 
@@ -452,7 +451,7 @@ class OasysCoordinatorService(
     val oasysAssociationsResponse = OasysAssociationsResponse()
     associations.forEach { association ->
       when (association.entityType) {
-        EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
+        EntityType.ASSESSMENT, EntityType.AAP_SAN -> oasysAssociationsResponse.apply {
           sanAssessmentId = association.entityUuid
         }
 

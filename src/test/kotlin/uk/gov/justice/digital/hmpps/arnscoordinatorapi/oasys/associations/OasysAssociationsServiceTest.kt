@@ -10,11 +10,14 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentTypeConfig
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -22,6 +25,9 @@ class OasysAssociationsServiceTest {
 
   @Mock
   lateinit var oasysAssociationRepository: OasysAssociationRepository
+
+  @Mock
+  lateinit var assessmentTypeConfig: AssessmentTypeConfig
 
   @InjectMocks
   lateinit var oasysAssociationsService: OasysAssociationsService
@@ -32,13 +38,13 @@ class OasysAssociationsServiceTest {
     @Test
     fun `should return success when no existing associations`() {
       val oasysAssessmentPk = "test-pk"
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any()))
         .thenReturn(emptyList())
 
       val result = oasysAssociationsService.ensureNoExistingAssociation(oasysAssessmentPk)
 
       assertTrue(result is OperationResult.Success)
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any())
     }
 
     @Test
@@ -46,18 +52,18 @@ class OasysAssociationsServiceTest {
       val oasysAssessmentPk = "test-pk"
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         oasysAssessmentPk = oasysAssessmentPk,
         entityUuid = UUID.randomUUID(),
       )
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any()))
         .thenReturn(listOf(association))
 
       val result = oasysAssociationsService.ensureNoExistingAssociation(oasysAssessmentPk)
 
       assertTrue(result is OperationResult.Failure)
-      assertTrue((result as OperationResult.Failure).errorMessage.contains("ASSESSMENT"))
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
+      assertTrue((result as OperationResult.Failure).errorMessage.contains("AAP_SAN"))
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any())
     }
   }
 
@@ -68,7 +74,7 @@ class OasysAssociationsServiceTest {
     fun `should return success when storing association`() {
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         oasysAssessmentPk = "test-pk",
         entityUuid = UUID.randomUUID(),
       )
@@ -84,7 +90,7 @@ class OasysAssociationsServiceTest {
     fun `should return failure when storing association throws exception`() {
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         oasysAssessmentPk = "test-pk",
         entityUuid = UUID.randomUUID(),
       )
@@ -104,13 +110,13 @@ class OasysAssociationsServiceTest {
     @Test
     fun `should return empty list when no associations are found`() {
       val oasysAssessmentPk = "test-pk"
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any()))
         .thenReturn(emptyList())
 
       val result = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
       assertTrue(result.isEmpty())
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any())
     }
 
     @Test
@@ -118,18 +124,18 @@ class OasysAssociationsServiceTest {
       val oasysAssessmentPk = "test-pk"
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         oasysAssessmentPk = oasysAssessmentPk,
         entityUuid = UUID.randomUUID(),
       )
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk))
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any()))
         .thenReturn(listOf(association))
 
       val result = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
       assertEquals(1, result.size)
       assertEquals(association, result[0])
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPk(oasysAssessmentPk)
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), any())
     }
   }
 
@@ -139,13 +145,13 @@ class OasysAssociationsServiceTest {
     @Test
     fun `should return empty list when no associations are found with matching type`() {
       val oasysAssessmentPk = "test-pk"
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.PLAN)))
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), eq(listOf(EntityType.PLAN))))
         .thenReturn(emptyList())
 
       val result = oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.PLAN))
 
       assertTrue(result.isEmpty())
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.PLAN))
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(eq(oasysAssessmentPk), eq(listOf(EntityType.PLAN)))
     }
 
     @Test
@@ -153,44 +159,44 @@ class OasysAssociationsServiceTest {
       val oasysAssessmentPk = "test-pk"
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         oasysAssessmentPk = oasysAssessmentPk,
         entityUuid = UUID.randomUUID(),
       )
-      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.ASSESSMENT)))
+      `when`(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.AAP_SAN)))
         .thenReturn(listOf(association))
 
-      val result = oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.ASSESSMENT))
+      val result = oasysAssociationsService.findAssociationsByPkAndType(oasysAssessmentPk, listOf(EntityType.AAP_SAN))
 
       assertEquals(1, result.size)
       assertEquals(association, result[0])
-      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.ASSESSMENT))
+      verify(oasysAssociationRepository).findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, listOf(EntityType.AAP_SAN))
     }
   }
 
   @Nested
   inner class FindAllIncludingDeleted {
-    val entityUuid = UUID.randomUUID()
+    val entityUuid: UUID = UUID.randomUUID()
 
     @Test
     fun `should return empty list when no associations are found`() {
-      `when`(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid))
+      `when`(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(eq(entityUuid), any()))
         .thenReturn(emptyList())
 
       assertTrue(oasysAssociationsService.findAllIncludingDeleted(entityUuid).isEmpty())
 
-      verify(oasysAssociationRepository).findAllByEntityUuidIncludingDeleted(entityUuid)
+      verify(oasysAssociationRepository).findAllByEntityUuidIncludingDeleted(eq(entityUuid), any())
     }
 
     @Test
     fun `should return list of associations when associations are found`() {
       val associations = listOf(OasysAssociation())
 
-      `when`(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)).thenReturn(associations)
+      `when`(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(eq(entityUuid), any())).thenReturn(associations)
 
       assertEquals(associations, oasysAssociationsService.findAllIncludingDeleted(entityUuid))
 
-      verify(oasysAssociationRepository).findAllByEntityUuidIncludingDeleted(entityUuid)
+      verify(oasysAssociationRepository).findAllByEntityUuidIncludingDeleted(eq(entityUuid), any())
     }
   }
 
@@ -199,12 +205,12 @@ class OasysAssociationsServiceTest {
     @Test
     fun `should return empty map when no associations are found`() {
       val entityUuids = listOf(UUID.randomUUID())
-      `when`(oasysAssociationRepository.findAllByEntityUuidIn(entityUuids)).thenReturn(emptyList())
+      `when`(oasysAssociationRepository.findAllByEntityUuidInAndEntityTypeIn(eq(entityUuids), any())).thenReturn(emptyList())
 
       val result = oasysAssociationsService.findLatestAssociationDetailsByEntityIds(entityUuids)
 
       assertTrue(result.isEmpty())
-      verify(oasysAssociationRepository).findAllByEntityUuidIn(entityUuids)
+      verify(oasysAssociationRepository).findAllByEntityUuidInAndEntityTypeIn(eq(entityUuids), any())
     }
 
     @Test
@@ -218,7 +224,7 @@ class OasysAssociationsServiceTest {
         OasysAssociation(id = 2L, entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101", regionPrisonCode = "LDN", baseVersion = 2, createdAt = newer),
         OasysAssociation(id = 3L, entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200", regionPrisonCode = "MAN", baseVersion = 5, createdAt = newer),
       )
-      `when`(oasysAssociationRepository.findAllByEntityUuidIn(listOf(entityUuid1, entityUuid2))).thenReturn(associations)
+      `when`(oasysAssociationRepository.findAllByEntityUuidInAndEntityTypeIn(eq(listOf(entityUuid1, entityUuid2)), any())).thenReturn(associations)
 
       val result = oasysAssociationsService.findLatestAssociationDetailsByEntityIds(listOf(entityUuid1, entityUuid2))
 
@@ -238,23 +244,23 @@ class OasysAssociationsServiceTest {
 
     @Test
     fun `should return empty list when no associations are found`() {
-      `when`(oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk))
+      `when`(oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(eq(oasysAssessmentPk), any()))
         .thenReturn(emptyList())
 
       assertTrue(oasysAssociationsService.findDeletedAssociations(oasysAssessmentPk).isEmpty())
 
-      verify(oasysAssociationRepository).findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
+      verify(oasysAssociationRepository).findAllDeletedByOasysAssessmentPk(eq(oasysAssessmentPk), any())
     }
 
     @Test
     fun `should return list of associations when associations are found`() {
       val associations = listOf(OasysAssociation())
 
-      `when`(oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)).thenReturn(associations)
+      `when`(oasysAssociationRepository.findAllDeletedByOasysAssessmentPk(eq(oasysAssessmentPk), any())).thenReturn(associations)
 
       assertEquals(associations, oasysAssociationsService.findDeletedAssociations(oasysAssessmentPk))
 
-      verify(oasysAssociationRepository).findAllDeletedByOasysAssessmentPk(oasysAssessmentPk)
+      verify(oasysAssociationRepository).findAllDeletedByOasysAssessmentPk(eq(oasysAssessmentPk), any())
     }
   }
 }

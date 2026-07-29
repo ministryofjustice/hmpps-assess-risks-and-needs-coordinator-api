@@ -30,28 +30,28 @@ class AssessmentStrategy(
 
   override val entityType = EntityType.ASSESSMENT
 
-  override fun create(createData: CreateData): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.createAssessment(createData.assessment!!)) {
+  override fun create(request: CreateData): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.createAssessment(request.assessment!!)) {
     is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.cloneAssessment(createData.assessment!!, entityUuid)) {
+  override fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.cloneAssessment(request.assessment!!, entityUuid)) {
     is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = strengthsAndNeedsApi.deleteAssessment(deleteData.assessment!!, entityUuid)) {
+  override fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = strengthsAndNeedsApi.deleteAssessment(request.assessment!!, entityUuid)) {
     is StrengthsAndNeedsApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.signAssessment(signData, entityUuid)) {
+  override fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.signAssessment(request, entityUuid)) {
     is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
     is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.lockAssessment(lockData, entityUuid)) {
+  override fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = strengthsAndNeedsApi.lockAssessment(request, entityUuid)) {
     is StrengthsAndNeedsApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
     is StrengthsAndNeedsApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
     is StrengthsAndNeedsApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)

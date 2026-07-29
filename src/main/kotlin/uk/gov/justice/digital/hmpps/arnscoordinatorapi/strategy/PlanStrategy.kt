@@ -32,28 +32,28 @@ class PlanStrategy(
 
   override val entityType = EntityType.PLAN
 
-  override fun create(createData: CreateData): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.createPlan(createData.plan!!)) {
+  override fun create(request: CreateData): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.createPlan(request.plan!!)) {
     is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.clonePlan(createData.plan!!, entityUuid)) {
+  override fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.clonePlan(request.plan!!, entityUuid)) {
     is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = sentencePlanApi.deletePlan(deleteData.plan!!, entityUuid)) {
+  override fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = sentencePlanApi.deletePlan(request.plan!!, entityUuid)) {
     is SentencePlanApi.ApiOperationResult.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResult.Success -> OperationResult.Success(result.data)
   }
 
-  override fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.signPlan(signData, entityUuid)) {
+  override fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.signPlan(request, entityUuid)) {
     is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
     is SentencePlanApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
   }
 
-  override fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.lockPlan(lockData, entityUuid)) {
+  override fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = when (val result = sentencePlanApi.lockPlan(request, entityUuid)) {
     is SentencePlanApi.ApiOperationResultExtended.Conflict -> OperationResult.Failure(result.errorMessage, HttpStatus.CONFLICT)
     is SentencePlanApi.ApiOperationResultExtended.Failure -> OperationResult.Failure(result.errorMessage)
     is SentencePlanApi.ApiOperationResultExtended.Success -> OperationResult.Success(result.data)
