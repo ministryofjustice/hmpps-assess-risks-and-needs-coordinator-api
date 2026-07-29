@@ -194,9 +194,8 @@ class OasysCoordinatorService(
 
     val result = runBlocking {
       val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
-        async(Dispatchers.IO) { handleEntity(requestData, strategy) }
-      }.awaitAll()
-
+        handleEntity(requestData, strategy)
+      }
       processCreateResults(results)
     }
 
