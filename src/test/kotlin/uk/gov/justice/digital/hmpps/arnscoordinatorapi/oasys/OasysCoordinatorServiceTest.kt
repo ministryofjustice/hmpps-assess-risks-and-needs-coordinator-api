@@ -321,6 +321,8 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(sanStrategy.create(any())).thenReturn(OperationResult.Success(sanVersionedEntity))
+      `when`(spStrategy.updateFlags(existingSpUuid, listOf("SAN_BETA"), requestWithPreviousSp.userDetails.intoUserDetails()))
+        .thenReturn(OperationResult.Success(Unit))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
 
@@ -334,6 +336,7 @@ class OasysCoordinatorServiceTest {
       verify(oasysAssociationsService).findAssociationsByPkAndType(eq(previousSpPk), any())
       verify(sanStrategy).create(any())
       verify(spStrategy, never()).create(any())
+      verify(spStrategy).updateFlags(existingSpUuid, listOf("SAN_BETA"), requestWithPreviousSp.userDetails.intoUserDetails())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
       verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_PLAN && baseVersion == 10L })
     }
@@ -495,6 +498,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
+      `when`(spStrategy.updateFlags(existingSpUuid, emptyList(), requestSpOnly.userDetails.intoUserDetails()))
+        .thenReturn(OperationResult.Success(Unit))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 7, entityUuid = existingSpUuid))
 
@@ -506,6 +511,7 @@ class OasysCoordinatorServiceTest {
       assertEquals(UUID(0, 0), response.sanAssessmentId)
 
       verify(spStrategy, never()).create(any())
+      verify(spStrategy).updateFlags(existingSpUuid, emptyList(), requestSpOnly.userDetails.intoUserDetails())
       verify(oasysAssociationsService, times(1)).storeAssociation(any())
       verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 7L })
     }
@@ -584,6 +590,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(OperationResult.Success(Unit))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
+      `when`(spStrategy.updateFlags(existingSpUuid, emptyList(), requestWithReset.userDetails.intoUserDetails()))
+        .thenReturn(OperationResult.Success(Unit))
       `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Success(resetVersionedEntity))
 
       val result = oasysCoordinatorService.create(requestWithReset)
@@ -593,6 +601,7 @@ class OasysCoordinatorServiceTest {
       assertEquals(existingSpUuid, response.sentencePlanId)
 
       verify(spStrategy).reset(any(), eq(existingSpUuid))
+      verify(spStrategy).updateFlags(existingSpUuid, emptyList(), requestWithReset.userDetails.intoUserDetails())
       verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 4L })
     }
 
@@ -627,6 +636,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(OperationResult.Success(Unit))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 5, entityUuid = existingSpUuid))
+      `when`(spStrategy.updateFlags(existingSpUuid, emptyList(), requestWithoutReset.userDetails.intoUserDetails()))
+        .thenReturn(OperationResult.Success(Unit))
 
       val result = oasysCoordinatorService.create(requestWithoutReset)
 
@@ -667,6 +678,8 @@ class OasysCoordinatorServiceTest {
         .thenReturn(OperationResult.Success(Unit))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
+      `when`(spStrategy.updateFlags(existingSpUuid, emptyList(), requestWithReset.userDetails.intoUserDetails()))
+        .thenReturn(OperationResult.Success(Unit))
       `when`(spStrategy.reset(any(), eq(existingSpUuid))).thenReturn(OperationResult.Failure("Reset failed"))
 
       val transactionStatus: TransactionStatus = mock()
@@ -681,6 +694,56 @@ class OasysCoordinatorServiceTest {
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
+    }
+
+    @Test
+    fun `should return failure and not reset when updating flags fails`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+
+      val requestWithReset = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+        newPeriodOfSupervision = "Y",
+      )
+
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
+        .thenReturn(emptyList())
+      `when`(strategyFactory.getStrategiesFor(AssessmentType.SP)).thenReturn(listOf(spStrategy))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
+      `when`(spStrategy.updateFlags(existingSpUuid, emptyList(), requestWithReset.userDetails.intoUserDetails()))
+        .thenReturn(OperationResult.Failure("Assessment is locked"))
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(requestWithReset)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
+      assertEquals(
+        "Failed to update flags for AAP_PLAN: Assessment is locked",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
+
+      verify(spStrategy, never()).reset(any(), any())
+      verify(oasysAssociationsService, never()).storeAssociation(any())
       verify(transactionStatus).setRollbackOnly()
       transactionAspect.close()
     }

@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.QueriesRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.Query
@@ -211,6 +212,37 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during markMerged: ${ex.message}", ex)
+  }
+
+  fun updateFlags(assessmentUuid: UUID, flags: List<String>, user: AAPUser): ApiOperationResult<Unit> = try {
+    val command = UpdateFlagsCommand(
+      assessmentUuid = assessmentUuid,
+      flags = flags,
+      user = user,
+      timeline = Timeline(type = "FLAGS_UPDATED"),
+    )
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+
+    val result = response?.commands?.firstOrNull()?.result
+
+    when {
+      result == null -> ApiOperationResult.Failure("No command result returned from AAP API during updateFlags")
+      !result.success -> ApiOperationResult.Failure("AAP API rejected updateFlags: ${result.message}")
+      else -> ApiOperationResult.Success(Unit)
+    }
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during updateFlags: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during updateFlags: ${ex.message}", ex)
   }
 
   fun runQueries(vararg queries: Query): ApiOperationResult<QueriesResponse> = try {

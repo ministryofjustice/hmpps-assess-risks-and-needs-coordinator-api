@@ -143,6 +143,22 @@ class OasysCoordinatorService(
         regionPrisonCode = request.regionPrisonCode,
       )
 
+      if (linkResult.result is EntityResult.Success) {
+        val updateFlagsResult = strategy.updateFlags(
+          entityUuid = linkResult.result.entity.id,
+          flags = request.assessmentType.toFlags(),
+          userDetails = request.userDetails.intoUserDetails(),
+        )
+
+        if (updateFlagsResult is OperationResult.Failure) {
+          return EntityResultWithCommand(
+            EntityResult.Failure("Failed to update flags for ${strategy.entityType}: ${updateFlagsResult.errorMessage}"),
+            null,
+            null,
+          )
+        }
+      }
+
       if (linkResult.result is EntityResult.Success && request.shouldReset(strategy.entityType)) {
         val resetData = ResetData(userDetails = request.userDetails.intoUserDetails())
 

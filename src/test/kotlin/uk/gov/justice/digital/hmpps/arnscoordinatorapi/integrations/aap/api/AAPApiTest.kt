@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandSuccessResult
@@ -342,6 +343,91 @@ class AAPApiTest {
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("Unexpected error during softDeleteAssessment"))
+    }
+  }
+
+  @Nested
+  inner class UpdateFlags {
+
+    private val entityUuid = UUID.randomUUID()
+    private val user = AAPUser(id = "user-id", name = "User Name")
+
+    @Test
+    fun `should return success when AAP API updates flags`() {
+      val response = CommandsResponse(
+        commands = listOf(
+          CommandResponse(mock<UpdateFlagsCommand>(), result = CommandSuccessResult()),
+        ),
+      )
+
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
+
+      val result = aapApi.updateFlags(entityUuid, listOf("SAN_BETA"), user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when the AAP API call errors`() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
+
+      val result = aapApi.updateFlags(entityUuid, emptyList(), user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("HTTP error during updateFlags"))
+    }
+
+    @Test
+    fun `should return failure when AAP API rejects the flag update`() {
+      val response = CommandsResponse(
+        commands = listOf(
+          CommandResponse(
+            mock<UpdateFlagsCommand>(),
+            result = CommandSuccessResult(message = "Assessment is locked", success = false),
+          ),
+        ),
+      )
+
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
+
+      val result = aapApi.updateFlags(entityUuid, listOf("SAN_BETA"), user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      assertEquals(
+        "AAP API rejected updateFlags: Assessment is locked",
+        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
+      )
+    }
+
+    @Test
+    fun `should return failure when AAP API returns no command result`() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.just(CommandsResponse(commands = emptyList())))
+
+      val result = aapApi.updateFlags(entityUuid, listOf("SAN_BETA"), user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      assertEquals(
+        "No command result returned from AAP API during updateFlags",
+        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
+      )
     }
   }
 }

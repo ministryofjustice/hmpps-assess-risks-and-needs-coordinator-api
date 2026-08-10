@@ -1,16 +1,23 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
+import java.util.UUID
 
 class AAPApiMock : WireMockServer(8093) {
+
+  private val objectMapper = ObjectMapper()
 
   fun stubHealthPing(status: Int) {
     stubFor(
@@ -25,34 +32,85 @@ class AAPApiMock : WireMockServer(8093) {
 
   fun stubCreateAssessment(status: Int = 201) {
     stubFor(
-      post("/command").willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
-              {
-                "commands": [
-                  {
-                    "request": {
-                      "type": "CreateAssessmentCommand",
-                      "assessmentType": "SENTENCE_PLAN",
-                      "formVersion": "",
-                      "user": { "id": 1, "name": "Test Name" }
-                    },
-                    "result": {
-                      "type": "CreateAssessmentCommandResult",
-                      "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
-                      "message": "Assessment created successfully",
-                      "success": true
+      post("/command")
+        .withRequestBody(containing("CreateAssessmentCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "CreateAssessmentCommand",
+                        "assessmentType": "SENTENCE_PLAN",
+                        "formVersion": "",
+                        "user": { "id": 1, "name": "Test Name" }
+                      },
+                      "result": {
+                        "type": "CreateAssessmentCommandResult",
+                        "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "message": "Assessment created successfully",
+                        "success": true
+                      }
                     }
-                  }
-                ]
-              }
-            """.trimIndent(),
-          )
-          .withStatus(status),
-      ),
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
+  }
+
+  fun stubUpdateFlags(status: Int = 200) {
+    stubFor(
+      post("/command")
+        .withRequestBody(containing("UpdateFlagsCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "UpdateFlagsCommand",
+                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
+                        "user": { "id": "1", "name": "Test Name" },
+                        "flags": []
+                      },
+                      "result": {
+                        "type": "CommandSuccessCommandResult",
+                        "message": "Done",
+                        "success": true
+                      }
+                    }
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
+    )
+  }
+
+  // Asserted against the captured bodies rather than equalToJson: WireMock's ignoreExtraElements
+  // also ignores extra array items, so an expected "flags": [] would match an actual ["SAN_BETA"].
+  fun verifyUpdateFlags(assessmentUuid: UUID, flags: List<String>) {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "UpdateFlagsCommand" }
+      .filter { it.path("assessmentUuid").asText() == assessmentUuid.toString() }
+
+    assertThat(commands)
+      .describedAs("UpdateFlagsCommand requests for assessment $assessmentUuid")
+      .hasSize(1)
+    assertThat(commands.single().path("flags").map { it.asText() }).isEqualTo(flags)
+    assertThat(commands.single().path("timeline").path("type").asText()).isEqualTo("FLAGS_UPDATED")
   }
 
   fun stubQueryAssessment(status: Int = 200) {
