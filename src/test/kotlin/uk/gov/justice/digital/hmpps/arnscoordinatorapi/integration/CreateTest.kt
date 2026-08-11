@@ -48,6 +48,7 @@ class CreateTest : IntegrationTestBase() {
     stubGrantToken()
     stubAssessmentsCreate()
     stubAAPCreateAssessment()
+    stubAAPUpdateFlags()
     stubAssessmentsClone()
   }
 
@@ -224,6 +225,38 @@ class CreateTest : IntegrationTestBase() {
     assertThat(sanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
     assertThat(sentencePlanAssociation?.entityUuid).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
     assertThat(sanAssociation?.entityUuid).isEqualTo(UUID.fromString("90a71d16-fecd-4e1a-85b9-98178bf0f8d0"))
+    verifyAAPUpdateFlags(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"), listOf("SAN_BETA"))
+  }
+
+  @Test
+  fun `it clears AAP flags when an SP assessment links an existing sentence plan`() {
+    val previousOasysPk = getRandomOasysPk()
+    val oasysAssessmentPk = getRandomOasysPk()
+    val sentencePlanUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6")
+
+    oasysAssociationRepository.save(
+      OasysAssociation(
+        oasysAssessmentPk = previousOasysPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = sentencePlanUuid,
+      ),
+    )
+
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          previousOasysSpPk = previousOasysPk,
+          oasysAssessmentPk = oasysAssessmentPk,
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isCreated
+
+    verifyAAPUpdateFlags(sentencePlanUuid, emptyList())
   }
 
   @Test

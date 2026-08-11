@@ -314,6 +314,15 @@ class AAPPlanStrategy(
     }
   }
 
+  override fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit> {
+    val user = AAPUser(id = userDetails.id, name = userDetails.name)
+
+    return when (val result = aapApi.updateFlags(entityUuid, flags, user)) {
+      is AAPApi.ApiOperationResult.Success -> Success(Unit)
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+    }
+  }
+
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType, deleted, updatedAt, createdBy))
 
   private fun CollectionsView.derivePlanComplete(): PlanState {

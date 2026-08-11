@@ -76,13 +76,15 @@ class OasysCoordinatorService(
   private fun linkExistingEntity(
     previousPk: String,
     newPk: String,
-    entityType: EntityType,
+    strategy: EntityStrategy,
     regionPrisonCode: String?,
   ): EntityResultWithCommand {
+    val entityType = strategy.entityType
+
     val existingAssociation = oasysAssociationsService
       .findAssociationsByPkAndType(previousPk, listOf(entityType))
       .firstOrNull()
-      ?: return EntityResultWithCommand(EntityResult.NotFound("No $entityType association found for PK $previousPk"), null, null)
+      ?: return EntityResultWithCommand(EntityResult.NotFound("No $entityType association found for PK $previousPk"), null, null, strategy)
 
     val newAssociation = OasysAssociation(
       oasysAssessmentPk = newPk,
@@ -109,6 +111,7 @@ class OasysCoordinatorService(
       ),
       null,
       newAssociation,
+      strategy,
     )
   }
 
@@ -126,9 +129,9 @@ class OasysCoordinatorService(
           entityUuid = result.data.id,
           regionPrisonCode = request.regionPrisonCode,
         )
-        EntityResultWithCommand(EntityResult.Success(result.data), command, pendingAssociation)
+        EntityResultWithCommand(EntityResult.Success(result.data), command, pendingAssociation, strategy)
       }
-      is OperationResult.Failure -> EntityResultWithCommand(EntityResult.Failure("Failed to create ${strategy.entityType}: ${result.errorMessage}"), null, null)
+      is OperationResult.Failure -> EntityResultWithCommand(EntityResult.Failure("Failed to create ${strategy.entityType}: ${result.errorMessage}"), null, null, strategy)
     }
   }
 
@@ -139,7 +142,7 @@ class OasysCoordinatorService(
       val linkResult = linkExistingEntity(
         previousPk = previousPk,
         newPk = request.oasysAssessmentPk,
-        entityType = strategy.entityType,
+        strategy = strategy,
         regionPrisonCode = request.regionPrisonCode,
       )
 
@@ -151,6 +154,7 @@ class OasysCoordinatorService(
             EntityResult.Failure("Failed to reset ${strategy.entityType}: ${resetResult.errorMessage}"),
             null,
             null,
+            strategy,
           )
           is OperationResult.Success -> {
             linkResult.pendingAssociation?.apply { baseVersion = resetResult.data.version }
@@ -158,6 +162,7 @@ class OasysCoordinatorService(
               EntityResult.Success(resetResult.data),
               null,
               linkResult.pendingAssociation,
+              strategy,
             )
           }
         }
@@ -169,6 +174,7 @@ class OasysCoordinatorService(
             EntityResult.Failure("Failed to clone ${strategy.entityType}: ${cloneResult.errorMessage}"),
             null,
             null,
+            strategy,
           )
           is OperationResult.Success -> {
             linkResult.pendingAssociation?.apply { baseVersion = cloneResult.data.version }
@@ -176,6 +182,7 @@ class OasysCoordinatorService(
               EntityResult.Success(cloneResult.data),
               null,
               linkResult.pendingAssociation,
+              strategy,
             )
           }
         }
@@ -197,7 +204,7 @@ class OasysCoordinatorService(
         async(Dispatchers.IO) { handleEntity(requestData, strategy) }
       }.awaitAll()
 
-      processCreateResults(results)
+      processCreateResults(requestData, results)
     }
 
     if (result is CreateOperationResult.Success) {
@@ -208,6 +215,7 @@ class OasysCoordinatorService(
   }
 
   private fun processCreateResults(
+    request: OasysCreateRequest,
     results: List<EntityResultWithCommand>,
   ): CreateOperationResult<OasysVersionedEntityResponse> {
     val commands = results.mapNotNull { it.command }
@@ -232,6 +240,23 @@ class OasysCoordinatorService(
         commands.forEach { it.rollback() }
         TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
         return CreateOperationResult.Failure("Failed to store ${association.entityType} association")
+      }
+    }
+
+    // Ordering matters: this remote change cannot be rolled back, so it runs after everything that
+    // can fail. Newly created entities already carry their flags from buildCreateData.
+    val linkedResults = results.filter { request.previousPkFor(it.strategy.entityType) != null }
+    for (linked in linkedResults) {
+      val updateFlagsResult = linked.strategy.updateFlags(
+        entityUuid = (linked.result as EntityResult.Success).entity.id,
+        flags = request.assessmentType.toFlags(),
+        userDetails = request.userDetails.intoUserDetails(),
+      )
+
+      if (updateFlagsResult is OperationResult.Failure) {
+        commands.forEach { it.rollback() }
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return CreateOperationResult.Failure("Failed to update flags for ${linked.strategy.entityType}: ${updateFlagsResult.errorMessage}")
       }
     }
 
@@ -836,6 +861,7 @@ class OasysCoordinatorService(
     val result: EntityResult,
     val command: CreateCommand?,
     val pendingAssociation: OasysAssociation?,
+    val strategy: EntityStrategy,
   )
 
   private companion object {

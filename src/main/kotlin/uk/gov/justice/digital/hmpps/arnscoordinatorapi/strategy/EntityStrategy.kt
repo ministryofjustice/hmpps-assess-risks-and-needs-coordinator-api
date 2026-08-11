@@ -44,4 +44,6 @@ interface EntityStrategy {
   fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity>
 
   fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
+
+  fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit>
 }

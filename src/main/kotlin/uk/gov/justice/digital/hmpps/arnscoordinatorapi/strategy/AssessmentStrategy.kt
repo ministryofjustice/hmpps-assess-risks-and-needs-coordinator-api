@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
@@ -97,4 +98,6 @@ class AssessmentStrategy(
   }
 
   override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = OperationResult.Failure("Reset is not applicable for Assessment entities")
+
+  override fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 }

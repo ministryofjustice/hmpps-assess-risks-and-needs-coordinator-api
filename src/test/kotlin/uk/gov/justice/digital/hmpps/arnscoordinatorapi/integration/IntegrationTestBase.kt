@@ -149,6 +149,14 @@ abstract class IntegrationTestBase {
     aapApiMock.stubCreateAssessment(status)
   }
 
+  protected fun stubAAPUpdateFlags(status: Int = 200) {
+    aapApiMock.stubUpdateFlags(status)
+  }
+
+  protected fun verifyAAPUpdateFlags(assessmentUuid: UUID, flags: List<String>) {
+    aapApiMock.verifyUpdateFlags(assessmentUuid, flags)
+  }
+
   protected fun stubAAPQueryAssessment(status: Int = 200) {
     aapApiMock.stubQueryAssessment(status)
   }
