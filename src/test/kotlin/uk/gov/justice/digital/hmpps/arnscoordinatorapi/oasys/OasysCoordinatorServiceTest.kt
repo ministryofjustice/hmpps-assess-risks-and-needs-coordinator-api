@@ -725,8 +725,12 @@ class OasysCoordinatorServiceTest {
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SP)).thenReturn(listOf(spStrategy))
       `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
         .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Success(Unit))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 10, entityUuid = existingSpUuid))
+      `when`(spStrategy.reset(any(), eq(existingSpUuid)))
+        .thenReturn(OperationResult.Success(VersionedEntity(existingSpUuid, 11, EntityType.AAP_PLAN)))
       `when`(spStrategy.updateFlags(existingSpUuid, emptyList(), requestWithReset.userDetails.intoUserDetails()))
         .thenReturn(OperationResult.Failure("Assessment is locked"))
 
@@ -742,8 +746,54 @@ class OasysCoordinatorServiceTest {
         (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
       )
 
-      verify(spStrategy, never()).reset(any(), any())
-      verify(oasysAssociationsService, never()).storeAssociation(any())
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
+    }
+
+    @Test
+    fun `should not update flags when storing the association fails`() {
+      val previousSpPk = "previous123"
+      val existingSpUuid = UUID.randomUUID()
+      val existingSpAssociation = OasysAssociation(
+        oasysAssessmentPk = previousSpPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = existingSpUuid,
+        baseVersion = 3,
+      )
+      val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+
+      val requestSpOnly = OasysCreateRequest(
+        oasysAssessmentPk = "new456",
+        previousOasysSpPk = previousSpPk,
+        regionPrisonCode = "111111",
+        planType = PlanType.INITIAL,
+        assessmentType = AssessmentType.SP,
+        userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      )
+
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
+        .thenReturn(emptyList())
+      `when`(strategyFactory.getStrategiesFor(AssessmentType.SP)).thenReturn(listOf(spStrategy))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq(previousSpPk), any()))
+        .thenReturn(listOf(existingSpAssociation))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 7, entityUuid = existingSpUuid))
+      `when`(oasysAssociationsService.storeAssociation(any()))
+        .thenReturn(OperationResult.Failure("Database unavailable"))
+
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(requestSpOnly)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
+      assertEquals(
+        "Failed to store AAP_PLAN association",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
+
+      verify(spStrategy, never()).updateFlags(any(), any(), any())
       verify(transactionStatus).setRollbackOnly()
       transactionAspect.close()
     }
