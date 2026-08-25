@@ -100,6 +100,10 @@ app:
   historical-events:
     enabled: ${HISTORICAL_EVENTS_ENABLED:false}
 
+springdoc:
+  swagger-ui:
+    version: 5.32.11
+
 api:
   health-timeout: 2s
   timeout: 5s
