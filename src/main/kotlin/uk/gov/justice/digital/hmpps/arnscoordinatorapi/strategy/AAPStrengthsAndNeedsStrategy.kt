@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -14,6 +16,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
@@ -48,6 +52,7 @@ class AAPStrengthsAndNeedsStrategy(
   private val aapApi: AAPApi,
   private val oasysVersionService: OasysVersionService,
   private val clock: Clock,
+  private val objectMapper: ObjectMapper,
 ) : EntityStrategy {
 
   override val entityType = EntityType.AAP_SAN
@@ -89,8 +94,11 @@ class AAPStrengthsAndNeedsStrategy(
               versionUpdatedAt = apiResponse.data.updatedAt,
               formVersion = apiResponse.data.formVersion,
             ),
-            assessment = emptyMap<String, Any>(), // TODO: we need to map answers from the version response here
-            oasysEquivalent = emptyMap<String, Any>(),
+            assessment = apiResponse.data.answers,
+            oasysEquivalent = (apiResponse.data.properties["oasys_equivalent"] as? SingleValue)
+              ?.value
+              ?.let { objectMapper.readValue<AssessmentData>(it) }
+              ?: emptyMap<String, Any>(),
           )
         }.fold(
           onSuccess = { data -> Success(data) },
