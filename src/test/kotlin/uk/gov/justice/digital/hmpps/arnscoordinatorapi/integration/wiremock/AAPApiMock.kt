@@ -70,6 +70,39 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
+  fun stubUpdateFlags(status: Int = 200) {
+    stubFor(
+      post("/command")
+        .withRequestBody(containing("UpdateFlagsCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "UpdateFlagsCommand",
+                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
+                        "user": { "id": "1", "name": "Test Name" },
+                        "flags": []
+                      },
+                      "result": {
+                        "type": "CommandSuccessCommandResult",
+                        "message": "Done",
+                        "success": true
+                      }
+                    }
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
+    )
+  }
+
   // Asserted against the captured bodies rather than equalToJson: WireMock's ignoreExtraElements
   // also ignores extra array items, so an expected "flags": [] would match an actual ["SAN_BETA"].
   fun verifyUpdateFlags(assessmentUuid: UUID, flags: List<String>) {

@@ -197,6 +197,7 @@ class CreateTest : IntegrationTestBase() {
 
     stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
     stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
+    stubAAPUpdateFlags()
 
     val previousOasysPk = getRandomOasysPk()
     val oasysAssessmentPk = getRandomOasysPk()
