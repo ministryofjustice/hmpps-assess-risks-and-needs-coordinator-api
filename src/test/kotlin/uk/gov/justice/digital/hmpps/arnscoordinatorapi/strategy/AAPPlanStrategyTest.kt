@@ -1121,4 +1121,34 @@ class AAPPlanStrategyTest {
       verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
     }
   }
+
+  @Nested
+  inner class UpdateFlags {
+
+    private val entityUuid = UUID.randomUUID()
+    private val userDetails = UserDetails("id", "name")
+    private val user = AAPUser("id", "name")
+
+    @Test
+    fun `should return success when AAP flags are updated`() {
+      whenever(aapApi.updateFlags(entityUuid, listOf("SAN_BETA"), user))
+        .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+
+      val result = planStrategy.updateFlags(entityUuid, listOf("SAN_BETA"), userDetails)
+
+      assertTrue(result is OperationResult.Success)
+      verify(aapApi).updateFlags(entityUuid, listOf("SAN_BETA"), user)
+    }
+
+    @Test
+    fun `should return failure when AAP flags cannot be updated`() {
+      whenever(aapApi.updateFlags(entityUuid, emptyList(), user))
+        .thenReturn(AAPApi.ApiOperationResult.Failure("Update failed"))
+
+      val result = planStrategy.updateFlags(entityUuid, emptyList(), userDetails)
+
+      assertEquals(OperationResult.Failure<Unit>("Update failed"), result)
+      verify(aapApi).updateFlags(entityUuid, emptyList(), user)
+    }
+  }
 }

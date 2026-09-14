@@ -68,6 +68,14 @@ abstract class IntegrationTestBase {
     aapApiMock.stubQueryAssessment(status, assessmentType, uuid)
   }
 
+  protected fun stubAAPUpdateFlags(status: Int = 200) {
+    aapApiMock.stubUpdateFlags(status)
+  }
+
+  protected fun verifyAAPUpdateFlags(assessmentUuid: UUID, flags: List<String>) {
+    aapApiMock.verifyUpdateFlags(assessmentUuid, flags)
+  }
+
   protected fun stubAAPQueryPlanVersions(status: Int = 200, uuid: UUID) {
     aapApiMock.stubQueryPlanVersions(status, uuid)
   }

@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.containing
@@ -7,6 +8,9 @@ import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
@@ -15,6 +19,8 @@ import java.util.UUID
 import kotlin.String
 
 class AAPApiMock : WireMockServer(8093) {
+
+  private val objectMapper = ObjectMapper()
 
   fun stubHealthPing(status: Int) {
     stubFor(
@@ -30,6 +36,7 @@ class AAPApiMock : WireMockServer(8093) {
   fun stubCreateAssessment(status: Int = 201, assessmentType: String, uuid: UUID) {
     stubFor(
       post("/command")
+        .withRequestBody(containing("CreateAssessmentCommand"))
         .withRequestBody(
           matchingJsonPath("$.commands.[0].assessmentType", equalTo(assessmentType)),
         )
@@ -61,6 +68,22 @@ class AAPApiMock : WireMockServer(8093) {
             .withStatus(status),
         ),
     )
+  }
+
+  // Asserted against the captured bodies rather than equalToJson: WireMock's ignoreExtraElements
+  // also ignores extra array items, so an expected "flags": [] would match an actual ["SAN_BETA"].
+  fun verifyUpdateFlags(assessmentUuid: UUID, flags: List<String>) {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "UpdateFlagsCommand" }
+      .filter { it.path("assessmentUuid").asText() == assessmentUuid.toString() }
+
+    assertThat(commands)
+      .describedAs("UpdateFlagsCommand requests for assessment $assessmentUuid")
+      .hasSize(1)
+    assertThat(commands.single().path("flags").map { it.asText() }).isEqualTo(flags)
+    assertThat(commands.single().path("timeline").path("type").asText()).isEqualTo("FLAGS_UPDATED")
   }
 
   fun stubQueryAssessment(status: Int = 200, assessmentType: String, uuid: UUID) {
