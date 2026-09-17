@@ -11,7 +11,9 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.whenever
+import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
@@ -1078,11 +1080,6 @@ class AAPPlanStrategyTest {
 
   @Nested
   inner class Undelete {
-    val undeleteData = UndeleteData(
-      UserDetails("id", "name", UserType.OASYS),
-      versionFrom = 1,
-      versionTo = 2,
-    )
     val versionedEntity = OasysVersionEntity(
       createdBy = OasysEvent.LOCKED,
       entityUuid = UUID.randomUUID(),
@@ -1090,35 +1087,100 @@ class AAPPlanStrategyTest {
       deleted = true,
     )
 
-    @Test
-    fun `should return success when undelete is successful`() {
-      whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2)).thenReturn(
-        versionedEntity,
+    val expectedUser = AAPUser(id = "id", name = "name")
+
+    @Nested
+    inner class WithVersionTo {
+      val undeleteData = UndeleteData(
+        UserDetails("id", "name", UserType.OASYS),
+        versionFrom = 1,
+        versionTo = 2,
       )
 
-      val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+      @Test
+      fun `should return success when undelete is successful`() {
+        whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2)).thenReturn(
+          versionedEntity,
+        )
 
-      assertTrue(result is OperationResult.Success)
-      (result as OperationResult.Success).data.let {
-        assertEquals(it.id, versionedEntity.entityUuid)
-        assertEquals(it.version, versionedEntity.version)
+        val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Success)
+        (result as OperationResult.Success).data.let {
+          assertEquals(it.id, versionedEntity.entityUuid)
+          assertEquals(it.version, versionedEntity.version)
+        }
+        verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
+        verify(aapApi, org.mockito.Mockito.never()).undeleteAssessment(any(), any(), any())
       }
-      verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
+
+      @Test
+      fun `should return failure when undelete fails`() {
+        whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2))
+          .thenThrow(RuntimeException("No versions found for entity ${versionedEntity.entityUuid} between ${undeleteData.versionFrom} to ${undeleteData.versionTo}"))
+
+        val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Failure)
+        assertEquals(
+          result,
+          OperationResult.Failure<VersionedEntity?>("Something went wrong while un-deleting versions for entity ${versionedEntity.entityUuid}"),
+        )
+        verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
+      }
     }
 
-    @Test
-    fun `should return failure when undelete fails`() {
-      whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2))
-        .thenThrow(RuntimeException("No versions found for entity ${versionedEntity.entityUuid} between ${undeleteData.versionFrom} to ${undeleteData.versionTo}"))
-
-      val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
-
-      assertTrue(result is OperationResult.Failure)
-      assertEquals(
-        result,
-        OperationResult.Failure<VersionedEntity?>("Something went wrong while un-deleting versions for entity ${versionedEntity.entityUuid}"),
+    @Nested
+    inner class WithoutVersionTo {
+      val undeleteData = UndeleteData(
+        UserDetails("id", "name", UserType.OASYS),
+        versionFrom = 1777301982983,
       )
-      verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
+
+      val expectedPointInTime: LocalDateTime = LocalDateTime.parse("2026-04-27T14:59:42.983")
+
+      @Test
+      fun `should undelete the AAP assessment from the base version and then the local versions`() {
+        whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+        whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(versionedEntity)
+
+        val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertTrue(result is OperationResult.Success)
+        val inOrder = org.mockito.Mockito.inOrder(aapApi, oasysVersionService)
+        inOrder.verify(aapApi).undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser)
+        inOrder.verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null)
+      }
+
+      @Test
+      fun `should return failure and leave local versions untouched when AAP undelete fails`() {
+        whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Failure("AAP error"))
+
+        val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertEquals(OperationResult.Failure<VersionedEntity>("Failed to undelete AAP assessment: AAP error"), result)
+        verify(oasysVersionService, org.mockito.Mockito.never()).undeleteVersions(any(), any(), anyOrNull())
+      }
+
+      @Test
+      fun `should preserve conflict status when AAP refuses an unsafe undelete`() {
+        whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Failure("AAP conflict", statusCode = HttpStatus.CONFLICT))
+
+        val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertEquals(
+          OperationResult.Failure<VersionedEntity>(
+            "Failed to undelete AAP assessment: AAP conflict",
+            HttpStatus.CONFLICT,
+          ),
+          result,
+        )
+        verify(oasysVersionService, org.mockito.Mockito.never()).undeleteVersions(any(), any(), anyOrNull())
+      }
     }
   }
 

@@ -86,6 +86,7 @@ class AAPPlanStrategy(
           val planComplete = apiResponse.data.collections.derivePlanComplete()
           val planType = apiResponse.data.properties.planTypeOrNull()
             ?: return Failure<AssessmentVersionQueryResult>("No value for PLAN_TYPE for entity $entityUuid")
+              .also { log.error(it.errorMessage) }
 
           GetPlanResponse(
             sentencePlanId = entityUuid,
@@ -215,13 +216,9 @@ class AAPPlanStrategy(
 
   override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> {
     if (softDeleteData.versionTo == null) {
-      val pointInTime = LocalDateTime.ofInstant(
-        Instant.ofEpochMilli(softDeleteData.versionFrom),
-        ZoneOffset.UTC,
-      )
       val user = AAPUser(id = softDeleteData.userDetails.id, name = softDeleteData.userDetails.name)
 
-      when (val softDeleteResult = aapApi.softDeleteAssessment(entityUuid, pointInTime, user)) {
+      when (val softDeleteResult = aapApi.softDeleteAssessment(entityUuid, softDeleteData.versionFrom.toPointInTime(), user)) {
         is AAPApi.ApiOperationResult.Failure -> return Failure("Failed to soft-delete AAP assessment: ${softDeleteResult.errorMessage}")
         is AAPApi.ApiOperationResult.Success -> {}
       }
@@ -246,23 +243,38 @@ class AAPPlanStrategy(
     )
   }
 
-  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
-    val result = oasysVersionService.undeleteVersions(
-      entityUuid,
-      undeleteData.versionFrom,
-      undeleteData.versionTo,
-    )
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    if (undeleteData.versionTo == null) {
+      val user = AAPUser(id = undeleteData.userDetails.id, name = undeleteData.userDetails.name)
 
-    Success(
-      VersionedEntity(
-        id = entityUuid,
-        version = result.version,
-        entityType = entityType,
-      ),
-    )
-  }.getOrElse { ex ->
-    log.error("Failed to undelete versions for entity $entityUuid", ex)
-    Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+      when (val undeleteResult = aapApi.undeleteAssessment(entityUuid, undeleteData.versionFrom.toPointInTime(), user)) {
+        is AAPApi.ApiOperationResult.Failure -> return Failure(
+          "Failed to undelete AAP assessment: ${undeleteResult.errorMessage}",
+          undeleteResult.statusCode,
+          undeleteResult.cause,
+        )
+        is AAPApi.ApiOperationResult.Success -> {}
+      }
+    }
+
+    return runCatching {
+      val result = oasysVersionService.undeleteVersions(
+        entityUuid,
+        undeleteData.versionFrom,
+        undeleteData.versionTo,
+      )
+
+      Success(
+        VersionedEntity(
+          id = entityUuid,
+          version = result.version,
+          entityType = entityType,
+        ),
+      )
+    }.getOrElse { ex ->
+      log.error("Failed to undelete versions for entity $entityUuid", ex)
+      Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+    }
   }
 
   override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = runCatching {
@@ -322,6 +334,8 @@ class AAPPlanStrategy(
       is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
     }
   }
+
+  private fun Long.toPointInTime(): LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this), ZoneOffset.UTC)
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType, deleted, updatedAt, createdBy))
 
