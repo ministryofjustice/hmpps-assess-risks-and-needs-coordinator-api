@@ -84,8 +84,30 @@ class AAPStrengthsAndNeedsStrategyTest {
       assertThat(response.metaData.versionNumber)
         .isEqualTo(result.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli())
       assertThat(response.metaData.formVersion).isEqualTo("v1.0")
-      assertThat(response.assessment).isEqualTo(result.answers)
+      assertThat(response.assessment).isEqualTo(
+        mapOf(
+          "q1" to mapOf("value" to "a1"),
+          "q2" to mapOf("values" to listOf("a2", "a3")),
+        ),
+      )
       verify(aapApi).fetchAssessment(entityUuid, now)
+    }
+
+    @Test
+    fun `unescapes HTML entities in the answers`() {
+      val entityUuid = UUID.randomUUID()
+      // AAP HTML-escapes free text answers, e.g. "\" as "&#x5C;" and "/" as "&#x2F;"
+      val result = queryResult(
+        entityUuid,
+        answers = mapOf("q1" to SingleValue("¯&#x5C;_(ツ)_&#x2F;¯")),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(AAPApi.ApiOperationResult.Success(result))
+
+      val operationResult = strategy.fetch(entityUuid)
+
+      val response = (operationResult as OperationResult.Success<*>).data as AssessmentResponse
+      assertThat(response.assessment).isEqualTo(mapOf("q1" to mapOf("value" to "¯\\_(ツ)_/¯")))
     }
 
     @Test

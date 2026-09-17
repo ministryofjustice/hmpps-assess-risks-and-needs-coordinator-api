@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.serialize.AssessmentDataDeserializer.Companion.unescapeHtmlEntities
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
@@ -94,10 +95,12 @@ class AAPStrengthsAndNeedsStrategy(
               versionUpdatedAt = apiResponse.data.updatedAt,
               formVersion = apiResponse.data.formVersion,
             ),
-            assessment = apiResponse.data.answers,
+            assessment = objectMapper.readValue<AssessmentData>(
+              unescapeHtmlEntities(objectMapper.writeValueAsString(apiResponse.data.answers)),
+            ),
             oasysEquivalent = (apiResponse.data.properties["oasys_equivalent"] as? SingleValue)
               ?.value
-              ?.let { objectMapper.readValue<AssessmentData>(it) }
+              ?.let { objectMapper.readValue<AssessmentData>(unescapeHtmlEntities(it)) }
               ?: emptyMap<String, Any>(),
           )
         }.fold(
