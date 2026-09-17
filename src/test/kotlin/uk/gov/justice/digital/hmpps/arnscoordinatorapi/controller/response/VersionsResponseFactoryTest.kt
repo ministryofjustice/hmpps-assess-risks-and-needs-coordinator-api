@@ -21,7 +21,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = null,
-      entityType = EntityType.ASSESSMENT,
+      entityType = EntityType.AAP_SAN,
     )
 
     val factory = VersionsResponseFactory()
@@ -112,7 +112,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = null,
-      entityType = EntityType.ASSESSMENT,
+      entityType = EntityType.AAP_SAN,
     )
 
     val planVersion = VersionDetails(
@@ -155,7 +155,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = null,
-      entityType = EntityType.ASSESSMENT,
+      entityType = EntityType.AAP_SAN,
     )
 
     val planVersion = VersionDetails(
@@ -206,7 +206,7 @@ class VersionsResponseFactoryTest {
       createdAt = assessmentDate.atTime(10, 0),
       updatedAt = assessmentDate.atTime(11, 0),
       planAgreementStatus = null,
-      entityType = EntityType.ASSESSMENT,
+      entityType = EntityType.AAP_SAN,
     )
 
     val planVersion = VersionDetails(
@@ -257,7 +257,7 @@ class VersionsResponseFactoryTest {
         createdAt = assessmentDate2.atTime(10, 0),
         updatedAt = assessmentDate2.atTime(11, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -266,7 +266,7 @@ class VersionsResponseFactoryTest {
         createdAt = assessmentDate.atTime(10, 0),
         updatedAt = assessmentDate.atTime(11, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -275,7 +275,7 @@ class VersionsResponseFactoryTest {
         createdAt = assessmentDate.atTime(8, 0),
         updatedAt = assessmentDate.atTime(9, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
     )
 
@@ -324,7 +324,7 @@ class VersionsResponseFactoryTest {
             createdAt = assessmentDate2.atTime(10, 0),
             updatedAt = assessmentDate2.atTime(11, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -345,7 +345,7 @@ class VersionsResponseFactoryTest {
             createdAt = assessmentDate.atTime(10, 0),
             updatedAt = assessmentDate.atTime(11, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -366,7 +366,7 @@ class VersionsResponseFactoryTest {
             createdAt = assessmentDate.atTime(10, 0),
             updatedAt = assessmentDate.atTime(11, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -405,7 +405,7 @@ class VersionsResponseFactoryTest {
         createdAt = november.atTime(8, 30),
         updatedAt = november.atTime(9, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -414,7 +414,7 @@ class VersionsResponseFactoryTest {
         createdAt = october.atTime(8, 30),
         updatedAt = october.atTime(9, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -423,7 +423,7 @@ class VersionsResponseFactoryTest {
         createdAt = september.atTime(8, 30),
         updatedAt = september.atTime(9, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -432,7 +432,7 @@ class VersionsResponseFactoryTest {
         createdAt = september.atTime(5, 30),
         updatedAt = september.atTime(6, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -441,7 +441,7 @@ class VersionsResponseFactoryTest {
         createdAt = august.atTime(8, 30),
         updatedAt = august.atTime(9, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -450,7 +450,7 @@ class VersionsResponseFactoryTest {
         createdAt = june.atTime(10, 30),
         updatedAt = june.atTime(11, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -459,7 +459,7 @@ class VersionsResponseFactoryTest {
         createdAt = june.atTime(9, 0),
         updatedAt = june.atTime(10, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -468,7 +468,7 @@ class VersionsResponseFactoryTest {
         createdAt = may.atTime(11, 30),
         updatedAt = may.atTime(12, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -477,7 +477,7 @@ class VersionsResponseFactoryTest {
         createdAt = may.atTime(10, 0),
         updatedAt = may.atTime(11, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
       VersionDetails(
         uuid = assessmentUuid,
@@ -486,7 +486,7 @@ class VersionsResponseFactoryTest {
         createdAt = may.atTime(8, 0),
         updatedAt = may.atTime(9, 0),
         planAgreementStatus = null,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
       ),
     )
 
@@ -591,7 +591,7 @@ class VersionsResponseFactoryTest {
             createdAt = may.atTime(11, 30),
             updatedAt = may.atTime(12, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -614,7 +614,7 @@ class VersionsResponseFactoryTest {
             createdAt = june.atTime(10, 30),
             updatedAt = june.atTime(11, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -637,7 +637,7 @@ class VersionsResponseFactoryTest {
             createdAt = june.atTime(10, 30),
             updatedAt = june.atTime(11, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -660,7 +660,7 @@ class VersionsResponseFactoryTest {
             createdAt = august.atTime(8, 30),
             updatedAt = august.atTime(9, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -683,7 +683,7 @@ class VersionsResponseFactoryTest {
             createdAt = october.atTime(8, 30),
             updatedAt = october.atTime(9, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -708,7 +708,7 @@ class VersionsResponseFactoryTest {
             createdAt = may.atTime(8, 0),
             updatedAt = may.atTime(9, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -731,7 +731,7 @@ class VersionsResponseFactoryTest {
             createdAt = june.atTime(9, 0),
             updatedAt = june.atTime(10, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
         ),
         july to LastVersionsOnDate(
@@ -759,7 +759,7 @@ class VersionsResponseFactoryTest {
             createdAt = august.atTime(8, 30),
             updatedAt = august.atTime(9, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
         ),
         september to LastVersionsOnDate(
@@ -772,7 +772,7 @@ class VersionsResponseFactoryTest {
             createdAt = september.atTime(8, 30),
             updatedAt = september.atTime(9, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,
@@ -795,7 +795,7 @@ class VersionsResponseFactoryTest {
             createdAt = november.atTime(8, 30),
             updatedAt = november.atTime(9, 0),
             planAgreementStatus = null,
-            entityType = EntityType.ASSESSMENT,
+            entityType = EntityType.AAP_SAN,
           ),
           planVersion = VersionDetails(
             uuid = planUuid,

@@ -16,11 +16,12 @@ enum class EntityType {
   ASSESSMENT,
   PLAN,
   AAP_PLAN,
+  AAP_SAN,
 }
 
 @Entity
 @Table(name = "oasys_associations", schema = "coordinator")
-@SQLRestriction("deleted IS FALSE AND entity_type IN ('AAP_PLAN','ASSESSMENT')")
+@SQLRestriction("deleted IS FALSE")
 data class OasysAssociation(
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

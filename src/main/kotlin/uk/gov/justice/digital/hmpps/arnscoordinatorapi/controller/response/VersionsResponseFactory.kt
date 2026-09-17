@@ -13,7 +13,7 @@ class VersionsResponseFactory {
       .let {
         when (versionToAdd.entityType) {
           EntityType.PLAN, EntityType.AAP_PLAN -> it.planVersions
-          EntityType.ASSESSMENT -> it.assessmentVersions
+          EntityType.ASSESSMENT, EntityType.AAP_SAN -> it.assessmentVersions
         }
       }.add(versionToAdd)
   }
