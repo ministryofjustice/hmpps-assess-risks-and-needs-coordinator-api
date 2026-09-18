@@ -44,12 +44,13 @@ class OasysVersionService(
       .last()
   }
 
+  fun findDeletedVersions(entityUuid: UUID, from: Long, to: Long?): List<OasysVersionEntity> = repository.findAllDeletedByEntityUuidAndVersionBetween(entityUuid, from, to ?: getLatestVersionNumber())
+
   fun undeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity {
-    val toVersion = to ?: getLatestVersionNumber()
-    val versions = repository.findAllDeletedByEntityUuidAndVersionBetween(entityUuid, from, toVersion)
+    val versions = findDeletedVersions(entityUuid, from, to)
 
     if (versions.isEmpty()) {
-      val errorMessage = "No deleted versions found for entity $entityUuid between $from to $toVersion"
+      val errorMessage = "No deleted versions found for entity $entityUuid between $from to ${to ?: getLatestVersionNumber()}"
       log.warn(errorMessage)
       throw Error(errorMessage)
     }
