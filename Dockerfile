@@ -19,7 +19,9 @@ LABEL maintainer="HMPPS Digital Studio <info@digital.justice.gov.uk>"
 ARG BUILD_NUMBER
 ENV BUILD_NUMBER=${BUILD_NUMBER:-1_0_0}
 RUN apk upgrade --no-cache && \
-    apk add --no-cache curl
+    apk add --no-cache tzdata curl
+ENV TZ=Europe/London
+RUN cp "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 RUN addgroup --gid 2000 --system appgroup && \
     adduser --uid 2000 --system appuser --ingroup appgroup
 WORKDIR /app
