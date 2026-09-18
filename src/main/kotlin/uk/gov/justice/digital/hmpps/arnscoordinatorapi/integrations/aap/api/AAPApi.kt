@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
@@ -15,6 +16,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
@@ -180,6 +182,38 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during softDeleteAssessment: ${ex.message}", ex)
   }
 
+  fun undeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
+    val command = UndeleteAssessmentCommand(
+      assessmentUuid = entityUuid,
+      user = user,
+      pointInTime = pointInTime,
+    )
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+
+    val result = response?.commands?.firstOrNull()?.result
+      ?: throw IllegalStateException("No command result returned from AAP API")
+
+    if (!result.success) {
+      throw IllegalStateException("AAP API returned failure: ${result.message}")
+    }
+
+    ApiOperationResult.Success(Unit)
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during undelete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+      HttpStatus.resolve(ex.statusCode.value()),
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during undeleteAssessment: ${ex.message}", ex)
+  }
+
   fun markMerged(assessmentUuid: UUID, user: AAPUser): ApiOperationResult<Unit> = try {
     val command = UpdateAssessmentPropertiesCommand(
       assessmentUuid = assessmentUuid,
@@ -278,6 +312,7 @@ class AAPApi(
     data class Failure<T>(
       val errorMessage: String,
       val cause: Throwable? = null,
+      val statusCode: HttpStatus? = null,
     ) : ApiOperationResult<T>() {
       init {
         LoggerFactory.getLogger(AAPApi::class.java).error(errorMessage)

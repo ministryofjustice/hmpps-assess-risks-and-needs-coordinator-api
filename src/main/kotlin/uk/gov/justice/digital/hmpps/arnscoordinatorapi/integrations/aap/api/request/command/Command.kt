@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 @JsonSubTypes(
   JsonSubTypes.Type(value = CreateAssessmentCommand::class, name = "CreateAssessmentCommand"),
   JsonSubTypes.Type(value = SoftDeleteAssessmentCommand::class, name = "SoftDeleteCommand"),
+  JsonSubTypes.Type(value = UndeleteAssessmentCommand::class, name = "UndeleteCommand"),
   JsonSubTypes.Type(value = UpdateAssessmentPropertiesCommand::class, name = "UpdateAssessmentPropertiesCommand"),
   JsonSubTypes.Type(value = UpdateFlagsCommand::class, name = "UpdateFlagsCommand"),
 )

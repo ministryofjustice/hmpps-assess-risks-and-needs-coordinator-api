@@ -172,4 +172,12 @@ abstract class IntegrationTestBase {
   protected fun stubAAPSoftDeleteAssessment(status: Int = 200) {
     aapApiMock.stubSoftDeleteAssessment(status)
   }
+
+  protected fun stubAAPUndeleteAssessment(status: Int = 200) {
+    aapApiMock.stubUndeleteAssessment(status)
+  }
+
+  protected fun verifyAAPUndeleteAssessmentNotCalled() {
+    aapApiMock.verifyUndeleteAssessmentNotCalled()
+  }
 }

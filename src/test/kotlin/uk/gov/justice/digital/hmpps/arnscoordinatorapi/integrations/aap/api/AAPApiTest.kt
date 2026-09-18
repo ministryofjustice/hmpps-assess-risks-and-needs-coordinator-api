@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
@@ -343,6 +344,59 @@ class AAPApiTest {
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       val failureResult = result as AAPApi.ApiOperationResult.Failure
       assertTrue(failureResult.errorMessage.contains("Unexpected error during softDeleteAssessment"))
+    }
+  }
+
+  @Nested
+  inner class UndeleteAssessment {
+    private val entityUuid = UUID.randomUUID()
+    private val pointInTime = LocalDateTime.parse("2026-01-09T12:00:00")
+    private val user = AAPUser(id = "user-id", name = "User Name")
+
+    @BeforeEach
+    fun stubRequest() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+    }
+
+    @Test
+    fun `should return success when AAP API returns a valid response`() {
+      val response = CommandsResponse(
+        commands = listOf(
+          CommandResponse(mock<UndeleteAssessmentCommand>(), result = CommandSuccessResult()),
+        ),
+      )
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
+
+      val result = aapApi.undeleteAssessment(entityUuid, pointInTime, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when AAP API returns HTTP error`() {
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
+
+      val result = aapApi.undeleteAssessment(entityUuid, pointInTime, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      result as AAPApi.ApiOperationResult.Failure
+      assertTrue(result.errorMessage.contains("HTTP error during undelete AAP assessment"))
+      assertEquals(HttpStatus.BAD_REQUEST, result.statusCode)
+    }
+
+    @Test
+    fun `should return failure when unexpected exception occurs`() {
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.error(RuntimeException("Unexpected error")))
+
+      val result = aapApi.undeleteAssessment(entityUuid, pointInTime, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("Unexpected error during undeleteAssessment"))
     }
   }
 
