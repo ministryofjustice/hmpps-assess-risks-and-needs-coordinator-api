@@ -245,6 +245,11 @@ class AAPPlanStrategy(
 
   override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
     if (undeleteData.versionTo == null) {
+      // Check locally before asking AAP: a failure afterwards would leave AAP undeleted and this side deleted
+      if (oasysVersionService.findDeletedVersions(entityUuid, undeleteData.versionFrom, undeleteData.versionTo).isEmpty()) {
+        return Failure("No deleted versions found to undelete for entity $entityUuid")
+      }
+
       val user = AAPUser(id = undeleteData.userDetails.id, name = undeleteData.userDetails.name)
 
       when (val undeleteResult = aapApi.undeleteAssessment(entityUuid, undeleteData.versionFrom.toPointInTime(), user)) {

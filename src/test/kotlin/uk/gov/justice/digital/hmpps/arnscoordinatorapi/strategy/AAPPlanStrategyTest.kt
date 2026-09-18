@@ -1141,6 +1141,8 @@ class AAPPlanStrategyTest {
 
       @Test
       fun `should undelete the AAP assessment from the base version and then the local versions`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(listOf(versionedEntity))
         whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
           .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
         whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
@@ -1156,6 +1158,8 @@ class AAPPlanStrategyTest {
 
       @Test
       fun `should return failure and leave local versions untouched when AAP undelete fails`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(listOf(versionedEntity))
         whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
           .thenReturn(AAPApi.ApiOperationResult.Failure("AAP error"))
 
@@ -1167,6 +1171,8 @@ class AAPPlanStrategyTest {
 
       @Test
       fun `should preserve conflict status when AAP refuses an unsafe undelete`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(listOf(versionedEntity))
         whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
           .thenReturn(AAPApi.ApiOperationResult.Failure("AAP conflict", statusCode = HttpStatus.CONFLICT))
 
@@ -1179,6 +1185,21 @@ class AAPPlanStrategyTest {
           ),
           result,
         )
+        verify(oasysVersionService, org.mockito.Mockito.never()).undeleteVersions(any(), any(), anyOrNull())
+      }
+
+      @Test
+      fun `should not call AAP when there are no local versions to restore`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(emptyList())
+
+        val result = planStrategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertEquals(
+          OperationResult.Failure<VersionedEntity>("No deleted versions found to undelete for entity ${versionedEntity.entityUuid}"),
+          result,
+        )
+        verify(aapApi, org.mockito.Mockito.never()).undeleteAssessment(any(), any(), any())
         verify(oasysVersionService, org.mockito.Mockito.never()).undeleteVersions(any(), any(), anyOrNull())
       }
     }

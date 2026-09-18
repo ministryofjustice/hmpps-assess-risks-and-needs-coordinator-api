@@ -264,7 +264,8 @@ class UndeleteTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to undelete association for $oasysAssessmentPk, Something went wrong while un-deleting versions for entity $planUuid")
+    assertThat(response?.userMessage).isEqualTo("Failed to undelete association for $oasysAssessmentPk, No deleted versions found to undelete for entity $planUuid")
+    verifyAAPUndeleteAssessmentNotCalled()
   }
 
   @Test
