@@ -5,8 +5,11 @@ info.app:
 spring:
   application:
     name: hmpps-assess-risks-and-needs-coordinator-api
-  codec:
-    max-in-memory-size: 10MB
+
+  http:
+    codecs:
+      max-in-memory-size: 10MB
+
   datasource:
     url: jdbc:postgresql://${app.db.endpoint}/${app.db.name}?currentSchema=${app.db.schema.name}&stringtype=unspecified
     username: ${app.db.username:root}
@@ -18,7 +21,6 @@ spring:
     locations: classpath:/db/migration
     enabled: true
     validate-on-migrate: true
-
 
   security:
     oauth2:
@@ -37,7 +39,13 @@ spring:
             client-id: ${app.client.id}
             client-secret: ${app.client.secret}
             authorization-grant-type: client_credentials
-            scope: read, write
+            scope:
+              - read
+              - write
+
+  web:
+    error:
+      include-message: always
 
 app:
   services:
@@ -100,10 +108,6 @@ app:
   historical-events:
     enabled: ${HISTORICAL_EVENTS_ENABLED:false}
 
-springdoc:
-  swagger-ui:
-    version: 5.32.11
-
 api:
   health-timeout: 2s
   timeout: 5s
@@ -122,8 +126,6 @@ server:
       protocol-header: x-forwarded-proto
       internal-proxies: 10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.1[6-9]{1}\.\d{1,3}\.\d{1,3}|172\.2[0-9]{1}\.\d{1,3}\.\d{1,3}|172\.3[0-1]{1}\.\d{1,3}\.\d{1,3}|0:0:0:0:0:0:0:1|::1|100\.6[4-9]\.\d{1,3}\.\d{1,3}|100\.[7-9][0-9]{1}\.\d{1,3}\.\d{1,3}|100\.1[0-1][0-9]{1}\.\d{1,3}\.\d{1,3}|100\.12[0-7]\.\d{1,3}\.\d{1,3}
   shutdown: graceful
-  error:
-    include-message: always
 
 management:
   endpoints:
