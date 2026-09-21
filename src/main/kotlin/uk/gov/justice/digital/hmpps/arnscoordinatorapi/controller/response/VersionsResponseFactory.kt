@@ -60,7 +60,7 @@ class VersionsResponseFactory {
       LastVersionsOnDate(
         assessmentVersion = versionsOnDate.assessmentVersions.maxByOrNull { it.updatedAt } ?: acc.lastAssessment,
         planVersion = planWithPreservedStatus,
-        description = getDescription(versionsOnDate),
+        description = if (date == versions.keys.min()) getFirstDateDescription(versionsOnDate) else getDescription(versionsOnDate),
       )
         .also {
           acc.lastAssessment = it.assessmentVersion
@@ -86,6 +86,26 @@ class VersionsResponseFactory {
       else -> null
     }
   }
+
+  // OASys creates both entities on the first date, so only name one that has changed since.
+  private fun getFirstDateDescription(versionsOnDate: VersionsOnDate): String? {
+    if (versionsOnDate.assessmentVersions.isEmpty() || versionsOnDate.planVersions.isEmpty()) {
+      return getDescription(versionsOnDate)
+    }
+
+    val assessmentHasLaterVersion = versions.values.count { it.assessmentVersions.isNotEmpty() } > 1
+    val planHasLaterVersion = versions.values.count { it.planVersions.isNotEmpty() } > 1
+
+    return when {
+      assessmentHasLaterVersion && !planHasLaterVersion && isCurrentOnly(versionsOnDate.planVersions) -> "Assessment updated"
+      planHasLaterVersion && !assessmentHasLaterVersion && isCurrentOnly(versionsOnDate.assessmentVersions) -> "Plan updated"
+      else -> getDescription(versionsOnDate)
+    }
+  }
+
+  // Untouched since OASys created it. CREATED is this API's bookkeeping row, not a real version.
+  private fun isCurrentOnly(entityVersions: VersionDetailsList): Boolean = entityVersions.all { it.status in setOf("UNSIGNED", "CREATED") && it.planAgreementStatus.isNullOrBlank() } &&
+    entityVersions.filterNot { it.status == "CREATED" }.map { it.version }.distinct().size <= 1
 
   fun getVersionsResponse() = VersionsResponse(
     allVersions = getVersionsTable(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),
