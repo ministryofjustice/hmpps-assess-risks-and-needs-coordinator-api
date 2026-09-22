@@ -47,6 +47,11 @@ spring:
     error:
       include-message: always
 
+# Override the swagger-ui version to support the bump in dependency
+springdoc:
+  swagger-ui:
+    version: 5.32.15
+
 app:
   services:
     hmpps-auth:
