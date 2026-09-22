@@ -42,9 +42,6 @@ dependencies {
   }
   testImplementation("com.h2database:h2")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-
-  // Dev dependencies
-  implementation("org.springframework.boot:spring-boot-devtools:4.2.0-M1")
 }
 
 kotlin {
