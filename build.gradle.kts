@@ -24,7 +24,6 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-  implementation("org.wiremock:wiremock-standalone:3.13.2")
   runtimeOnly("org.postgresql:postgresql:42.7.13")
 
   // DB Migration (Flyway)
@@ -42,6 +41,7 @@ dependencies {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("com.h2database:h2")
+  testImplementation("org.wiremock:wiremock-standalone:3.13.2")
 
   // Dev dependencies
   implementation("org.springframework.boot:spring-boot-devtools:4.2.0-M1")
