@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import java.time.Duration
 import java.time.LocalDate
 
 class VersionsResponseFactory {
@@ -66,7 +67,8 @@ class VersionsResponseFactory {
           acc.lastAssessment = it.assessmentVersion
           acc.lastPlan = it.planVersion
         }
-        .takeUnless {
+        .takeIf { it.description != null }
+        ?.takeUnless {
           it.assessmentVersion?.status?.run(statusesToExclude::contains) ?: true &&
             it.planVersion?.status?.run(statusesToExclude::contains) ?: true
         }
@@ -87,25 +89,18 @@ class VersionsResponseFactory {
     }
   }
 
-  // OASys creates both entities on the first date, so only name one that has changed since.
-  private fun getFirstDateDescription(versionsOnDate: VersionsOnDate): String? {
-    if (versionsOnDate.assessmentVersions.isEmpty() || versionsOnDate.planVersions.isEmpty()) {
-      return getDescription(versionsOnDate)
-    }
+  // OASys creates the entities on the first date, so only name one that changed that day.
+  private fun getFirstDateDescription(versionsOnDate: VersionsOnDate): String? = getDescription(
+    versionsOnDate.copy(
+      assessmentVersions = versionsOnDate.assessmentVersions.filter(::changedOnFirstDate).toMutableList(),
+      planVersions = versionsOnDate.planVersions.filter(::changedOnFirstDate).toMutableList(),
+    ),
+  )
 
-    val assessmentHasLaterVersion = versions.values.count { it.assessmentVersions.isNotEmpty() } > 1
-    val planHasLaterVersion = versions.values.count { it.planVersions.isNotEmpty() } > 1
-
-    return when {
-      assessmentHasLaterVersion && !planHasLaterVersion && isCurrentOnly(versionsOnDate.planVersions) -> "Assessment updated"
-      planHasLaterVersion && !assessmentHasLaterVersion && isCurrentOnly(versionsOnDate.assessmentVersions) -> "Plan updated"
-      else -> getDescription(versionsOnDate)
-    }
-  }
-
-  // Untouched since OASys created it. CREATED is this API's bookkeeping row, not a real version.
-  private fun isCurrentOnly(entityVersions: VersionDetailsList): Boolean = entityVersions.all { it.status in setOf("UNSIGNED", "CREATED") && it.planAgreementStatus.isNullOrBlank() } &&
-    entityVersions.filterNot { it.status == "CREATED" }.map { it.version }.distinct().size <= 1
+  // Case creation stamps createdAt and updatedAt together, so only an edit, sign or agreement counts.
+  private fun changedOnFirstDate(version: VersionDetails): Boolean = version.status !in setOf("UNSIGNED", "CREATED") ||
+    !version.planAgreementStatus.isNullOrBlank() ||
+    Duration.between(version.createdAt, version.updatedAt) > Duration.ofSeconds(1)
 
   fun getVersionsResponse() = VersionsResponse(
     allVersions = getVersionsTable(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),
