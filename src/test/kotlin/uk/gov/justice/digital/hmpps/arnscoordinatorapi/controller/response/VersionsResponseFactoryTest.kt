@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.ValueSource
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.Comparator
 import java.util.UUID
 
@@ -947,18 +948,15 @@ class VersionsResponseFactoryTest {
 
   @ParameterizedTest
   @EnumSource(EntityType::class, names = ["PLAN", "AAP_PLAN"])
-  fun `first date should only say assessment updated when the plan has no later version`(planType: EntityType) {
+  fun `first date should only say assessment updated when the plan was not changed that day`(planType: EntityType) {
     val day1 = LocalDate.of(2025, 6, 24)
     val day2 = LocalDate.of(2025, 6, 25)
 
     val factory = VersionsResponseFactory()
     val assessment = version(EntityType.ASSESSMENT, day1)
-    val plan = version(planType, day1)
+    val plan = untouched(planType, day1)
     val laterAssessment = version(EntityType.ASSESSMENT, day2).copy(version = 2)
     factory.addVersions(listOf(assessment, plan, laterAssessment))
-    if (planType == EntityType.AAP_PLAN) {
-      factory.addVersions(listOf(version(planType, day1, status = "CREATED", hour = 10).copy(version = 0)))
-    }
 
     assertEquals(
       VersionsResponse(
@@ -973,12 +971,12 @@ class VersionsResponseFactoryTest {
 
   @ParameterizedTest
   @EnumSource(EntityType::class, names = ["PLAN", "AAP_PLAN"])
-  fun `first date should only say plan updated when the assessment has no later version`(planType: EntityType) {
+  fun `first date should only say plan updated when the assessment was not changed that day`(planType: EntityType) {
     val day1 = LocalDate.of(2025, 6, 24)
     val day2 = LocalDate.of(2025, 6, 25)
 
     val factory = VersionsResponseFactory()
-    val assessment = version(EntityType.ASSESSMENT, day1)
+    val assessment = untouched(EntityType.ASSESSMENT, day1)
     val plan = version(planType, day1)
     val laterPlan = version(planType, day2).copy(version = 2)
     factory.addVersions(listOf(assessment, plan, laterPlan))
@@ -995,101 +993,104 @@ class VersionsResponseFactoryTest {
   }
 
   @Test
-  fun `first date should say assessment and plan updated when both have a later version`() {
+  fun `first date should say plan updated when only the plan changed and nothing has changed since`() {
+    val day = LocalDate.of(2026, 9, 22)
+
+    val factory = VersionsResponseFactory()
+    val assessment = untouched(EntityType.ASSESSMENT, day).copy(
+      createdAt = LocalDateTime.parse("2026-09-22T08:17:13.152576"),
+      updatedAt = LocalDateTime.parse("2026-09-22T08:17:13.15258"),
+    )
+    val createdRow = untouched(EntityType.AAP_PLAN, day, status = "CREATED").copy(
+      createdAt = LocalDateTime.parse("2026-09-22T08:17:11.4"),
+      updatedAt = LocalDateTime.parse("2026-09-22T08:17:11.4"),
+    )
+    val plan = version(EntityType.AAP_PLAN, day).copy(
+      createdAt = LocalDateTime.parse("2026-09-22T08:17:11.504491"),
+      updatedAt = LocalDateTime.parse("2026-09-22T08:17:47.081356"),
+    )
+    factory.addVersions(listOf(assessment, createdRow, plan))
+
+    assertEquals(LastVersionsOnDate("Plan updated", assessment, plan), factory.getVersionsResponse().allVersions[day])
+  }
+
+  @Test
+  fun `first date should not count an assessment that was only changed on a later day`() {
     val day1 = LocalDate.of(2025, 6, 24)
     val day2 = LocalDate.of(2025, 6, 25)
 
     val factory = VersionsResponseFactory()
     factory.addVersions(
       listOf(
-        version(EntityType.ASSESSMENT, day1),
+        untouched(EntityType.ASSESSMENT, day1),
         version(EntityType.AAP_PLAN, day1),
-        version(EntityType.ASSESSMENT, day2),
-        version(EntityType.AAP_PLAN, day2),
+        version(EntityType.ASSESSMENT, day2).copy(version = 2),
       ),
     )
 
-    assertEquals("Assessment and plan updated", factory.getVersionsResponse().allVersions[day1]?.description)
+    assertEquals("Plan updated", factory.getVersionsResponse().allVersions[day1]?.description)
   }
 
   @Test
-  fun `label correction should preserve the original response when neither entity has a later version`() {
+  fun `first date should say assessment and plan updated when both changed that day`() {
     val day = LocalDate.of(2025, 6, 24)
 
     val factory = VersionsResponseFactory()
-    val assessment = version(EntityType.ASSESSMENT, day)
-    val plan = version(EntityType.AAP_PLAN, day, hour = 12)
-    factory.addVersions(listOf(assessment, version(EntityType.AAP_PLAN, day, status = "CREATED"), plan))
+    factory.addVersions(listOf(version(EntityType.ASSESSMENT, day), version(EntityType.AAP_PLAN, day)))
 
-    assertEquals(
-      VersionsResponse(allVersions = sortedMapOf(day to LastVersionsOnDate("Assessment and plan updated", assessment, plan))),
-      factory.getVersionsResponse(),
-    )
+    assertEquals("Assessment and plan updated", factory.getVersionsResponse().allVersions[day]?.description)
   }
 
   @Test
-  fun `first date should keep its row when neither entity has a later version but one has been signed`() {
+  fun `no row should be returned when neither entity changed on the first date`() {
     val day = LocalDate.of(2025, 6, 24)
 
     val factory = VersionsResponseFactory()
     factory.addVersions(
       listOf(
-        version(EntityType.ASSESSMENT, day, status = "SELF_SIGNED"),
-        version(EntityType.AAP_PLAN, day, status = "CREATED", hour = 11),
-        version(EntityType.AAP_PLAN, day, hour = 12),
+        untouched(EntityType.ASSESSMENT, day),
+        untouched(EntityType.AAP_PLAN, day, status = "CREATED"),
+        untouched(EntityType.AAP_PLAN, day),
       ),
     )
 
-    assertEquals("Assessment and plan updated", factory.getVersionsResponse().allVersions[day]?.description)
+    assertEquals(emptyMap<LocalDate, LastVersionsOnDate>(), factory.getVersionsResponse().allVersions)
+  }
+
+  @Test
+  fun `no row should be returned for a plan-only case when the plan did not change on the first date`() {
+    val day = LocalDate.of(2025, 6, 24)
+
+    val factory = VersionsResponseFactory()
+    factory.addVersions(listOf(untouched(EntityType.AAP_PLAN, day, status = "CREATED"), untouched(EntityType.AAP_PLAN, day)))
+
+    assertEquals(emptyMap<LocalDate, LastVersionsOnDate>(), factory.getVersionsResponse().allVersions)
   }
 
   @ParameterizedTest
   @ValueSource(strings = ["SELF_SIGNED", "COUNTERSIGNED", "LOCKED", "AWAITING_COUNTERSIGN"])
-  fun `later versions of the other entity should not hide a recorded status from the first label`(status: String) {
+  fun `a recorded status should count as a change on the first date`(status: String) {
     val day = LocalDate.of(2025, 6, 24)
-    for (recordedType in listOf(EntityType.ASSESSMENT, EntityType.AAP_PLAN)) {
-      val factory = VersionsResponseFactory()
-      val assessment = version(EntityType.ASSESSMENT, day, status = if (recordedType == EntityType.ASSESSMENT) status else "UNSIGNED")
-      val plan = version(EntityType.AAP_PLAN, day, status = if (recordedType == EntityType.AAP_PLAN) status else "UNSIGNED")
-      val otherType = if (recordedType == EntityType.ASSESSMENT) EntityType.AAP_PLAN else EntityType.ASSESSMENT
-      factory.addVersions(listOf(assessment, plan, version(otherType, day.plusDays(1))))
 
-      assertEquals(LastVersionsOnDate("Assessment and plan updated", assessment, plan), factory.getVersionsResponse().allVersions[day])
-    }
+    val factory = VersionsResponseFactory()
+    factory.addVersions(listOf(untouched(EntityType.ASSESSMENT, day, status = status), untouched(EntityType.AAP_PLAN, day)))
+
+    assertEquals("Assessment updated", factory.getVersionsResponse().allVersions[day]?.description)
   }
 
   @Test
-  fun `an agreed plan should retain its row and links alongside a current SAN version`() {
+  fun `an agreed plan should count as a change on the first date`() {
     val day = LocalDate.of(2025, 6, 24)
-    val assessment = version(EntityType.ASSESSMENT, day)
-    val agreedPlan = version(EntityType.AAP_PLAN, day, hour = 12).copy(planAgreementStatus = "AGREED")
+
     val factory = VersionsResponseFactory()
-    factory.addVersions(listOf(assessment, version(EntityType.AAP_PLAN, day, status = "CREATED"), agreedPlan))
-
-    assertEquals(
-      LastVersionsOnDate("Assessment and plan updated", assessment, agreedPlan),
-      factory.getVersionsResponse().allVersions[day],
+    factory.addVersions(
+      listOf(
+        untouched(EntityType.ASSESSMENT, day),
+        untouched(EntityType.AAP_PLAN, day).copy(planAgreementStatus = "AGREED"),
+      ),
     )
-    factory.addVersions(listOf(version(EntityType.ASSESSMENT, day.plusDays(1))))
-    assertEquals(
-      LastVersionsOnDate("Assessment and plan updated", assessment, agreedPlan),
-      factory.getVersionsResponse().allVersions[day],
-    )
-  }
 
-  @Test
-  fun `multiple unsigned assessment versions on the same day should not be treated as one live version`() {
-    val day = LocalDate.of(2025, 6, 24)
-    val assessment = version(EntityType.ASSESSMENT, day)
-    val newerAssessment = assessment.copy(uuid = UUID.randomUUID(), version = 2, updatedAt = day.atTime(12, 0))
-    val plan = version(EntityType.AAP_PLAN, day)
-    val factory = VersionsResponseFactory()
-    factory.addVersions(listOf(assessment, newerAssessment, plan, version(EntityType.AAP_PLAN, day.plusDays(1))))
-
-    assertEquals(
-      LastVersionsOnDate("Assessment and plan updated", newerAssessment, plan),
-      factory.getVersionsResponse().allVersions[day],
-    )
+    assertEquals("Plan updated", factory.getVersionsResponse().allVersions[day]?.description)
   }
 
   private fun version(entityType: EntityType, date: LocalDate, status: String = "UNSIGNED", hour: Int = 11) = VersionDetails(
@@ -1101,4 +1102,6 @@ class VersionsResponseFactoryTest {
     planAgreementStatus = null,
     entityType = entityType,
   )
+
+  private fun untouched(entityType: EntityType, date: LocalDate, status: String = "UNSIGNED") = version(entityType, date, status = status, hour = 10)
 }
