@@ -13,15 +13,16 @@ configurations {
 }
 
 ext["netty.version"] = "4.2.18.Final"
-extra["tomcat.version"] = "11.0.26"
+ext["tomcat.version"] = "11.0.26"
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.1")
-  implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("org.springframework.boot:spring-boot-starter-webclient")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.2")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.11.0")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+  implementation("org.webjars:swagger-ui:5.32.15")
+  implementation("org.springframework.boot:spring-boot-starter-webflux")
+  implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.wiremock:wiremock-standalone:3.13.2")
   runtimeOnly("org.postgresql:postgresql:42.7.13")
@@ -43,7 +44,7 @@ dependencies {
   testImplementation("com.h2database:h2")
 
   // Dev dependencies
-  developmentOnly("org.springframework.boot:spring-boot-devtools")
+  implementation("org.springframework.boot:spring-boot-devtools:4.2.0-M1")
 }
 
 kotlin {
