@@ -24,6 +24,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociation, Long> {
   @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_type in ('AAP_PLAN', 'ASSESSMENT') AND entity_uuid = :entityUuid", nativeQuery = true)
   fun findAllByEntityUuidIncludingDeleted(entityUuid: UUID): List<OasysAssociation>
 
-  @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_uuid = :entityUuid", nativeQuery = true)
+  @Query("SELECT * FROM coordinator.oasys_associations WHERE entity_type in ('AAP_PLAN', 'ASSESSMENT') AND entity_uuid = :entityUuid", nativeQuery = true)
   fun findAllOfAnyKindByEntityUuidIncludingDeleted(entityUuid: UUID): List<OasysAssociation>
 }
