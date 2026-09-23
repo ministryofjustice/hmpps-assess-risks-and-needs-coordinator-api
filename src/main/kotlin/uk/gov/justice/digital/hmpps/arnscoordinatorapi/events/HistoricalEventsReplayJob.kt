@@ -7,6 +7,7 @@ import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import java.util.UUID
@@ -131,7 +132,8 @@ class HistoricalEventsReplayJob(
    * rather than published.
    */
   private fun resolveFallback(entityUuid: UUID): EntityAssociationDetails? = associationsService
-    .findAllOfAnyKindIncludingDeleted(entityUuid)
+    .findAllIncludingDeleted(entityUuid)
+    .filter { it.entityType == EntityType.AAP_PLAN }
     .maxByOrNull { it.createdAt }
     ?.let { association ->
       association.oasysAssessmentPk?.let { pk ->
