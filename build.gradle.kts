@@ -8,6 +8,17 @@ plugins {
   kotlin("plugin.jpa") version "2.4.20"
 }
 
+sourceSets {
+  create("integrationTest") {
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+    runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
+  }
+}
+
+configurations.named("integrationTestImplementation") {
+  extendsFrom(configurations.testImplementation.get())
+}
+
 configurations {
   testImplementation { exclude(group = "org.junit.vintage") }
 }
@@ -57,5 +68,28 @@ tasks {
     jvmArgs = listOf(
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
     )
+  }
+}
+
+tasks.test {
+  exclude("**/src/integrationTest/**")
+}
+
+tasks.register<Test>("integrationTest") {
+  description = "Runs integration tests."
+  group = "verification"
+
+  testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+  classpath = sourceSets["integrationTest"].runtimeClasspath
+
+  // Optional: Force tests to run even if outputs haven't changed
+  outputs.upToDateWhen { false }
+
+  useJUnitPlatform()
+}
+
+tasks.named("integrationTest") {
+  onlyIf {
+    !gradle.startParameter.taskNames.any { it.contains("koverHtmlReport") }
   }
 }
