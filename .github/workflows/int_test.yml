@@ -1,9 +1,6 @@
 name: Integration Test
 
 on:
-  push:
-    branches:
-      - test/api-smoke-tests
   workflow_dispatch:
     inputs:
       environment:
