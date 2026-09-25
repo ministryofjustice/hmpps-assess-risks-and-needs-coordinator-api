@@ -41,6 +41,8 @@ class UndeleteTest : IntegrationTestBase() {
   fun `it successfully undeletes an existing SP and SAN for an oasys PK`() {
     val oasysAssessmentPk = getRandomOasysPk()
     val planUuid = UUID.randomUUID()
+    val sanUuid = UUID.randomUUID()
+
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(
@@ -51,22 +53,33 @@ class UndeleteTest : IntegrationTestBase() {
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
-          entityUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          entityType = EntityType.AAP_SAN,
+          entityUuid = sanUuid,
           deleted = true,
         ),
       ),
     )
-    oasysVersionRepository.save(
-      OasysVersionEntity(
-        createdBy = OasysEvent.LOCKED,
-        entityUuid = planUuid,
-        version = 0,
-        deleted = true,
+    oasysVersionRepository.saveAll(
+      listOf(
+        OasysVersionEntity(
+          createdBy = OasysEvent.LOCKED,
+          entityUuid = planUuid,
+          version = 0,
+          deleted = true,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.LOCKED,
+          entityUuid = sanUuid,
+          version = 0,
+          deleted = true,
+        ),
       ),
     )
 
-    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size
+    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
+      oasysAssessmentPk,
+      assessmentTypeConfig.enabledEntityTypes(),
+    ).size
 
     val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -83,11 +96,14 @@ class UndeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size
+    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
+      oasysAssessmentPk,
+      assessmentTypeConfig.enabledEntityTypes(),
+    ).size
     val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(planUuid, 0)
 
     assertThat(versionsBefore).isEqualTo(0)
-    assertThat(response?.sanAssessmentId).isEqualTo(UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"))
+    assertThat(response?.sanAssessmentId).isEqualTo(sanUuid)
     assertThat(response?.sanAssessmentVersion).isEqualTo(0)
     assertThat(response?.sentencePlanId).isEqualTo(planUuid)
     assertThat(response?.sentencePlanVersion).isEqualTo(0)
@@ -238,6 +254,7 @@ class UndeleteTest : IntegrationTestBase() {
   fun `it returns a 500 when the sentence plan has no deleted versions to undelete`() {
     val oasysAssessmentPk = getRandomOasysPk()
     val planUuid = UUID.randomUUID()
+
     oasysAssociationRepository.saveAll(
       listOf(
         OasysAssociation(

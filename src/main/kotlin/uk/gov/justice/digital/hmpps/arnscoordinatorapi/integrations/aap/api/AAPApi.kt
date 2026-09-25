@@ -1,17 +1,22 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api
 
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.context.annotation.Condition
+import org.springframework.context.annotation.ConditionContext
+import org.springframework.context.annotation.Conditional
+import org.springframework.core.type.AnnotatedTypeMetadata
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import org.springframework.web.reactive.function.client.bodyToMono
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.ResetPlanRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.IdentifierType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
@@ -27,57 +32,78 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import java.time.LocalDateTime
 import java.util.UUID
 
+enum class AssessmentType {
+  STRENGTHS_AND_NEEDS,
+  SENTENCE_PLAN,
+  ;
+
+  fun toEntityType() = when (this) {
+    STRENGTHS_AND_NEEDS -> EntityType.AAP_SAN
+    SENTENCE_PLAN -> EntityType.AAP_PLAN
+  }
+}
+
+class RequiresAAP : Condition {
+  override fun matches(
+    context: ConditionContext,
+    metadata: AnnotatedTypeMetadata,
+  ): Boolean {
+    val environment = context.environment
+
+    return environment.getProperty("app.strategies.aap-plan") == "true" ||
+      environment.getProperty("app.strategies.aap-san") == "true"
+  }
+}
+
 @Component
-@ConditionalOnProperty(name = ["app.strategies.aap-plan"], havingValue = "true")
+@Conditional(RequiresAAP::class)
 class AAPApi(
   val aapApiWebClient: WebClient,
   val apiProperties: AAPApiProperties,
 ) {
 
-  fun createAssessment(createData: CreatePlanData): ApiOperationResult<VersionedEntity> = try {
-    val identifiers = buildIdentifiers(createData)
+  fun createAssessment(
+    assessmentType: AssessmentType,
+    createData: CreateAssessmentData,
+  ): ApiOperationResult<VersionedEntity> = try {
+    val identifiers =
+      buildIdentifiers(createData) // note: we do not currently receive identifiers in a CreateAssessmentData request
 
-    val properties = mapOf(
-      "PLAN_TYPE" to PropertyValue(type = "Single", value = createData.planType.name),
-    )
-
-    val command = CreateAssessmentCommand(
-      assessmentType = "SENTENCE_PLAN",
+    val request = CreateAssessmentCommand(
+      assessmentType = assessmentType.name,
       formVersion = "", // note: we leave this empty and then set it when the user gets into AAPxSP
-      properties = properties,
+      properties = createData.properties,
       identifiers = identifiers,
       flags = createData.flags,
       user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
-    )
+    ).let { CommandsRequest.of(it) }
 
-    val request = CommandsRequest.of(command)
-
-    val response = aapApiWebClient.post()
+    aapApiWebClient.post()
       .uri(apiProperties.endpoints.command)
       .body(BodyInserters.fromValue(request))
       .retrieve()
-      .bodyToMono(CommandsResponse::class.java)
+      .bodyToMono<CommandsResponse>()
       .block()
+      .let { response ->
+        response?.commands?.firstOrNull()?.result.let {
+          when (it) {
+            is CreateAssessmentCommandResult -> ApiOperationResult.Success(
+              VersionedEntity(
+                id = it.assessmentUuid,
+                version = 0,
+                entityType = assessmentType.toEntityType(),
+              ),
+            )
 
-    response?.commands?.firstOrNull()?.result.let {
-      when (it) {
-        is CreateAssessmentCommandResult -> ApiOperationResult.Success(
-          VersionedEntity(
-            id = it.assessmentUuid,
-            version = 0,
-            entityType = EntityType.AAP_PLAN,
-          ),
-        )
-
-        null -> throw IllegalStateException("No command result returned from AAP API")
-        else -> throw IllegalStateException("Unexpected command result type: ${it::class.simpleName}")
+            null -> throw IllegalStateException("No command result returned from AAP API")
+            else -> throw IllegalStateException("Unexpected command result type: ${it::class.simpleName}")
+          }
+        }
       }
-    }
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure(
       "HTTP error during create AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
@@ -91,7 +117,7 @@ class AAPApi(
     aapApiWebClient.delete()
       .uri(apiProperties.endpoints.delete.replace("{uuid}", assessmentUuid.toString()))
       .retrieve()
-      .bodyToMono(Void::class.java)
+      .bodyToMono<Void>()
       .block()
 
     ApiOperationResult.Success(Unit)
@@ -104,31 +130,32 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during deleteAssessment: ${ex.message}", ex)
   }
 
-  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> = try {
-    AssessmentVersionQuery(
-      user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
-      assessmentIdentifier = AssessmentIdentifier(entityUuid),
-      timestamp = timestamp,
-    )
-      .let { query ->
-        aapApiWebClient.post()
-          .uri(apiProperties.endpoints.query)
-          .body(BodyInserters.fromValue(QueriesRequest.of(query)))
-          .retrieve()
-          .bodyToMono(QueriesResponse::class.java)
-          .block()
-      }
-      ?.queries?.firstOrNull()?.result
-      ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
-      ?: throw IllegalStateException("No query result returned from AAP API")
-  } catch (ex: WebClientResponseException) {
-    ApiOperationResult.Failure(
-      "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
-      ex,
-    )
-  } catch (ex: Exception) {
-    ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
-  }
+  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> =
+    try {
+      AssessmentVersionQuery(
+        user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
+        assessmentIdentifier = AssessmentIdentifier(entityUuid),
+        timestamp = timestamp,
+      )
+        .let { query ->
+          aapApiWebClient.post()
+            .uri(apiProperties.endpoints.query)
+            .body(BodyInserters.fromValue(QueriesRequest.of(query)))
+            .retrieve()
+            .bodyToMono<QueriesResponse>()
+            .block()
+        }
+        ?.queries?.firstOrNull()?.result
+        ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
+        ?: throw IllegalStateException("No query result returned from AAP API")
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure(
+        "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+        ex,
+      )
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
+    }
 
   fun resetPlan(assessmentUuid: UUID, user: AAPUser): ApiOperationResult<Unit> = try {
     val request = ResetPlanRequest(user = user, assessmentUuid = assessmentUuid)
@@ -149,38 +176,39 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
   }
 
-  fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
-    val command = SoftDeleteAssessmentCommand(
-      assessmentUuid = entityUuid,
-      user = user,
-      pointInTime = pointInTime,
-    )
+  fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> =
+    try {
+      val command = SoftDeleteAssessmentCommand(
+        assessmentUuid = entityUuid,
+        user = user,
+        pointInTime = pointInTime,
+      )
 
-    val request = CommandsRequest.of(command)
+      val request = CommandsRequest.of(command)
 
-    val response = aapApiWebClient.post()
-      .uri(apiProperties.endpoints.command)
-      .body(BodyInserters.fromValue(request))
-      .retrieve()
-      .bodyToMono(CommandsResponse::class.java)
-      .block()
+      val response = aapApiWebClient.post()
+        .uri(apiProperties.endpoints.command)
+        .body(BodyInserters.fromValue(request))
+        .retrieve()
+        .bodyToMono<CommandsResponse>()
+        .block()
 
-    val result = response?.commands?.firstOrNull()?.result
-      ?: throw IllegalStateException("No command result returned from AAP API")
+      val result = response?.commands?.firstOrNull()?.result
+        ?: throw IllegalStateException("No command result returned from AAP API")
 
-    if (!result.success) {
-      throw IllegalStateException("AAP API returned failure: ${result.message}")
+      if (!result.success) {
+        throw IllegalStateException("AAP API returned failure: ${result.message}")
+      }
+
+      ApiOperationResult.Success(Unit)
+    } catch (ex: WebClientResponseException) {
+      ApiOperationResult.Failure(
+        "HTTP error during soft-delete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+        ex,
+      )
+    } catch (ex: Exception) {
+      ApiOperationResult.Failure("Unexpected error during softDeleteAssessment: ${ex.message}", ex)
     }
-
-    ApiOperationResult.Success(Unit)
-  } catch (ex: WebClientResponseException) {
-    ApiOperationResult.Failure(
-      "HTTP error during soft-delete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
-      ex,
-    )
-  } catch (ex: Exception) {
-    ApiOperationResult.Failure("Unexpected error during softDeleteAssessment: ${ex.message}", ex)
-  }
 
   fun undeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
     val command = UndeleteAssessmentCommand(
@@ -228,7 +256,7 @@ class AAPApi(
       .uri(apiProperties.endpoints.command)
       .body(BodyInserters.fromValue(request))
       .retrieve()
-      .bodyToMono(CommandsResponse::class.java)
+      .bodyToMono<CommandsResponse>()
       .block()
 
     val result = response?.commands?.firstOrNull()?.result
@@ -284,7 +312,7 @@ class AAPApi(
       .uri(apiProperties.endpoints.query)
       .body(BodyInserters.fromValue(QueriesRequest(queries.toList())))
       .retrieve()
-      .bodyToMono(QueriesResponse::class.java)
+      .bodyToMono<QueriesResponse>()
       .block()
       ?.let { result -> ApiOperationResult.Success(result) }
       ?: throw IllegalStateException("No query result returned from AAP API")
@@ -297,7 +325,7 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during fetchVersions: ${ex.message}", ex)
   }
 
-  private fun buildIdentifiers(createData: CreatePlanData): Map<IdentifierType, String>? {
+  private fun buildIdentifiers(createData: CreateAssessmentData): Map<IdentifierType, String>? {
     val identifiers = mutableMapOf<IdentifierType, String>()
 
     createData.subjectDetails?.crn?.let { identifiers[IdentifierType.CRN] = it }
