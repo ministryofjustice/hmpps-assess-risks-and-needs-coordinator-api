@@ -32,6 +32,13 @@ jobs:
     with:
       environment: ${{ inputs.environment }}
       image_tag: ${{ inputs.image_tag }}
+  int_test:
+    needs: deploy_to_env
+    if: ${{ inputs.environment == 'dev' }}
+    uses: ./.github/workflows/int_test.yml
+    with:
+      environment: ${{ inputs.environment }}
+    secrets: inherit
   trigger_integration_tests:
     name: Trigger integration tests
     if: contains(fromJSON('["dev", "test"]'), inputs.environment)
