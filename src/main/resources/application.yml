@@ -91,7 +91,6 @@ app:
         query: /query
         delete: /assessment/{uuid}
   self:
-    base-url: ${hmpps-arns-coordinator.base-url}
     endpoints:
       oasys: /oasys
   strategies:
