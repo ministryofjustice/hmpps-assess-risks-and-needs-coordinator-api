@@ -3,26 +3,38 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.6"
-  kotlin("plugin.spring") version "2.4.10"
-  kotlin("plugin.jpa") version "2.4.10"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.10"
+  kotlin("plugin.spring") version "2.4.20"
+  kotlin("plugin.jpa") version "2.4.20"
+}
+
+sourceSets {
+  create("integrationTest") {
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+    runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
+  }
+}
+
+configurations.named("integrationTestImplementation") {
+  extendsFrom(configurations.testImplementation.get())
 }
 
 configurations {
   testImplementation { exclude(group = "org.junit.vintage") }
 }
 
-extra["tomcat.version"] = "11.0.25"
+ext["netty.version"] = "4.2.18.Final"
+ext["tomcat.version"] = "11.0.26"
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.0")
-  implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("org.springframework.boot:spring-boot-starter-webclient")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.2")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.11.0")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+  implementation("org.webjars:swagger-ui:5.32.15")
+  implementation("org.springframework.boot:spring-boot-starter-webflux")
+  implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-  implementation("org.wiremock:wiremock-standalone:3.13.2")
   runtimeOnly("org.postgresql:postgresql:42.7.13")
 
   // DB Migration (Flyway)
@@ -30,19 +42,18 @@ dependencies {
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
 
   // SQS for OASys events
-  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.0")
-  implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.0")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.1")
+  implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+  implementation("tools.jackson.core:jackson-databind:3.1.7")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.2")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.43") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.48") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("com.h2database:h2")
-
-  // Dev dependencies
-  developmentOnly("org.springframework.boot:spring-boot-devtools")
+  testImplementation("org.wiremock:wiremock-standalone:3.13.2")
 }
 
 kotlin {
@@ -58,5 +69,28 @@ tasks {
     jvmArgs = listOf(
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
     )
+  }
+}
+
+tasks.test {
+  exclude("**/src/integrationTest/**")
+}
+
+tasks.register<Test>("integrationTest") {
+  description = "Runs integration tests."
+  group = "verification"
+
+  testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+  classpath = sourceSets["integrationTest"].runtimeClasspath
+
+  // Optional: Force tests to run even if outputs haven't changed
+  outputs.upToDateWhen { false }
+
+  useJUnitPlatform()
+}
+
+tasks.named("integrationTest") {
+  onlyIf {
+    !gradle.startParameter.taskNames.any { it.contains("koverHtmlReport") }
   }
 }

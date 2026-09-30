@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import java.time.Duration
 import java.time.LocalDate
 
 class VersionsResponseFactory {
@@ -60,13 +61,14 @@ class VersionsResponseFactory {
       LastVersionsOnDate(
         assessmentVersion = versionsOnDate.assessmentVersions.maxByOrNull { it.updatedAt } ?: acc.lastAssessment,
         planVersion = planWithPreservedStatus,
-        description = getDescription(versionsOnDate),
+        description = if (date == versions.keys.min()) getFirstDateDescription(versionsOnDate) else getDescription(versionsOnDate),
       )
         .also {
           acc.lastAssessment = it.assessmentVersion
           acc.lastPlan = it.planVersion
         }
-        .takeUnless {
+        .takeIf { it.description != null }
+        ?.takeUnless {
           it.assessmentVersion?.status?.run(statusesToExclude::contains) ?: true &&
             it.planVersion?.status?.run(statusesToExclude::contains) ?: true
         }
@@ -86,6 +88,19 @@ class VersionsResponseFactory {
       else -> null
     }
   }
+
+  // OASys creates the entities on the first date, so only name one that changed that day.
+  private fun getFirstDateDescription(versionsOnDate: VersionsOnDate): String? = getDescription(
+    versionsOnDate.copy(
+      assessmentVersions = versionsOnDate.assessmentVersions.filter(::changedOnFirstDate).toMutableList(),
+      planVersions = versionsOnDate.planVersions.filter(::changedOnFirstDate).toMutableList(),
+    ),
+  )
+
+  // Case creation stamps createdAt and updatedAt together, so only an edit, sign or agreement counts.
+  private fun changedOnFirstDate(version: VersionDetails): Boolean = version.status !in setOf("UNSIGNED", "CREATED") ||
+    !version.planAgreementStatus.isNullOrBlank() ||
+    Duration.between(version.createdAt, version.updatedAt) > Duration.ofSeconds(1)
 
   fun getVersionsResponse() = VersionsResponse(
     allVersions = getVersionsTable(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),

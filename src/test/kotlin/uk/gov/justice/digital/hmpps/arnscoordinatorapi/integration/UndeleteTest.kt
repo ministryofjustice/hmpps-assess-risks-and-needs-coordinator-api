@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persiste
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.LocalDateTime
 import java.util.UUID
 
 class UndeleteTest : IntegrationTestBase() {
@@ -32,6 +33,8 @@ class UndeleteTest : IntegrationTestBase() {
   @BeforeEach
   fun setUp() {
     stubGrantToken()
+    stubAssessmentsUndelete()
+    stubAAPUndeleteAssessment()
   }
 
   @Test
@@ -108,39 +111,144 @@ class UndeleteTest : IntegrationTestBase() {
     assertThat(planVersion?.deleted).isFalse()
   }
 
-//  @Test
-//  fun `it returns a 409 when the SAN assessment is already undeleted`() {
-//    stubAssessmentsUndelete(409)
-//
-//    val oasysAssessmentPk = getRandomOasysPk()
-//    oasysAssociationRepository.saveAll(
-//      listOf(
-//        OasysAssociation(
-//          oasysAssessmentPk = oasysAssessmentPk,
-//          entityType = EntityType.AAP_SAN,
-//          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
-//          deleted = true,
-//        ),
-//      ),
-//    )
-//
-//    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
-//      .header(HttpHeaders.CONTENT_TYPE, "application/json")
-//      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-//      .bodyValue(
-//        UndeleteData(
-//          versionFrom = 0,
-//          userDetails = UserDetails(id = "1", name = "Test Name"),
-//        ),
-//      )
-//      .accept(MediaType.APPLICATION_JSON)
-//      .exchange()
-//      .expectStatus().isEqualTo(409)
-//      .expectBody(ErrorResponse::class.java)
-//      .returnResult().responseBody
-//
-//    assertThat(response?.userMessage).startsWith("Failed to undelete ASSESSMENT versions from 0 to null due to a conflict")
-//  }
+  @Test
+  fun `it only restores local versions when undeleting an older assessment sharing an AAP plan`() {
+    val previousAssessmentPk = getRandomOasysPk()
+    val currentAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
+    val previousBaseVersion = 10L
+    val currentBaseVersion = 20L
+
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(
+          createdAt = LocalDateTime.now().minusDays(1),
+          oasysAssessmentPk = previousAssessmentPk,
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
+          deleted = true,
+          baseVersion = previousBaseVersion,
+        ),
+        OasysAssociation(
+          createdAt = LocalDateTime.now(),
+          oasysAssessmentPk = currentAssessmentPk,
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
+          baseVersion = currentBaseVersion,
+        ),
+      ),
+    )
+    oasysVersionRepository.saveAll(
+      listOf(
+        OasysVersionEntity(
+          createdBy = OasysEvent.CREATED,
+          entityUuid = planUuid,
+          version = previousBaseVersion,
+          deleted = true,
+        ),
+        OasysVersionEntity(
+          createdBy = OasysEvent.LOCKED,
+          entityUuid = planUuid,
+          version = currentBaseVersion,
+        ),
+      ),
+    )
+
+    val response = webTestClient.post().uri("/oasys/$previousAssessmentPk/undelete")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysGenericRequest(
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(OasysVersionedEntityResponse::class.java)
+      .returnResult()
+      .responseBody
+
+    assertThat(response?.sentencePlanId).isEqualTo(planUuid)
+    assertThat(response?.sentencePlanVersion).isEqualTo(previousBaseVersion)
+    assertThat(oasysVersionRepository.findByEntityUuidAndVersion(planUuid, previousBaseVersion)?.deleted).isFalse()
+    verifyAAPUndeleteAssessmentNotCalled()
+  }
+
+  @Test
+  fun `it returns a 409 and leaves local data deleted when AAP refuses an unsafe undelete`() {
+    stubAAPUndeleteAssessment(409)
+
+    val oasysAssessmentPk = getRandomOasysPk()
+    val planUuid = UUID.randomUUID()
+    oasysAssociationRepository.save(
+      OasysAssociation(
+        oasysAssessmentPk = oasysAssessmentPk,
+        entityType = EntityType.AAP_PLAN,
+        entityUuid = planUuid,
+        deleted = true,
+      ),
+    )
+    oasysVersionRepository.save(
+      OasysVersionEntity(
+        createdBy = OasysEvent.CREATED,
+        entityUuid = planUuid,
+        version = 0,
+        deleted = true,
+      ),
+    )
+
+    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysGenericRequest(
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isEqualTo(409)
+      .expectBody(ErrorResponse::class.java)
+      .returnResult().responseBody
+
+    assertThat(response?.userMessage).startsWith("Failed to undelete AAP_PLAN versions from 0 to null due to a conflict")
+    assertThat(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).single().deleted).isTrue()
+    assertThat(oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 1)).hasSize(1)
+  }
+
+  @Test
+  fun `it returns a 409 when the SAN assessment is already undeleted`() {
+    stubAssessmentsUndelete(409)
+
+    val oasysAssessmentPk = getRandomOasysPk()
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(
+          oasysAssessmentPk = oasysAssessmentPk,
+          entityType = EntityType.ASSESSMENT,
+          entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
+          deleted = true,
+        ),
+      ),
+    )
+
+    val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
+      .header(HttpHeaders.CONTENT_TYPE, "application/json")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        UndeleteData(
+          versionFrom = 0,
+          userDetails = UserDetails(id = "1", name = "Test Name"),
+        ),
+      )
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus().isEqualTo(409)
+      .expectBody(ErrorResponse::class.java)
+      .returnResult().responseBody
+
+    assertThat(response?.userMessage).startsWith("Failed to undelete ASSESSMENT versions from 0 to null due to a conflict")
+  }
 
   @Test
   fun `it returns a 500 when the sentence plan has no deleted versions to undelete`() {
@@ -173,7 +281,8 @@ class UndeleteTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to undelete association for $oasysAssessmentPk, Something went wrong while un-deleting versions for entity $planUuid")
+    assertThat(response?.userMessage).isEqualTo("Failed to undelete association for $oasysAssessmentPk, No deleted versions found to undelete for entity $planUuid")
+    verifyAAPUndeleteAssessmentNotCalled()
   }
 
   @Test

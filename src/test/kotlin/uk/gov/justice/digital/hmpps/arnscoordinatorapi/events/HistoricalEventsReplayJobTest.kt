@@ -12,6 +12,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
@@ -117,7 +118,7 @@ class HistoricalEventsReplayJobTest {
     whenever(associationsService.findLatestAssociationDetailsByEntityIds(any()))
       .thenReturn(mapOf(entityUuid to EntityAssociationDetails("PK-123", "MDI", 5L)))
     // orphan has no live association and no fallback -> skipped
-    whenever(associationsService.findAllOfAnyKindIncludingDeleted(orphanUuid)).thenReturn(emptyList())
+    whenever(associationsService.findAllIncludingDeleted(orphanUuid)).thenReturn(emptyList())
 
     job.replayAll()
 
@@ -127,12 +128,12 @@ class HistoricalEventsReplayJobTest {
   }
 
   @Test
-  fun `replayAll falls back to any-kind association when no live association exists`() {
+  fun `replayAll falls back to a soft deleted association when no live association exists`() {
     val row = versionRow(version = 100, event = PersistenceOasysEvent.CREATED)
     whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
       .thenReturn(listOf(row), emptyList())
     whenever(associationsService.findLatestAssociationDetailsByEntityIds(any())).thenReturn(emptyMap())
-    whenever(associationsService.findAllOfAnyKindIncludingDeleted(entityUuid)).thenReturn(
+    whenever(associationsService.findAllIncludingDeleted(entityUuid)).thenReturn(
       listOf(
         OasysAssociation(
           createdAt = createdAt,
@@ -141,6 +142,7 @@ class HistoricalEventsReplayJobTest {
           regionPrisonCode = "LEI",
           baseVersion = 9L,
           deleted = true,
+          entityType = EntityType.AAP_PLAN,
         ),
       ),
     )

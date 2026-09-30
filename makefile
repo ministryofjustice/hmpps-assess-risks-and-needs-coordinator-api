@@ -2,6 +2,7 @@ SHELL = '/bin/bash'
 DEV_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml -f docker/docker-compose.dev.yml
 TEST_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml -f docker/docker-compose.test.yml
 LOCAL_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml
+INTEGRATION_TEST_COMPOSE_FILES = -f docker/docker-compose.integration.yml
 PROJECT_NAME = hmpps-assess-risks-and-needs
 
 export COMPOSE_PROJECT_NAME=${PROJECT_NAME}
@@ -67,6 +68,9 @@ test-debug: ## Runs all the test suites with debug logging.
 TESTS=
 test-specific: ## Runs specific tests
 	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --tests "${TESTS}" --parallel
+
+int-test-dev: ## Runs all integration tests
+	docker compose ${INTEGRATION_TEST_COMPOSE_FILES} run --rm int gradle integrationTest
 
 lint: ## Runs the Kotlin linter.
 	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle ktlintCheck --parallel
