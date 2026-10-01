@@ -7,11 +7,10 @@ import tools.jackson.databind.json.JsonMapper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentData
 
 class AssessmentDataDeserializer : ValueDeserializer<AssessmentData>() {
-  override fun deserialize(parser: JsonParser, context: DeserializationContext): AssessmentData? =
-    unescapeHtmlEntities(context.readTree(parser).toString())
-      .let {
-        JsonMapper().readValue(it, AssessmentData::class.java)
-      }
+  override fun deserialize(parser: JsonParser, context: DeserializationContext): AssessmentData? = unescapeHtmlEntities(context.readTree(parser).toString())
+    .let {
+      JsonMapper().readValue(it, AssessmentData::class.java)
+    }
 
   companion object {
     // Downstream APIs HTML-escape free text answers; this reverses that so consumers see the original characters.

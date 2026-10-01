@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
-import org.springframework.web.reactive.function.client.bodyToMono
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.ResetPlanRequest
@@ -86,7 +85,7 @@ class AAPApi(
       .uri(apiProperties.endpoints.command)
       .body(BodyInserters.fromValue(request))
       .retrieve()
-      .bodyToMono<CommandsResponse>()
+      .bodyToMono(CommandsResponse::class.java)
       .block()
       .let { response ->
         response?.commands?.firstOrNull()?.result.let {
@@ -117,7 +116,7 @@ class AAPApi(
     aapApiWebClient.delete()
       .uri(apiProperties.endpoints.delete.replace("{uuid}", assessmentUuid.toString()))
       .retrieve()
-      .bodyToMono<Void>()
+      .bodyToMono(Void::class.java)
       .block()
 
     ApiOperationResult.Success(Unit)
@@ -130,32 +129,31 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during deleteAssessment: ${ex.message}", ex)
   }
 
-  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> =
-    try {
-      AssessmentVersionQuery(
-        user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
-        assessmentIdentifier = AssessmentIdentifier(entityUuid),
-        timestamp = timestamp,
-      )
-        .let { query ->
-          aapApiWebClient.post()
-            .uri(apiProperties.endpoints.query)
-            .body(BodyInserters.fromValue(QueriesRequest.of(query)))
-            .retrieve()
-            .bodyToMono<QueriesResponse>()
-            .block()
-        }
-        ?.queries?.firstOrNull()?.result
-        ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
-        ?: throw IllegalStateException("No query result returned from AAP API")
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure(
-        "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
-        ex,
-      )
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
-    }
+  fun fetchAssessment(entityUuid: UUID, timestamp: LocalDateTime): ApiOperationResult<AssessmentVersionQueryResult> = try {
+    AssessmentVersionQuery(
+      user = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User"),
+      assessmentIdentifier = AssessmentIdentifier(entityUuid),
+      timestamp = timestamp,
+    )
+      .let { query ->
+        aapApiWebClient.post()
+          .uri(apiProperties.endpoints.query)
+          .body(BodyInserters.fromValue(QueriesRequest.of(query)))
+          .retrieve()
+          .bodyToMono(QueriesResponse::class.java)
+          .block()
+      }
+      ?.queries?.firstOrNull()?.result
+      ?.let { result -> ApiOperationResult.Success(result as AssessmentVersionQueryResult) }
+      ?: throw IllegalStateException("No query result returned from AAP API")
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during fetch AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during fetchAssessment: ${ex.message}", ex)
+  }
 
   fun resetPlan(assessmentUuid: UUID, user: AAPUser): ApiOperationResult<Unit> = try {
     val request = ResetPlanRequest(user = user, assessmentUuid = assessmentUuid)
@@ -176,39 +174,38 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
   }
 
-  fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> =
-    try {
-      val command = SoftDeleteAssessmentCommand(
-        assessmentUuid = entityUuid,
-        user = user,
-        pointInTime = pointInTime,
-      )
+  fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
+    val command = SoftDeleteAssessmentCommand(
+      assessmentUuid = entityUuid,
+      user = user,
+      pointInTime = pointInTime,
+    )
 
-      val request = CommandsRequest.of(command)
+    val request = CommandsRequest.of(command)
 
-      val response = aapApiWebClient.post()
-        .uri(apiProperties.endpoints.command)
-        .body(BodyInserters.fromValue(request))
-        .retrieve()
-        .bodyToMono<CommandsResponse>()
-        .block()
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(request))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
 
-      val result = response?.commands?.firstOrNull()?.result
-        ?: throw IllegalStateException("No command result returned from AAP API")
+    val result = response?.commands?.firstOrNull()?.result
+      ?: throw IllegalStateException("No command result returned from AAP API")
 
-      if (!result.success) {
-        throw IllegalStateException("AAP API returned failure: ${result.message}")
-      }
-
-      ApiOperationResult.Success(Unit)
-    } catch (ex: WebClientResponseException) {
-      ApiOperationResult.Failure(
-        "HTTP error during soft-delete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
-        ex,
-      )
-    } catch (ex: Exception) {
-      ApiOperationResult.Failure("Unexpected error during softDeleteAssessment: ${ex.message}", ex)
+    if (!result.success) {
+      throw IllegalStateException("AAP API returned failure: ${result.message}")
     }
+
+    ApiOperationResult.Success(Unit)
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during soft-delete AAP assessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during softDeleteAssessment: ${ex.message}", ex)
+  }
 
   fun undeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
     val command = UndeleteAssessmentCommand(
@@ -256,7 +253,7 @@ class AAPApi(
       .uri(apiProperties.endpoints.command)
       .body(BodyInserters.fromValue(request))
       .retrieve()
-      .bodyToMono<CommandsResponse>()
+      .bodyToMono(CommandsResponse::class.java)
       .block()
 
     val result = response?.commands?.firstOrNull()?.result
@@ -312,7 +309,7 @@ class AAPApi(
       .uri(apiProperties.endpoints.query)
       .body(BodyInserters.fromValue(QueriesRequest(queries.toList())))
       .retrieve()
-      .bodyToMono<QueriesResponse>()
+      .bodyToMono(QueriesResponse::class.java)
       .block()
       ?.let { result -> ApiOperationResult.Success(result) }
       ?: throw IllegalStateException("No query result returned from AAP API")

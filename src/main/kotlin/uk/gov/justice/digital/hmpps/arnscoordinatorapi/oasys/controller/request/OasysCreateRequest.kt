@@ -76,7 +76,7 @@ data class OasysCreateRequest(
   }
 
   fun shouldClone(entityType: EntityType): Boolean = when (entityType) {
-    EntityType.ASSESSMENT, EntityType.AAP_SAN -> true
+    EntityType.ASSESSMENT -> true
     else -> false
   }
 }

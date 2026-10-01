@@ -72,8 +72,6 @@ class OasysCoordinatorServiceTest {
     userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
 
-  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
-
   private val stubEvent = CoordinatorEvent(
     eventType = EventType.OASYS_VERSION_EVENT,
     entityType = "AAP_PLAN",
@@ -265,7 +263,6 @@ class OasysCoordinatorServiceTest {
       val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
-      val clonedSanVersionedEntity = VersionedEntity(existingSanUuid, 6, EntityType.AAP_SAN)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
         .thenReturn(emptyList())
@@ -275,14 +272,10 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(spVersionedEntity))
-      `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedSanVersionedEntity))
-      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid)).thenReturn(
-        OasysVersionEntity(
-          createdBy = OasysEvent.CLONED,
-          version = 6,
-          entityUuid = UUID.randomUUID(),
-        ),
-      )
+      // AAP_SAN behaves like AAP_PLAN: linkExistingEntity bumps the local version directly rather
+      // than going through the strategy's clone(), which is only needed for the legacy ASSESSMENT type.
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 6, entityUuid = existingSanUuid))
 
       val result = oasysCoordinatorService.create(requestWithPreviousSan)
 
@@ -293,9 +286,10 @@ class OasysCoordinatorServiceTest {
 
       verify(oasysAssociationsService).findAssociationsByPkAndType(eq(previousSanPk), any())
       verify(sanStrategy, never()).create(any())
-      verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(sanStrategy, never()).clone(any(), any())
       verify(spStrategy).create(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
+      verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 6L })
     }
 
     @Test
@@ -377,7 +371,6 @@ class OasysCoordinatorServiceTest {
       )
       val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val clonedSanVersionedEntity = VersionedEntity(existingSanUuid, 6, EntityType.AAP_SAN)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
         .thenReturn(emptyList())
@@ -388,7 +381,6 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
-      `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedSanVersionedEntity))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 8, entityUuid = existingSpUuid))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
@@ -402,10 +394,11 @@ class OasysCoordinatorServiceTest {
       assertEquals(existingSpUuid, response.sentencePlanId)
 
       verify(sanStrategy, never()).create(any())
-      verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(sanStrategy, never()).clone(any(), any())
       verify(spStrategy, never()).create(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
       verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_PLAN && baseVersion == 8L })
+      verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 8L })
     }
 
     @Test
@@ -526,7 +519,7 @@ class OasysCoordinatorServiceTest {
     }
 
     @Test
-    fun `should clone SAN assessment when linking existing SAN`() {
+    fun `should bump local version when linking existing SAN`() {
       val previousSanPk = "previous123"
       val existingSanUuid = UUID.randomUUID()
       val existingSanAssociation = OasysAssociation(
@@ -536,7 +529,6 @@ class OasysCoordinatorServiceTest {
         baseVersion = 5,
       )
       val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
-      val clonedVersionedEntity = VersionedEntity(existingSanUuid, 6, EntityType.AAP_SAN)
 
       val requestWithPreviousSan = OasysCreateRequest(
         oasysAssessmentPk = "new456",
@@ -554,14 +546,10 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSanAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
-      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid)).thenReturn(
-        OasysVersionEntity(
-          createdBy = OasysEvent.CLONED,
-          version = 6,
-          entityUuid = UUID.randomUUID(),
-        ),
-      )
-      `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedVersionedEntity))
+      // AAP_SAN behaves like AAP_PLAN: linkExistingEntity bumps the local version directly rather
+      // than going through the strategy's clone(), which is only needed for the legacy ASSESSMENT type.
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 6, entityUuid = existingSanUuid))
 
       val result = oasysCoordinatorService.create(requestWithPreviousSan)
 
@@ -570,7 +558,7 @@ class OasysCoordinatorServiceTest {
       assertEquals(existingSanUuid, response.sanAssessmentId)
 
       verify(sanStrategy, never()).create(any())
-      verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(sanStrategy, never()).clone(any(), any())
       verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 6L })
     }
 
