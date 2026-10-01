@@ -62,6 +62,13 @@ watch: ## Watches for file changes and live-reloads the API. To be used in conju
 test: ## Runs all the test suites.
 	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --parallel
 
+test-debug: ## Runs all the test suites with debug logging.
+	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --parallel --debug
+
+TESTS=
+test-specific: ## Runs specific tests
+	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --tests "${TESTS}" --parallel
+
 int-test-dev: ## Runs all integration tests
 	docker compose ${INTEGRATION_TEST_COMPOSE_FILES} run --rm int gradle integrationTest
 

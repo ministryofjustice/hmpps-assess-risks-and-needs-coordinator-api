@@ -72,8 +72,6 @@ class OasysCoordinatorServiceTest {
     userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
   )
 
-  private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.PLAN)
-
   private val stubEvent = CoordinatorEvent(
     eventType = EventType.OASYS_VERSION_EVENT,
     entityType = "AAP_PLAN",
@@ -136,9 +134,9 @@ class OasysCoordinatorServiceTest {
     @Test
     fun `should create entities and associations successfully`() {
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
-      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
 
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
@@ -163,9 +161,9 @@ class OasysCoordinatorServiceTest {
     @Test
     fun `should create entities and associations successfully for both SAN and SP`() {
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
-      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
 
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
@@ -188,8 +186,8 @@ class OasysCoordinatorServiceTest {
     @Test
     fun `should rollback on command execution failure`() {
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
-      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
 
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
 
@@ -217,9 +215,9 @@ class OasysCoordinatorServiceTest {
 
     @Test
     fun `should rollback on association storage failure`() {
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
 
       `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
@@ -250,7 +248,7 @@ class OasysCoordinatorServiceTest {
       val existingSanUuid = UUID.randomUUID()
       val existingSanAssociation = OasysAssociation(
         oasysAssessmentPk = previousSanPk,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         entityUuid = existingSanUuid,
         baseVersion = 5,
       )
@@ -262,10 +260,9 @@ class OasysCoordinatorServiceTest {
         assessmentType = AssessmentType.SAN_SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
       )
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
-      val clonedSanVersionedEntity = VersionedEntity(existingSanUuid, 6, EntityType.ASSESSMENT)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
         .thenReturn(emptyList())
@@ -275,7 +272,10 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
       `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(spVersionedEntity))
-      `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedSanVersionedEntity))
+      // AAP_SAN behaves like AAP_PLAN: linkExistingEntity bumps the local version directly rather
+      // than going through the strategy's clone(), which is only needed for the legacy ASSESSMENT type.
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 6, entityUuid = existingSanUuid))
 
       val result = oasysCoordinatorService.create(requestWithPreviousSan)
 
@@ -286,9 +286,10 @@ class OasysCoordinatorServiceTest {
 
       verify(oasysAssociationsService).findAssociationsByPkAndType(eq(previousSanPk), any())
       verify(sanStrategy, never()).create(any())
-      verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(sanStrategy, never()).clone(any(), any())
       verify(spStrategy).create(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
+      verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 6L })
     }
 
     @Test
@@ -309,9 +310,9 @@ class OasysCoordinatorServiceTest {
         assessmentType = AssessmentType.SAN_SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
       )
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.ASSESSMENT)
+      val sanVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
         .thenReturn(emptyList())
@@ -349,7 +350,7 @@ class OasysCoordinatorServiceTest {
       val existingSpUuid = UUID.randomUUID()
       val existingSanAssociation = OasysAssociation(
         oasysAssessmentPk = previousSanPk,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         entityUuid = existingSanUuid,
         baseVersion = 5,
       )
@@ -368,9 +369,8 @@ class OasysCoordinatorServiceTest {
         assessmentType = AssessmentType.SAN_SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
       )
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
-      val clonedSanVersionedEntity = VersionedEntity(existingSanUuid, 6, EntityType.ASSESSMENT)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>()))
         .thenReturn(emptyList())
@@ -381,9 +381,10 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSpAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
-      `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedSanVersionedEntity))
       `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSpUuid))
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 8, entityUuid = existingSpUuid))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 8, entityUuid = existingSanUuid))
 
       val result = oasysCoordinatorService.create(requestWithBothPrevious)
 
@@ -393,10 +394,11 @@ class OasysCoordinatorServiceTest {
       assertEquals(existingSpUuid, response.sentencePlanId)
 
       verify(sanStrategy, never()).create(any())
-      verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(sanStrategy, never()).clone(any(), any())
       verify(spStrategy, never()).create(any())
       verify(oasysAssociationsService, times(2)).storeAssociation(any())
       verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_PLAN && baseVersion == 8L })
+      verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 8L })
     }
 
     @Test
@@ -410,7 +412,7 @@ class OasysCoordinatorServiceTest {
         assessmentType = AssessmentType.SAN_SP,
         userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
       )
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
       val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
       val spVersionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
 
@@ -430,7 +432,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.CreateOperationResult.NoAssociations)
       assertEquals(
-        "No ASSESSMENT association found for PK $previousSanPk",
+        "No AAP_SAN association found for PK $previousSanPk",
         (result as OasysCoordinatorService.CreateOperationResult.NoAssociations).errorMessage,
       )
 
@@ -517,17 +519,16 @@ class OasysCoordinatorServiceTest {
     }
 
     @Test
-    fun `should clone SAN assessment when linking existing SAN`() {
+    fun `should bump local version when linking existing SAN`() {
       val previousSanPk = "previous123"
       val existingSanUuid = UUID.randomUUID()
       val existingSanAssociation = OasysAssociation(
         oasysAssessmentPk = previousSanPk,
-        entityType = EntityType.ASSESSMENT,
+        entityType = EntityType.AAP_SAN,
         entityUuid = existingSanUuid,
         baseVersion = 5,
       )
-      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
-      val clonedVersionedEntity = VersionedEntity(existingSanUuid, 6, EntityType.ASSESSMENT)
+      val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
 
       val requestWithPreviousSan = OasysCreateRequest(
         oasysAssessmentPk = "new456",
@@ -545,7 +546,10 @@ class OasysCoordinatorServiceTest {
         .thenReturn(listOf(existingSanAssociation))
       `when`(oasysAssociationsService.storeAssociation(any()))
         .thenReturn(OperationResult.Success(Unit))
-      `when`(sanStrategy.clone(any(), eq(existingSanUuid))).thenReturn(OperationResult.Success(clonedVersionedEntity))
+      // AAP_SAN behaves like AAP_PLAN: linkExistingEntity bumps the local version directly rather
+      // than going through the strategy's clone(), which is only needed for the legacy ASSESSMENT type.
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 6, entityUuid = existingSanUuid))
 
       val result = oasysCoordinatorService.create(requestWithPreviousSan)
 
@@ -554,7 +558,7 @@ class OasysCoordinatorServiceTest {
       assertEquals(existingSanUuid, response.sanAssessmentId)
 
       verify(sanStrategy, never()).create(any())
-      verify(sanStrategy).clone(any(), eq(existingSanUuid))
+      verify(sanStrategy, never()).clone(any(), any())
       verify(oasysAssociationsService).storeAssociation(argThat { baseVersion == 6L })
     }
 
@@ -856,7 +860,7 @@ class OasysCoordinatorServiceTest {
       val entityUuid = UUID.randomUUID()
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
         entityUuid = entityUuid,
         oasysAssessmentPk = "CY/12ZX56",
         regionPrisonCode = "111111",
@@ -864,7 +868,7 @@ class OasysCoordinatorServiceTest {
       val strategy: EntityStrategy = mock()
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       `when`(strategy.fetch(any())).thenReturn(OperationResult.Failure<Nothing>("Execution failed"))
 
@@ -872,7 +876,7 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.Failure)
       assertEquals(
-        "Failed to retrieve PLAN entity, Execution failed",
+        "Failed to retrieve AAP_PLAN entity, Execution failed",
         (result as OasysCoordinatorService.GetOperationResult.Failure).errorMessage,
       )
     }
@@ -882,16 +886,16 @@ class OasysCoordinatorServiceTest {
       val entityUuid = UUID.randomUUID()
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
         entityUuid = entityUuid,
         oasysAssessmentPk = "CY/12ZX56",
         regionPrisonCode = "111111",
       )
       val strategy: EntityStrategy = mock()
-      val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.PLAN)
+      val fetchResponse = VersionedEntity(entityUuid, 1, EntityType.AAP_PLAN)
 
       `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>())).thenReturn(listOf(association))
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       `when`(strategy.fetch(any())).thenReturn(OperationResult.Success(fetchResponse))
 
@@ -945,7 +949,7 @@ class OasysCoordinatorServiceTest {
     fun `should return failure when command execution fails`() {
       val association = OasysAssociation(
         id = 1L,
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
         oasysAssessmentPk = oasysAssessmentPk,
         regionPrisonCode = "111111",
         baseVersion = 1,
@@ -954,7 +958,7 @@ class OasysCoordinatorServiceTest {
 
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull<Boolean>())).thenReturn(listOf(association))
       `when`(oasysAssociationsService.findAllIncludingDeleted(association.entityUuid)).thenReturn(listOf(association))
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       val expectedSoftDeleteData = SoftDeleteData(request.userDetails.intoUserDetails(), 1)
 
@@ -977,7 +981,7 @@ class OasysCoordinatorServiceTest {
           id = 1L,
           createdAt = LocalDateTime.now().minusDays(2),
           entityUuid = entityUuid,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           oasysAssessmentPk = "older-oasys-pk",
           regionPrisonCode = "111111",
           baseVersion = 0L,
@@ -986,7 +990,7 @@ class OasysCoordinatorServiceTest {
           id = 1L,
           createdAt = LocalDateTime.now().minusDays(1),
           entityUuid = entityUuid,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           oasysAssessmentPk = oasysAssessmentPk,
           regionPrisonCode = "111111",
           baseVersion = 1L,
@@ -995,7 +999,7 @@ class OasysCoordinatorServiceTest {
           id = 2L,
           createdAt = LocalDateTime.now(),
           entityUuid = entityUuid,
-          entityType = EntityType.PLAN,
+          entityType = EntityType.AAP_PLAN,
           oasysAssessmentPk = "newer-oasys-pk",
           regionPrisonCode = "111111",
           baseVersion = 2L,
@@ -1004,14 +1008,14 @@ class OasysCoordinatorServiceTest {
       )
 
       val strategy: EntityStrategy = mock()
-      val softDeleteResponse = VersionedEntity(entityUuid, 3, EntityType.PLAN)
+      val softDeleteResponse = VersionedEntity(entityUuid, 3, EntityType.AAP_PLAN)
       `when`(strategy.softDelete(argThat { it: SoftDeleteData -> it.versionFrom == 1L && it.versionTo == 2L }, eq(entityUuid))).thenReturn(OperationResult.Success(softDeleteResponse))
 
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull<Boolean>())).thenReturn(associations.filter { it.oasysAssessmentPk == oasysAssessmentPk })
       `when`(oasysAssociationsService.findAllIncludingDeleted(entityUuid)).thenReturn(associations)
       `when`(oasysAssociationsService.storeAssociation(argThat { it: OasysAssociation -> it.deleted && it.baseVersion == 1L })).then { i -> OperationResult.Success(i.getArgument<OasysAssociation>(0)) }
 
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(strategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(strategy)
 
       val result = oasysCoordinatorService.softDelete(request, oasysAssessmentPk)
 
@@ -1055,19 +1059,19 @@ class OasysCoordinatorServiceTest {
     private val oasysAssessmentPk = "test-pk"
 
     private val planAssociation = OasysAssociation(
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
       entityUuid = UUID.randomUUID(),
       oasysAssessmentPk = oasysAssessmentPk,
     )
 
     private val assessmentAssociation = OasysAssociation(
-      entityType = EntityType.ASSESSMENT,
+      entityType = EntityType.AAP_SAN,
       entityUuid = UUID.randomUUID(),
       oasysAssessmentPk = oasysAssessmentPk,
     )
 
-    private val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.PLAN }
-    private val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.ASSESSMENT }
+    private val planStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+    private val assessmentStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
 
     @Test
     fun `should return both PLAN and ASSESSMENT versions`() {
@@ -1077,8 +1081,8 @@ class OasysCoordinatorServiceTest {
       `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull()))
         .thenReturn(listOf(planAssociation, assessmentAssociation))
 
-      `when`(strategyFactory.getStrategy(EntityType.PLAN)).thenReturn(planStrategy)
-      `when`(strategyFactory.getStrategy(EntityType.ASSESSMENT)).thenReturn(assessmentStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_PLAN)).thenReturn(planStrategy)
+      `when`(strategyFactory.getStrategy(EntityType.AAP_SAN)).thenReturn(assessmentStrategy)
       `when`(planStrategy.fetchVersions(planAssociation.entityUuid)).thenReturn(
         OperationResult.Success(emptyList()),
       )
