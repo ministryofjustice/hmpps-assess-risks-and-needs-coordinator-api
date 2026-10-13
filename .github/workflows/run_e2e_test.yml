@@ -35,7 +35,7 @@ jobs:
         id: octo_sts
         with:
           scope: ministryofjustice/hmpps-arns-integrations-test-playwright
-          identity: hmpps-assess-risks-and-needs-coordinator-api
+          identity: moj-hmpps-assess-risks-and-needs-coordinator-api
       - name: Checkout arns e2e tests
         id: checkout_e2e_repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
