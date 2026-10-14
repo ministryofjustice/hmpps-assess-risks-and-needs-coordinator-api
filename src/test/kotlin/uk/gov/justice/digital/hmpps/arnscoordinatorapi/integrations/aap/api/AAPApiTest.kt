@@ -86,6 +86,7 @@ class AAPApiTest {
           properties = mapOf(
             "PLAN_TYPE" to PropertyValue(type = "Single", value = createPlanData.planType.name),
           ),
+          formVersion = "v1.0",
         ),
       )
 
@@ -116,6 +117,7 @@ class AAPApiTest {
           properties = mapOf(
             "PLAN_TYPE" to PropertyValue(type = "Single", value = createPlanData.planType.name),
           ),
+          formVersion = "v1.0",
         ),
       )
 
@@ -144,6 +146,7 @@ class AAPApiTest {
           properties = mapOf(
             "PLAN_TYPE" to PropertyValue(type = "Single", value = createPlanData.planType.name),
           ),
+          formVersion = "v1.0",
         ),
       )
 
