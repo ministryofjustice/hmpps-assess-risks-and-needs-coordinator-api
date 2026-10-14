@@ -7,8 +7,8 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.web.reactive.function.BodyInserters
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.helpers.FailedTestLogger
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.dto.TokenDto
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.helpers.FailedTestLogger
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(FailedTestLogger::class)

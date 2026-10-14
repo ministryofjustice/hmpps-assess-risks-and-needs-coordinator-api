@@ -40,7 +40,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
     val createOasysResponse = executeCreateOasys(webTestClient, crn, oasysPk)
     assertThat(createOasysResponse?.sentencePlanId).isNotNull
     sentencePlanId = createOasysResponse?.sentencePlanId!!
-    val getEntityResponse = webTestClient.get().uri("/entity/${sentencePlanId}/AAP_PLAN")
+    val getEntityResponse = webTestClient.get().uri("/entity/$sentencePlanId/AAP_PLAN")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isOk
@@ -53,7 +53,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @Test
   @Order(1)
   fun `lock plan`() {
-    val lockApiResponse = webTestClient.post().uri("/oasys/${oasysPk}/lock")
+    val lockApiResponse = webTestClient.post().uri("/oasys/$oasysPk/lock")
       .bodyValue(oasysGenericRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -68,7 +68,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @Test
   @Order(2)
   fun `soft-delete plan`() {
-    val softDeleteApiResponse = webTestClient.post().uri("/oasys/${oasysPk}/soft-delete")
+    val softDeleteApiResponse = webTestClient.post().uri("/oasys/$oasysPk/soft-delete")
       .bodyValue(oasysGenericRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -83,7 +83,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @Test
   @Order(3)
   fun `undelete plan`() {
-    val undeleteApiResponse = webTestClient.post().uri("/oasys/${oasysPk}/undelete")
+    val undeleteApiResponse = webTestClient.post().uri("/oasys/$oasysPk/undelete")
       .bodyValue(oasysGenericRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()

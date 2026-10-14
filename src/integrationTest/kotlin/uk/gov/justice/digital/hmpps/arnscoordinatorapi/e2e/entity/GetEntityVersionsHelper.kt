@@ -8,7 +8,7 @@ import java.util.UUID
 
 object GetEntityVersionsHelper {
   fun executeGetEntityVersionsOk(webTestClient: WebTestClient, assessmentUuid: UUID): VersionsResponse? {
-    val getResponse = webTestClient.get().uri("/entity/versions/${assessmentUuid}")
+    val getResponse = webTestClient.get().uri("/entity/versions/$assessmentUuid")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isOk
@@ -19,7 +19,7 @@ object GetEntityVersionsHelper {
   }
 
   fun executeGetEntityVersionsNotFound(webTestClient: WebTestClient, assessmentUuid: UUID): String? {
-    val getResponse = webTestClient.get().uri("/entity/versions/${assessmentUuid}")
+    val getResponse = webTestClient.get().uri("/entity/versions/$assessmentUuid")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isNotFound
