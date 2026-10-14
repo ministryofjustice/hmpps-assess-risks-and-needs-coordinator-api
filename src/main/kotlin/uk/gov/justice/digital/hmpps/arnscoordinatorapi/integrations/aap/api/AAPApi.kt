@@ -74,11 +74,12 @@ class AAPApi(
 
     val request = CreateAssessmentCommand(
       assessmentType = assessmentType.name,
-      formVersion = "", // note: we leave this empty and then set it when the user gets into AAPxSP
+      formVersion = createData.formVersion,
       properties = createData.properties,
       identifiers = identifiers,
       flags = createData.flags,
       user = AAPUser(id = createData.userDetails.id, name = createData.userDetails.name),
+      hooks = createData.hooks,
     ).let { CommandsRequest.of(it) }
 
     aapApiWebClient.post()

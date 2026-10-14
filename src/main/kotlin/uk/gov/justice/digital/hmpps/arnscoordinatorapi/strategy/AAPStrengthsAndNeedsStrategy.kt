@@ -12,6 +12,8 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.Asse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.UpdateOasysDataMapping
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.formconfig.FormConfig
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
@@ -305,11 +307,25 @@ class AAPStrengthsAndNeedsStrategy(
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
 
-  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? = assessment?.let {
-    CreateAssessmentData(
-      userDetails = it.userDetails,
-      subjectDetails = plan?.subjectDetails, // We didn't originally capture this in OG SAN so let's grab it from plan
-    )
+  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? {
+    val formVersion = "v1.0"
+    return assessment?.let {
+      CreateAssessmentData(
+        userDetails = it.userDetails,
+        subjectDetails = plan?.subjectDetails, // We didn't originally capture this in OG SAN so let's grab it from plan
+        formVersion = formVersion,
+        hooks = listOf(
+          UpdateOasysDataMapping(
+            formConfig = objectMapper.readValue(
+              requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {
+                "Missing form config fixture: src/main/resources/san/formconfig/$formVersion.json"
+              },
+              FormConfig::class.java,
+            ),
+          ),
+        ),
+      )
+    }
   }
 
   private companion object {

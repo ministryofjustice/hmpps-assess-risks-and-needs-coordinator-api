@@ -377,6 +377,7 @@ class AAPPlanStrategy(
       properties = mapOf(
         "PLAN_TYPE" to PropertyValue(type = "Single", value = it.planType.name),
       ),
+      formVersion = "v1.0",
     )
   }
 

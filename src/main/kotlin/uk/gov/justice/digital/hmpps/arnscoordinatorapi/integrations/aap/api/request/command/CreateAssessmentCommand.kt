@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command
 
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.Hook
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
@@ -9,6 +10,8 @@ data class CreateAssessmentData(
   val subjectDetails: SubjectDetails? = null,
   val flags: List<String> = emptyList(),
   val properties: Map<String, PropertyValue> = mutableMapOf(),
+  val hooks: List<Hook> = emptyList(),
+  val formVersion: String,
 )
 
 data class CreateAssessmentCommand(
@@ -18,6 +21,7 @@ data class CreateAssessmentCommand(
   val identifiers: Map<IdentifierType, String>? = null,
   val flags: List<String> = emptyList(),
   override val user: AAPUser,
+  override val hooks: List<Hook>? = null,
 ) : Command
 
 data class PropertyValue(
