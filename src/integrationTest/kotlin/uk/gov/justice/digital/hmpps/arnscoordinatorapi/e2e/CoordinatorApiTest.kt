@@ -92,6 +92,6 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .returnResult().responseBody
     assertThat(undeleteApiResponse?.sanAssessmentVersion).isEqualTo(0)
     val getEntityVersionsResponse = executeGetEntityVersionsOk(webTestClient, sentencePlanId)
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKE3D")
+    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
   }
 }
