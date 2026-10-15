@@ -10,9 +10,9 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.executeCreateOasys
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.executeGetEntityVersionsNotFound
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.executeGetEntityVersionsOk
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersionsNotFound
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
@@ -37,7 +37,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
 
   @BeforeAll
   fun `create oasys and get entity`() {
-    val createOasysResponse = executeCreateOasys(webTestClient, crn, oasysPk)
+    val createOasysResponse = createOasys(webTestClient, crn, oasysPk)
     assertThat(createOasysResponse?.sentencePlanId).isNotNull
     sentencePlanId = createOasysResponse?.sentencePlanId!!
     val getEntityResponse = webTestClient.get().uri("/entity/$sentencePlanId/AAP_PLAN")
@@ -46,6 +46,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody<OasysGetResponse>()
       .returnResult().responseBody
+
     assertThat(getEntityResponse?.planType).isEqualTo(PlanType.INITIAL)
     assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
   }
@@ -60,8 +61,9 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
+
     assertThat(lockApiResponse?.sanAssessmentVersion).isEqualTo(0)
-    val getEntityVersionsResponse = executeGetEntityVersionsOk(webTestClient, sentencePlanId)
+    val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
   }
 
@@ -75,8 +77,9 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
+
     assertThat(softDeleteApiResponse?.sanAssessmentVersion).isEqualTo(0)
-    val getEntityVersionsResponse = executeGetEntityVersionsNotFound(webTestClient, sentencePlanId)
+    val getEntityVersionsResponse = getEntityVersionsNotFound(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse).isEqualTo("No associations found for the provided entityUuid")
   }
 
@@ -90,8 +93,9 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
+
     assertThat(undeleteApiResponse?.sanAssessmentVersion).isEqualTo(0)
-    val getEntityVersionsResponse = executeGetEntityVersionsOk(webTestClient, sentencePlanId)
+    val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
   }
 }

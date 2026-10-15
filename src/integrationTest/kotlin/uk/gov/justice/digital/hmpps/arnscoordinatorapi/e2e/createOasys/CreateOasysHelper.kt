@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
 object CreateOasysHelper {
-  fun executeCreateOasys(webTestClient: WebTestClient, crn: String, oasysPk: String): OasysVersionedEntityResponse? {
+  fun createOasys(webTestClient: WebTestClient, crn: String, oasysPk: String): OasysVersionedEntityResponse? {
     val oasysCreateRequest = OasysCreateRequest(
       oasysAssessmentPk = oasysPk,
       subjectDetails = SubjectDetails(crn = crn),

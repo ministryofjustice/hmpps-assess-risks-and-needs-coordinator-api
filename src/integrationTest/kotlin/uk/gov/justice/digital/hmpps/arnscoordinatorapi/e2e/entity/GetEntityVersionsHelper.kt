@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.Versi
 import java.util.UUID
 
 object GetEntityVersionsHelper {
-  fun executeGetEntityVersionsOk(webTestClient: WebTestClient, assessmentUuid: UUID): VersionsResponse? {
+  fun getEntityVersions(webTestClient: WebTestClient, assessmentUuid: UUID): VersionsResponse? {
     val getResponse = webTestClient.get().uri("/entity/versions/$assessmentUuid")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -18,7 +18,7 @@ object GetEntityVersionsHelper {
     return getResponse
   }
 
-  fun executeGetEntityVersionsNotFound(webTestClient: WebTestClient, assessmentUuid: UUID): String? {
+  fun getEntityVersionsNotFound(webTestClient: WebTestClient, assessmentUuid: UUID): String? {
     val getResponse = webTestClient.get().uri("/entity/versions/$assessmentUuid")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
