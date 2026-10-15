@@ -21,7 +21,6 @@ permissions:
 
 jobs:
   inttest:
-    if: ${{ inputs.environment == 'dev' }}
     runs-on: [ self-hosted, hmpps-github-actions-runner ]
     steps:
       - uses: actions/checkout@v6
@@ -38,6 +37,7 @@ jobs:
         env:
           AAP_CLIENT_ID: ${{ secrets.ARNS_ASSESSMENT_CLIENT_ID }}
           AAP_CLIENT_SECRET: ${{ secrets.ARNS_ASSESSMENT_CLIENT_SECRET }}
+          ARNS_COORDINATOR_BASE_URL: ${{ fromJSON(vars.INT_TEST_DATA)[inputs.environment].url }}
 
       - name: Upload test results
         if: '!cancelled()'
@@ -47,25 +47,3 @@ jobs:
           path: |
             build/test-results
             build/reports/tests
-
-      - name: Slack notification
-        if: failure()
-        uses: slackapi/slack-github-action@v3.0.3
-        env:
-          SLACK_CHANNEL: ${{ vars.INTEGRATION_ALERTS_SLACK_CHANNEL_ID || 'NO_SLACK' }}
-          REPO_NAME: ${{ github.repository }}
-          SLACK_BOT_TOKEN: ${{ secrets.HMPPS_SLACK_BOT_TOKEN }}
-        with:
-          method: chat.postMessage
-          token: ${{ secrets.HMPPS_SLACK_BOT_TOKEN }}
-          payload: |
-            {
-              "channel": "${{ env.SLACK_CHANNEL }}",
-              "text": "🚨 ${{ inputs.environment }} - API Smoke Tests Failed",
-              "attachments": [
-               {
-                 "color": "#FF0000",
-                 "text": ":x: *API Smoke tests notification*\nWorkflow failed on ${{ inputs.environment }} environment for ${{ env.REPO_NAME }}"
-                }
-              ]
-            }
