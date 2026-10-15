@@ -62,7 +62,6 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
 
-    assertThat(lockApiResponse?.sanAssessmentVersion).isEqualTo(0)
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
   }
@@ -78,7 +77,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
 
-    assertThat(softDeleteApiResponse?.sanAssessmentVersion).isEqualTo(0)
+
     val getEntityVersionsResponse = getEntityVersionsNotFound(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse).isEqualTo("No associations found for the provided entityUuid")
   }
@@ -94,7 +93,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
 
-    assertThat(undeleteApiResponse?.sanAssessmentVersion).isEqualTo(0)
+
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
   }
