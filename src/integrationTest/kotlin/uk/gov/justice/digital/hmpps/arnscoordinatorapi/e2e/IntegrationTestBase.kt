@@ -2,13 +2,16 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.web.reactive.function.BodyInserters
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.dto.TokenDto
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.helpers.FailedTestLogger
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(FailedTestLogger::class)
 abstract class IntegrationTestBase {
 
   protected lateinit var webTestClient: WebTestClient
@@ -33,6 +36,9 @@ abstract class IntegrationTestBase {
     webTestClient = WebTestClient.bindToServer()
       .baseUrl(apiBaseUrl)
       .defaultHeader("Authorization", "Bearer $token")
+      .entityExchangeResultConsumer { result ->
+        FailedTestLogger.record(result)
+      }
       .build()
   }
 
