@@ -60,14 +60,6 @@ jobs:
       environment: 'test'
       app_version: '${{ needs.build_docker.outputs.app_version }}'
 
-  int_test_dev:
-    name: Integration tests (dev)
-    needs: deploy_dev
-    uses: ./.github/workflows/int_test.yml
-    secrets: inherit
-    with:
-      environment: 'dev'
-
   int_test_test:
     name: Integration tests (test)
     needs: deploy_test
@@ -75,18 +67,6 @@ jobs:
     secrets: inherit
     with:
       environment: 'test'
-
-  e2e_tests_dev:
-    name: E2E tests (dev)
-    needs: deploy_dev
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    uses: ./.github/workflows/run_e2e_test.yml
-    secrets: inherit
-    with:
-      environment: 'dev'
 
   e2e_tests_test:
     name: E2E tests (test)
@@ -104,9 +84,8 @@ jobs:
     name: Deploy to the preproduction environment
     needs:
       - build_docker
-      - int_test_dev
+      - deploy_dev
       - int_test_test
-      - e2e_tests_dev
       - e2e_tests_test
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2
     secrets: inherit

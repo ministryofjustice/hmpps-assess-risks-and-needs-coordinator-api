@@ -142,7 +142,7 @@ See [ARNS Release Process](https://dsdmoj.atlassian.net/wiki/spaces/ARN/pages/62
 
 Preprod and prod need a manual approval in the release pipeline, and only change through a release.
 
-In the release pipeline, preprod only deploys once the integration tests and e2e tests have passed against both dev and test.
+In the release pipeline, preprod only deploys once the integration tests and e2e tests have passed against test.
 
 ### How to do a release
 1. Go to **Releases → Draft a new release** and create a new `vX.Y.Z` tag targeting `main`
