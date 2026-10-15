@@ -40,6 +40,10 @@ jobs:
       environment: ${{ inputs.environment }}
   e2e_tests:
     needs: deploy_to_env
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     secrets: inherit
     uses: ./.github/workflows/run_e2e_test.yml
     with:
