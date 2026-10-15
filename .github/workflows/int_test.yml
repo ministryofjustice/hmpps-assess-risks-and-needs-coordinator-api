@@ -43,7 +43,7 @@ jobs:
         if: '!cancelled()'
         uses: actions/upload-artifact@v5
         with:
-          name: test_results
+          name: int-test-results-${{ inputs.environment }}
           path: |
             build/test-results
             build/reports/tests
