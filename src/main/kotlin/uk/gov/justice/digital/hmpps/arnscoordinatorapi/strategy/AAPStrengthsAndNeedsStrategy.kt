@@ -1,0 +1,334 @@
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.UpdateOasysDataMapping
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.formconfig.FormConfig
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentMetadata
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.serialize.AssessmentDataDeserializer.Companion.unescapeHtmlEntities
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult.Failure
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult.Success
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.util.*
+
+@Service
+@ConditionalOnProperty(name = ["app.strategies.aap-san"], havingValue = "true")
+class AAPStrengthsAndNeedsStrategy(
+  private val aapApi: AAPApi,
+  private val oasysVersionService: OasysVersionService,
+  private val clock: Clock,
+  private val objectMapper: ObjectMapper,
+) : EntityStrategy {
+
+  override val entityType = EntityType.AAP_SAN
+
+  override fun create(request: CreateData): OperationResult<VersionedEntity> = request.toCreateAssessmentData()
+    ?.let { createData ->
+      aapApi.createAssessment(AssessmentType.STRENGTHS_AND_NEEDS, createData).let { result ->
+        when (result) {
+          is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+          is AAPApi.ApiOperationResult.Success -> {
+            Success(result.data)
+              .also { oasysVersionService.createVersionFor(OasysEvent.CREATED, it.data.id).toOperationResult() }
+          }
+        }
+      }
+    }
+    ?: Failure("Request did not contain AAP Strengths and Needs data")
+
+  override fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity> = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid).toOperationResult()
+
+  override fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit> = when (val result = aapApi.deleteAssessment(entityUuid)) {
+    is AAPApi.ApiOperationResult.Success -> Success(Unit)
+    is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+  }
+
+  override fun fetch(entityUuid: UUID): OperationResult<*> = aapApi.fetchAssessment(entityUuid, clock.now())
+    .let { apiResponse ->
+      when (apiResponse) {
+        is AAPApi.ApiOperationResult.Success<AssessmentVersionQueryResult> -> runCatching {
+          val version = apiResponse.data.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli()
+
+          AssessmentResponse(
+            metaData = AssessmentMetadata(
+              uuid = apiResponse.data.assessmentUuid,
+              createdAt = apiResponse.data.createdAt,
+              versionUuid = UUID(0L, 0L), // note: this would be the version UUID in this service, AFAIK I don't think this is used, but we should decide if this is required and add it here if so
+              versionNumber = version,
+              versionCreatedAt = apiResponse.data.updatedAt, // note: versions are an exact point in time for the AAP, this should be the same as updated at
+              versionUpdatedAt = apiResponse.data.updatedAt,
+              formVersion = apiResponse.data.formVersion,
+            ),
+            assessment = objectMapper.readValue<AssessmentData>(
+              unescapeHtmlEntities(objectMapper.writeValueAsString(apiResponse.data.answers)),
+            ),
+            oasysEquivalent = (apiResponse.data.properties["oasys_equivalent"] as? SingleValue)
+              ?.value
+              ?.let { objectMapper.readValue<AssessmentData>(unescapeHtmlEntities(it)) }
+              ?: emptyMap<String, Any>(),
+          )
+        }.fold(
+          onSuccess = { data -> Success(data) },
+          onFailure = { ex ->
+            when (ex) {
+              is IllegalArgumentException -> Failure("Unable to parse version for entity $entityUuid")
+              else -> Failure("Failed to fetch Strengths and Needs assessment for entity $entityUuid")
+            }
+          },
+        )
+
+        is AAPApi.ApiOperationResult.Failure<*> -> Failure<AssessmentVersionQueryResult>(apiResponse.errorMessage)
+      }
+    }
+
+  override fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList> {
+    val oasysVersions = oasysVersionService.fetchAllForEntityUuid(entityUuid).map {
+      VersionDetails(
+        uuid = it.uuid,
+        version = if (it.version > 1000L) it.version else it.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+        createdAt = it.createdAt,
+        updatedAt = it.updatedAt,
+        status = it.createdBy.name,
+        entityType = entityType,
+      )
+    }
+
+    val response = AAPUser(id = "COORDINATOR_API", name = "Coordinator API User")
+      .let { user ->
+        aapApi.runQueries(
+          DailyVersionsQuery(
+            user = user,
+            assessmentIdentifier = AssessmentIdentifier(entityUuid),
+          ),
+        )
+      }
+
+    val aapVersions = when (response) {
+      is AAPApi.ApiOperationResult.Success<QueriesResponse> -> response.data.queries.flatMap { query ->
+        when (query.request) {
+          is DailyVersionsQuery -> (query.result as DailyVersionsQueryResult).versions.map {
+            VersionDetails(
+              uuid = it.lastTimelineItemUuid,
+              version = it.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+              createdAt = it.createdAt,
+              updatedAt = it.updatedAt,
+              status = "UNSIGNED",
+              entityType = entityType,
+            )
+          }
+          else -> throw IllegalStateException("Unexpected query type: ${query.request::class.simpleName}")
+        }
+      }
+      is AAPApi.ApiOperationResult.Failure<*> -> return Failure<VersionDetailsList>(response.errorMessage)
+    }
+
+    return (oasysVersions + aapVersions)
+      .groupBy { it.updatedAt }
+      .values
+      .map { versions ->
+        versions.reduce { acc, next ->
+          acc.copy(
+            status = acc.status.ifBlank { next.status },
+          )
+        }
+      }
+      .let { Success(it) }
+  }
+
+  override fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+    when (request.signType) {
+      SignType.SELF -> oasysVersionService.createVersionFor(OasysEvent.SELF_SIGNED, entityUuid).toOperationResult()
+      SignType.COUNTERSIGN -> oasysVersionService.createVersionFor(OasysEvent.AWAITING_COUNTERSIGN, entityUuid)
+        .toOperationResult()
+    }
+  }.getOrElse {
+    Failure("Failed to sign the Strengths and Needs assessment for entity $entityUuid")
+  }
+
+  override fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+    oasysVersionService.createVersionFor(OasysEvent.LOCKED, entityUuid).toOperationResult()
+  }.getOrElse {
+    Failure("Failed to lock Strengths and Needs assessment for entity $entityUuid")
+  }
+
+  override fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+    request.sanVersionNumber?.let { version ->
+      oasysVersionService
+        .updateVersion(OasysEvent.ROLLED_BACK, entityUuid, version)
+        .toOperationResult()
+    } ?: Failure("Strengths and Needs assessment version does not exist on the request")
+  }.fold(
+    onSuccess = { it },
+    onFailure = {
+      Failure("Unable to update version '${request.sanVersionNumber}' for entity $entityUuid")
+    },
+  )
+
+  override fun softDelete(softDeleteData: SoftDeleteData, entityUuid: UUID): OperationResult<VersionedEntity?> {
+    if (softDeleteData.versionTo == null) {
+      val pointInTime = LocalDateTime.ofInstant(
+        Instant.ofEpochMilli(softDeleteData.versionFrom),
+        ZoneOffset.UTC,
+      )
+      val user = AAPUser(id = softDeleteData.userDetails.id, name = softDeleteData.userDetails.name)
+
+      when (val softDeleteResult = aapApi.softDeleteAssessment(entityUuid, pointInTime, user)) {
+        is AAPApi.ApiOperationResult.Failure -> return Failure("Failed to soft-delete AAP assessment: ${softDeleteResult.errorMessage}")
+        is AAPApi.ApiOperationResult.Success -> {}
+      }
+    }
+
+    return runCatching {
+      val result = oasysVersionService.softDeleteVersions(entityUuid, softDeleteData.versionFrom, softDeleteData.versionTo)
+
+      Success(
+        VersionedEntity(
+          id = entityUuid,
+          version = result.version,
+          entityType = entityType,
+        ),
+      )
+    }.fold(
+      onSuccess = { it },
+      onFailure = { ex ->
+        log.error("Failed to soft-delete versions for entity $entityUuid", ex)
+        Failure("Something went wrong while deleting versions for entity $entityUuid")
+      },
+    )
+  }
+
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
+    val result = oasysVersionService.undeleteVersions(
+      entityUuid,
+      undeleteData.versionFrom,
+      undeleteData.versionTo,
+    )
+
+    Success(
+      VersionedEntity(
+        id = entityUuid,
+        version = result.version,
+        entityType = entityType,
+      ),
+    )
+  }.getOrElse { ex ->
+    log.error("Failed to undelete versions for entity $entityUuid", ex)
+    Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+  }
+
+  override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = runCatching {
+    request.sanVersionNumber?.let { version ->
+      when (request.outcome) {
+        CounterSignOutcome.COUNTERSIGNED -> oasysVersionService.updateVersion(
+          OasysEvent.COUNTERSIGNED,
+          entityUuid,
+          version,
+        )
+
+        CounterSignOutcome.AWAITING_DOUBLE_COUNTERSIGN -> oasysVersionService.updateVersion(
+          OasysEvent.AWAITING_DOUBLE_COUNTERSIGN,
+          entityUuid,
+          version,
+        )
+
+        CounterSignOutcome.DOUBLE_COUNTERSIGNED -> oasysVersionService.updateVersion(
+          OasysEvent.DOUBLE_COUNTERSIGNED,
+          entityUuid,
+          version,
+        )
+
+        CounterSignOutcome.REJECTED -> oasysVersionService.updateVersion(OasysEvent.REJECTED, entityUuid, version)
+      }.toOperationResult()
+    } ?: Failure("Unable to countersign, no Strengths and Needs assessment version number provided for entity $entityUuid")
+  }.fold(
+    onSuccess = { it },
+    onFailure = {
+      Failure("Unable to countersign version '${request.sanVersionNumber}' for entity $entityUuid")
+    },
+  )
+
+  override fun reset(resetData: ResetData, entityUuid: UUID): OperationResult<VersionedEntity> = Failure("Reset is not applicable for Assessment entities")
+
+  override fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> {
+    val user = AAPUser(id = userDetails.id, name = userDetails.name)
+
+    return when (val result = aapApi.markMerged(entityUuid, user)) {
+      is AAPApi.ApiOperationResult.Success -> Success(Unit)
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+    }
+  }
+
+  override fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit> {
+    val user = AAPUser(id = userDetails.id, name = userDetails.name)
+
+    return when (val result = aapApi.updateFlags(entityUuid, flags, user)) {
+      is AAPApi.ApiOperationResult.Success -> Success(Unit)
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+    }
+  }
+
+  private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
+
+  fun CreateData.toCreateAssessmentData(): CreateAssessmentData? {
+    val formVersion = "v1.0"
+    return assessment?.let {
+      CreateAssessmentData(
+        userDetails = it.userDetails,
+        subjectDetails = plan?.subjectDetails, // We didn't originally capture this in OG SAN so let's grab it from plan
+        formVersion = formVersion,
+        hooks = listOf(
+          UpdateOasysDataMapping(
+            formConfig = objectMapper.readValue(
+              requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {
+                "Missing form config fixture: src/main/resources/san/formconfig/$formVersion.json"
+              },
+              FormConfig::class.java,
+            ),
+          ),
+        ),
+      )
+    }
+  }
+
+  private companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
+}

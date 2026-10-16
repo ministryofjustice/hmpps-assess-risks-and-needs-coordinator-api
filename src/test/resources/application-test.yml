@@ -22,6 +22,7 @@ app:
     plan: true
     assessment: true
     aap-plan: true
+    aap-san: true
 
 spring:
   datasource:
@@ -40,3 +41,6 @@ hmpps:
       coordinator:
         queue-name: coordinator-queue
         error-visibility-timeout: 30
+
+plan-type: AAP_PLAN
+assessment-type: AAP_SAN
