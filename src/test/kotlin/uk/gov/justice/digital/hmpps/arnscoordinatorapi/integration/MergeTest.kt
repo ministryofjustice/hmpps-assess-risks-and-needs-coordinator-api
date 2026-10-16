@@ -1,5 +1,8 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration
 
+import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -10,6 +13,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension.Companion.aapApiMock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
@@ -107,6 +111,11 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(existingOasysPk)).isEmpty()
     assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(newOasysPk).size).isEqualTo(2)
+
+    aapApiMock.verify(
+      0,
+      postRequestedFor(urlEqualTo("/command")).withRequestBody(containing("UpdateAssessmentPropertiesCommand")),
+    )
   }
 
   @Test
