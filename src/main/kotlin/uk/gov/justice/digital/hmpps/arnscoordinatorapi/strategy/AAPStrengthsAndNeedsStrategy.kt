@@ -235,23 +235,45 @@ class AAPStrengthsAndNeedsStrategy(
     )
   }
 
-  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> = runCatching {
-    val result = oasysVersionService.undeleteVersions(
-      entityUuid,
-      undeleteData.versionFrom,
-      undeleteData.versionTo,
-    )
+  override fun undelete(undeleteData: UndeleteData, entityUuid: UUID): OperationResult<VersionedEntity> {
+    if (undeleteData.versionTo == null) {
+      // Check locally before asking AAP: a failure afterwards would leave AAP undeleted and this side deleted
+      if (oasysVersionService.findDeletedVersions(entityUuid, undeleteData.versionFrom, undeleteData.versionTo).isEmpty()) {
+        return Failure("No deleted versions found to undelete for entity $entityUuid")
+      }
 
-    Success(
-      VersionedEntity(
-        id = entityUuid,
-        version = result.version,
-        entityType = entityType,
-      ),
-    )
-  }.getOrElse { ex ->
-    log.error("Failed to undelete versions for entity $entityUuid", ex)
-    Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+      val user = undeleteData.userDetails.run(AAPUser::from)
+
+      fun Long.toPointInTime(): LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this), ZoneOffset.UTC)
+
+      when (val undeleteResult = aapApi.undeleteAssessment(entityUuid, undeleteData.versionFrom.toPointInTime(), user)) {
+        is AAPApi.ApiOperationResult.Failure -> return Failure(
+          "Failed to undelete AAP assessment: ${undeleteResult.errorMessage}",
+          undeleteResult.statusCode,
+          undeleteResult.cause,
+        )
+        is AAPApi.ApiOperationResult.Success -> {}
+      }
+    }
+
+    return runCatching {
+      val result = oasysVersionService.undeleteVersions(
+        entityUuid,
+        undeleteData.versionFrom,
+        undeleteData.versionTo,
+      )
+
+      Success(
+        VersionedEntity(
+          id = entityUuid,
+          version = result.version,
+          entityType = entityType,
+        ),
+      )
+    }.getOrElse { ex ->
+      log.error("Failed to undelete versions for entity $entityUuid", ex)
+      Failure("Something went wrong while un-deleting versions for entity $entityUuid")
+    }
   }
 
   override fun counterSign(entityUuid: UUID, request: OasysCounterSignRequest): OperationResult<VersionedEntity> = runCatching {
