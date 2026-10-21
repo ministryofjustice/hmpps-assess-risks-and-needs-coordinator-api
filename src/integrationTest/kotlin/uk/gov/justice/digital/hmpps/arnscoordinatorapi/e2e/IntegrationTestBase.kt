@@ -17,13 +17,11 @@ abstract class IntegrationTestBase {
   protected lateinit var webTestClient: WebTestClient
   protected lateinit var authTestClient: WebTestClient
 
-  protected val assessmentId: String = System.getenv("AAP_API_ASSESSMENT") ?: "caff2f14-a083-41f0-8d26-638b30177511"
-
   @BeforeAll
   fun setup() {
     val authBaseUrl = System.getenv("AUTH_BASE_URL")
       ?: "https://sign-in-dev.hmpps.service.justice.gov.uk"
-    val apiBaseUrl = System.getenv("BASE_URL")
+    val apiBaseUrl = System.getenv("ARNS_COORDINATOR_BASE_URL")
       ?: "https://arns-coordinator-api-dev.hmpps.service.justice.gov.uk"
 
     authTestClient = WebTestClient.bindToServer()
