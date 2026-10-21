@@ -5,17 +5,30 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.MultiValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.Value
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -190,6 +203,139 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       assertThat(operationResult).isInstanceOf(OperationResult.Failure::class.java)
       assertThat((operationResult as OperationResult.Failure).errorMessage).isEqualTo("Fetch error occurred")
+    }
+  }
+
+  @Nested
+  inner class Undelete {
+    val versionedEntity = OasysVersionEntity(
+      createdBy = OasysEvent.LOCKED,
+      entityUuid = UUID.randomUUID(),
+      version = 2,
+      deleted = true,
+    )
+
+    val expectedUser = AAPUser(id = "id", name = "name")
+
+    @Nested
+    inner class WithVersionTo {
+      val undeleteData = UndeleteData(
+        UserDetails("id", "name", UserType.OASYS),
+        versionFrom = 1,
+        versionTo = 2,
+      )
+
+      @Test
+      fun `should undelete local versions only`() {
+        whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2)).thenReturn(versionedEntity)
+
+        val result = strategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertThat(result).isEqualTo(
+          OperationResult.Success(
+            VersionedEntity(
+              id = versionedEntity.entityUuid,
+              version = versionedEntity.version,
+              entityType = EntityType.AAP_SAN,
+            ),
+          ),
+        )
+        verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, 1, 2)
+        verify(oasysVersionService, never()).findDeletedVersions(any(), any(), anyOrNull())
+        verify(aapApi, never()).undeleteAssessment(any(), any(), any())
+      }
+
+      @Test
+      fun `should return failure when local undelete fails`() {
+        whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, 1, 2))
+          .thenThrow(RuntimeException("No versions found"))
+
+        val result = strategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertThat(result).isEqualTo(
+          OperationResult.Failure<VersionedEntity>("Something went wrong while un-deleting versions for entity ${versionedEntity.entityUuid}"),
+        )
+        verify(aapApi, never()).undeleteAssessment(any(), any(), any())
+      }
+    }
+
+    @Nested
+    inner class WithoutVersionTo {
+      val undeleteData = UndeleteData(
+        UserDetails("id", "name", UserType.OASYS),
+        versionFrom = 1777301982983,
+      )
+
+      val expectedPointInTime: LocalDateTime = LocalDateTime.parse("2026-04-27T14:59:42.983")
+
+      @Test
+      fun `should undelete the AAP assessment from the base version and then the local versions`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(listOf(versionedEntity))
+        whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+        whenever(oasysVersionService.undeleteVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(versionedEntity)
+
+        val result = strategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertThat(result).isEqualTo(
+          OperationResult.Success(
+            VersionedEntity(
+              id = versionedEntity.entityUuid,
+              version = versionedEntity.version,
+              entityType = EntityType.AAP_SAN,
+            ),
+          ),
+        )
+        inOrder(aapApi, oasysVersionService) {
+          verify(oasysVersionService).findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null)
+          verify(aapApi).undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser)
+          verify(oasysVersionService).undeleteVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null)
+        }
+      }
+
+      @Test
+      fun `should return failure and leave local versions untouched when AAP undelete fails`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(listOf(versionedEntity))
+        whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Failure("AAP error"))
+
+        val result = strategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertThat(result).isEqualTo(OperationResult.Failure<VersionedEntity>("Failed to undelete AAP assessment: AAP error"))
+        verify(oasysVersionService, never()).undeleteVersions(any(), any(), anyOrNull())
+      }
+
+      @Test
+      fun `should preserve conflict status when AAP refuses an unsafe undelete`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(listOf(versionedEntity))
+        whenever(aapApi.undeleteAssessment(versionedEntity.entityUuid, expectedPointInTime, expectedUser))
+          .thenReturn(AAPApi.ApiOperationResult.Failure("AAP conflict", statusCode = HttpStatus.CONFLICT))
+
+        val result = strategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertThat(result).isEqualTo(
+          OperationResult.Failure<VersionedEntity>("Failed to undelete AAP assessment: AAP conflict", HttpStatus.CONFLICT),
+        )
+        verify(oasysVersionService, never()).undeleteVersions(any(), any(), anyOrNull())
+      }
+
+      @Test
+      fun `should not call AAP when there are no local versions to restore`() {
+        whenever(oasysVersionService.findDeletedVersions(versionedEntity.entityUuid, undeleteData.versionFrom, null))
+          .thenReturn(emptyList())
+
+        val result = strategy.undelete(undeleteData, versionedEntity.entityUuid)
+
+        assertThat(result).isEqualTo(
+          OperationResult.Failure<VersionedEntity>("No deleted versions found to undelete for entity ${versionedEntity.entityUuid}"),
+        )
+        verify(aapApi, never()).undeleteAssessment(any(), any(), any())
+        verify(oasysVersionService, never()).undeleteVersions(any(), any(), anyOrNull())
+      }
     }
   }
 }
