@@ -16,6 +16,7 @@ abstract class IntegrationTestBase {
 
   protected lateinit var webTestClient: WebTestClient
   protected lateinit var authTestClient: WebTestClient
+  protected lateinit var aapTestClient: WebTestClient
 
   @BeforeAll
   fun setup() {
@@ -23,6 +24,9 @@ abstract class IntegrationTestBase {
       ?: "https://sign-in-dev.hmpps.service.justice.gov.uk"
     val apiBaseUrl = System.getenv("ARNS_COORDINATOR_BASE_URL")
       ?: "https://arns-coordinator-api-dev.hmpps.service.justice.gov.uk"
+    val aapBaseUrl = System.getenv("AAP_TEST_BASE_URL")
+      ?: "https://arns-assessment-platform-api-dev.hmpps.service.justice.gov.uk"
+
 
     authTestClient = WebTestClient.bindToServer()
       .baseUrl(authBaseUrl)
@@ -35,6 +39,14 @@ abstract class IntegrationTestBase {
 
     webTestClient = WebTestClient.bindToServer()
       .baseUrl(apiBaseUrl)
+      .defaultHeader("Authorization", "Bearer $token")
+      .entityExchangeResultConsumer { result ->
+        FailedTestLogger.record(result)
+      }
+      .build()
+
+    aapTestClient = WebTestClient.bindToServer()
+      .baseUrl(aapBaseUrl)
       .defaultHeader("Authorization", "Bearer $token")
       .entityExchangeResultConsumer { result ->
         FailedTestLogger.record(result)
