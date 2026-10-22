@@ -38,6 +38,7 @@ class VersionsResponseFactoryTest {
           assessmentVersion = version,
         ),
       ),
+      unaggregatedVersions = listOf(version),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -68,6 +69,7 @@ class VersionsResponseFactoryTest {
           planVersion = version,
         ),
       ),
+      unaggregatedVersions = listOf(version),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -98,6 +100,7 @@ class VersionsResponseFactoryTest {
           planVersion = version,
         ),
       ),
+      unaggregatedVersions = listOf(version),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -141,6 +144,7 @@ class VersionsResponseFactoryTest {
           planVersion = planVersion,
         ),
       ),
+      unaggregatedVersions = listOf(assessmentVersion, planVersion),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -190,6 +194,7 @@ class VersionsResponseFactoryTest {
           assessmentVersion = assessmentVersion,
         ),
       ),
+      unaggregatedVersions = listOf(assessmentVersion, planVersion),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -239,6 +244,7 @@ class VersionsResponseFactoryTest {
           assessmentVersion = assessmentVersion,
         ),
       ),
+      unaggregatedVersions = listOf(assessmentVersion, planVersion),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -383,6 +389,7 @@ class VersionsResponseFactoryTest {
           ),
         ),
       ),
+      unaggregatedVersions = assessmentVersions + planVersions,
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -863,6 +870,7 @@ class VersionsResponseFactoryTest {
           ),
         ),
       ),
+      unaggregatedVersions = listOf(agreedVersion, updatedVersion),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -893,6 +901,7 @@ class VersionsResponseFactoryTest {
           planVersion = agreedVersion,
         ),
       ),
+      unaggregatedVersions = listOf(agreedVersion),
     )
 
     assertEquals(expectedResponse, factory.getVersionsResponse())
@@ -964,6 +973,7 @@ class VersionsResponseFactoryTest {
           day1 to LastVersionsOnDate("Assessment updated", assessment, plan),
           day2 to LastVersionsOnDate("Assessment updated", laterAssessment, plan),
         ),
+        unaggregatedVersions = listOf(assessment, plan, laterAssessment),
       ),
       factory.getVersionsResponse(),
     )
@@ -987,6 +997,7 @@ class VersionsResponseFactoryTest {
           day1 to LastVersionsOnDate("Plan updated", assessment, plan),
           day2 to LastVersionsOnDate("Plan updated", assessment, laterPlan),
         ),
+        unaggregatedVersions = listOf(assessment, plan, laterPlan),
       ),
       factory.getVersionsResponse(),
     )
