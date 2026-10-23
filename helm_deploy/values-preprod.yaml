@@ -26,7 +26,9 @@ generic-service:
     SP_API_BASE_URL: "https://sentence-plan-api-preprod.hmpps.service.justice.gov.uk"
     AAP_API_BASE_URL: "https://arns-assessment-platform-api-preprod.hmpps.service.justice.gov.uk"
     HISTORICAL_EVENTS_ENABLED: "true"
-  
+    PLAN_TYPE: AAP_PLAN
+    ASSESSMENT_TYPE: ASSESSMENT
+
   allowlist:
     mod-platform-live-eu-west-2a-nat: 13.41.38.176/32
     mod-platform-live-eu-west-2c-nat: 3.11.197.133/32

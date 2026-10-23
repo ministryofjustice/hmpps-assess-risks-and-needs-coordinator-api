@@ -26,7 +26,7 @@ open class OasysVersionedEntityResponse(
           this.aapPlanVersionedEntity = versionedEntity
         }
       }
-      EntityType.ASSESSMENT -> {
+      EntityType.ASSESSMENT, EntityType.AAP_SAN -> {
         this.sanAssessmentId = versionedEntity.id
         this.sanAssessmentVersion = versionedEntity.version
       }

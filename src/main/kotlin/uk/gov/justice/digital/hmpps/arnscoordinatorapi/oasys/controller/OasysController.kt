@@ -11,6 +11,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import tools.jackson.core.json.JsonWriteFeature
+import tools.jackson.databind.json.JsonMapper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
@@ -37,7 +40,11 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 @RequestMapping("\${app.self.endpoints.oasys}")
 class OasysController(
   private val oasysCoordinatorService: OasysCoordinatorService,
+  jsonMapper: JsonMapper,
 ) {
+  // OASys decodes responses as Windows-1252, so non-ASCII text is sent escaped.
+  // A JSON spec compliant parser should read them back as the original characters.
+  private val oasysJsonWriter = jsonMapper.writer().with(JsonWriteFeature.ESCAPE_NON_ASCII)
 
   @RequestMapping(path = ["/{oasysAssessmentPK}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of entities associated with an OASys Assessment PK")
@@ -69,7 +76,9 @@ class OasysController(
     @Valid oasysAssessmentPK: String,
   ): ResponseEntity<*> = when (val result = oasysCoordinatorService.get(oasysAssessmentPK)) {
     is OasysCoordinatorService.GetOperationResult.Success ->
-      ResponseEntity.status(HttpStatus.OK).body(result.data)
+      ResponseEntity.status(HttpStatus.OK)
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(oasysJsonWriter.writeValueAsBytes(result.data))
 
     is OasysCoordinatorService.GetOperationResult.Failure ->
       ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
