@@ -97,6 +97,6 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
     assertThat(getEntityVersionsResponse).isNotNull
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
+    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.version).isEqualTo("UNSIGNED")
   }
 }
