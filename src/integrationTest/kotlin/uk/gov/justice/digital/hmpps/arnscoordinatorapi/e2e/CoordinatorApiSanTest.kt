@@ -21,10 +21,10 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import java.time.Duration
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
-import java.time.Duration
 
 @DisplayName("Coordinator API Tests - SAN")
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
