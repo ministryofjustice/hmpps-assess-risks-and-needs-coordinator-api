@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -23,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
+import java.time.Duration
 
 @DisplayName("Coordinator API Tests - SAN")
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
@@ -94,9 +96,9 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   @Test
   @Order(4)
   fun `get entity versions`() {
-    val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
-    assertThat(getEntityVersionsResponse).isNotNull
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
+    await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(500)).untilAsserted {
+      val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
+      assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
+    }
   }
 }
