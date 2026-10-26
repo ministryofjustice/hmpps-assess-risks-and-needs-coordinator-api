@@ -6,8 +6,6 @@ import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.request.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.request.UpdateAssessmentAnswersCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.response.CommandSuccessCommandResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.response.CommandsResponse
-
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import java.util.UUID
@@ -20,7 +18,7 @@ object UpdateCommandHelper {
       added = mapOf(
         "thinking_behaviours_attitudes_risk_sexual_harm" to PropertyValue(type = "Single", value = "YES"),
       ),
-      removed = listOf()
+      removed = listOf(),
     )
 
     val payload = CommandsRequest(commands = listOf(commandRequest))

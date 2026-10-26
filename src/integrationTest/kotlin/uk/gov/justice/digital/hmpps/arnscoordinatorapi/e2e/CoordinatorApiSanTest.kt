@@ -82,7 +82,6 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
 
-
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
   }
@@ -93,6 +92,5 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
     val queryResponse = getQueryResponse(aapTestClient, sanAssessmentUuid)
     val assessmentVersion = queryResponse?.queries[0]?.result as AssessmentVersionQueryResult
     assertThat(assessmentVersion.answers.keys).isNotEmpty()
-
   }
 }
