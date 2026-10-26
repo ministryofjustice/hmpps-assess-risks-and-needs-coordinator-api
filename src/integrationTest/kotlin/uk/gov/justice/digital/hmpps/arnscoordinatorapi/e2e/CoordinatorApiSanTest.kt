@@ -15,8 +15,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOas
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersionsNotFound
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.query.QueryApiHelper.getQueryResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
@@ -46,15 +45,14 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
 
     sanAssessmentUuid = createOasysResponse?.sanAssessmentId!!
 
-    val getEntityResponse = webTestClient.get().uri("/entity/$sanAssessmentUuid/AAP_PLAN")
+    val getEntityResponse = webTestClient.get().uri("/entity/$sanAssessmentUuid/AAP_SAN")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isOk
       .expectBody<OasysGetResponse>()
       .returnResult().responseBody
 
-    assertThat(getEntityResponse?.planType).isEqualTo(PlanType.INITIAL)
-    assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
+    assertThat(getEntityResponse?.sanAssessmentData).isNotNull
     postUpdateCommand(aapTestClient, sanAssessmentUuid)
   }
 
@@ -84,15 +82,17 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
       .expectBody<OasysVersionedEntityResponse>()
       .returnResult().responseBody
 
+
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isNull()
+    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
   }
 
   @Test
   @Order(3)
   fun `query assessment`() {
     val queryResponse = getQueryResponse(aapTestClient, sanAssessmentUuid)
-    assertThat(queryResponse?.queries).isNotEmpty()
+    val assessmentVersion = queryResponse?.queries[0]?.result as AssessmentVersionQueryResult
+    assertThat(assessmentVersion.answers.keys).isNotEmpty()
 
   }
 }
