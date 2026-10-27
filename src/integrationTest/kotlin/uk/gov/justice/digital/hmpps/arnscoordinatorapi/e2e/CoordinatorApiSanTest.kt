@@ -100,9 +100,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
     val mapper = ObjectMapper ()
     File("build/reports/tests/ci-response.json").writeText(mapper.writeValueAsString(getEntityVersionsResponse))
-    assertThat(getEntityVersionsResponse).isNotNull
-    assertThat(getEntityVersionsResponse?.allVersions).isNotEmpty
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
+    Thread.sleep(15000)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
   }
 }
