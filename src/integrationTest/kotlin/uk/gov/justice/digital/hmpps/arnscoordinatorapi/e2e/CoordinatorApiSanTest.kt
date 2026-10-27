@@ -1,14 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
 import org.assertj.core.api.Assertions.assertThat
-import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Order
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.*
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.postUpdateCommand
@@ -21,7 +14,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import java.time.Duration
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
@@ -96,9 +88,9 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   @Test
   @Order(4)
   fun `get entity versions`() {
-    await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(500)).untilAsserted {
-      val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
-      assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.version).isEqualTo("UNSIGNED")
-    }
+    val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
+    assertThat(getEntityVersionsResponse).isNotNull
+    assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
+    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
   }
 }
