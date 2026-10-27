@@ -97,7 +97,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   @Order(4)
   fun `get entity versions`() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
-    File("build/reports/ci-response.json").writeText(getEntityVersionsResponse.toString())
+    File("build/reports/tests/ci-response.json").writeText(getEntityVersionsResponse.toString())
     assertThat(getEntityVersionsResponse).isNotNull
     assertThat(getEntityVersionsResponse?.allVersions).isNotEmpty
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
