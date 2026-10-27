@@ -10,6 +10,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
+import tools.jackson.databind.ObjectMapper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.postUpdateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
@@ -97,7 +98,8 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   @Order(4)
   fun `get entity versions`() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
-    File("build/reports/tests/ci-response.json").writeText(getEntityVersionsResponse.toString())
+    val mapper = ObjectMapper ()
+    File("build/reports/tests/ci-response.json").writeText(mapper.writeValueAsString(getEntityVersionsResponse))
     assertThat(getEntityVersionsResponse).isNotNull
     assertThat(getEntityVersionsResponse?.allVersions).isNotEmpty
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
