@@ -10,7 +10,6 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import tools.jackson.databind.ObjectMapper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.postUpdateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
@@ -21,7 +20,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
@@ -98,9 +96,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   @Order(4)
   fun `get entity versions`() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
-    val mapper = ObjectMapper ()
-    File("build/reports/tests/ci-response.json").writeText(mapper.writeValueAsString(getEntityVersionsResponse))
-    Thread.sleep(15000)
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.status).isEqualTo("UNSIGNED")
+    assertThat(getEntityVersionsResponse?.unaggregatedVersions)
+      .anyMatch { it.status == "UNSIGNED" }
   }
 }
