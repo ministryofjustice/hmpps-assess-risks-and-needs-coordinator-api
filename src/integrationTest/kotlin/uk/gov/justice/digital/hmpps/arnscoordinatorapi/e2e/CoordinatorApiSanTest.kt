@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
@@ -96,6 +97,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   @Order(4)
   fun `get entity versions`() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
+    File("build/reports/ci-response.json").writeText(getEntityVersionsResponse.toString())
     assertThat(getEntityVersionsResponse).isNotNull
     assertThat(getEntityVersionsResponse?.allVersions).isNotEmpty
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)).isNotNull
