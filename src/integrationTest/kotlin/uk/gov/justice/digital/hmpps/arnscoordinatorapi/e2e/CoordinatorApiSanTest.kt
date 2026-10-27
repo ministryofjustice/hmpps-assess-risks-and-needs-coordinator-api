@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 import kotlin.random.Random
 
@@ -35,7 +36,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   val oasysGenericRequest = OasysGenericRequest(
     userDetails = OasysUserDetails(name = "Test"),
   )
-  val today = LocalDate.now()
+  val today = LocalDate.now(ZoneId.of("UTC"))
 
   @BeforeAll
   fun `create oasys and get entity`() {
