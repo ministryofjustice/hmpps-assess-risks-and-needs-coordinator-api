@@ -588,7 +588,8 @@ class OasysController(
     @Pattern(regexp = "\\d+", message = "Must only contain numeric characters")
     @Valid oasysAssessmentPK: String,
     @RequestParam planVersion: Long?,
-  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK, planVersion)) {
+    @RequestParam assessmentVersion: Long?,
+  ): ResponseEntity<Any> = when (val result = oasysCoordinatorService.getAssociations(oasysAssessmentPK, planVersion, assessmentVersion)) {
     is OasysCoordinatorService.GetOperationResult.Failure ->
       ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
 

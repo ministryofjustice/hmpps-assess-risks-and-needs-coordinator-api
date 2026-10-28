@@ -466,7 +466,7 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(versionsResponseFactory.getVersionsResponse())
   }
 
-  fun getAssociations(oasysAssessmentPk: String, planVersion: Long? = null): GetOperationResult<OasysAssociationsResponse> {
+  fun getAssociations(oasysAssessmentPk: String, planVersion: Long? = null, assessmentVersion: Long? = null): GetOperationResult<OasysAssociationsResponse> {
     val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -478,6 +478,12 @@ class OasysCoordinatorService(
       when (association.entityType) {
         EntityType.ASSESSMENT, EntityType.AAP_SAN -> oasysAssociationsResponse.apply {
           sanAssessmentId = association.entityUuid
+          if (association.entityType == EntityType.AAP_SAN) {
+            assessmentVersion?.let { version ->
+              sanAssessmentVersion = oasysVersionService.fetchVersion(association.entityUuid, version)?.getEpochVersion()
+                ?: throw IllegalStateException("OASys SAN version not found for the provided entityUuid")
+            }
+          }
         }
 
         EntityType.PLAN, EntityType.AAP_PLAN -> oasysAssociationsResponse.apply {

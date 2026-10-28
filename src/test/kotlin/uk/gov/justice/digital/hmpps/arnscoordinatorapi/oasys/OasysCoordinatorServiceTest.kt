@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockedStatic
 import org.mockito.Mockito.mockStatic
@@ -44,6 +45,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
@@ -1108,6 +1110,175 @@ class OasysCoordinatorServiceTest {
 
       assertTrue(result is OasysCoordinatorService.GetOperationResult.NoAssociations)
       assertEquals("No associations found for the provided entityUuid", (result as OasysCoordinatorService.GetOperationResult.NoAssociations).errorMessage)
+    }
+  }
+
+  @Nested
+  inner class GetAssociations {
+    private val oasysAssessmentPk = "CY/12ZX56"
+
+    private fun association(entityType: EntityType) = OasysAssociation(
+      entityType = entityType,
+      entityUuid = UUID.randomUUID(),
+      oasysAssessmentPk = oasysAssessmentPk,
+    )
+
+    private fun versionEntity(entityUuid: UUID, version: Long) = OasysVersionEntity(
+      createdBy = OasysEvent.LOCKED,
+      createdAt = LocalDateTime.parse("2026-10-21T12:16:06.187"),
+      version = version,
+      entityUuid = entityUuid,
+    )
+
+    private fun getAssociations(planVersion: Long? = null, sanVersion: Long? = null) = oasysCoordinatorService.getAssociations(oasysAssessmentPk, planVersion, sanVersion)
+
+    private fun givenAssociations(vararg associations: OasysAssociation) {
+      `when`(oasysAssociationsService.findAssociationsByPk(eq(oasysAssessmentPk), anyOrNull())).thenReturn(associations.toList())
+    }
+
+    @Test
+    fun `should return NoAssociations when there are no associations`() {
+      givenAssociations()
+
+      val result = getAssociations()
+
+      assertTrue(result is OasysCoordinatorService.GetOperationResult.NoAssociations)
+    }
+
+    @Test
+    fun `should return the entity ids without versions when no versions are requested`() {
+      val san = association(EntityType.AAP_SAN)
+      val plan = association(EntityType.AAP_PLAN)
+      givenAssociations(san, plan)
+
+      val result = getAssociations()
+
+      assertEquals(
+        OasysCoordinatorService.GetOperationResult.Success(
+          OasysAssociationsResponse(sanAssessmentId = san.entityUuid, sentencePlanId = plan.entityUuid),
+        ),
+        result,
+      )
+      verify(oasysVersionService, never()).fetchVersion(any(), any())
+    }
+
+    @Test
+    fun `should return the epoch version of the requested AAP_SAN version`() {
+      val san = association(EntityType.AAP_SAN)
+      val plan = association(EntityType.AAP_PLAN)
+      givenAssociations(san, plan)
+      `when`(oasysVersionService.fetchVersion(san.entityUuid, 3)).thenReturn(versionEntity(san.entityUuid, 3))
+
+      val result = getAssociations(sanVersion = 3)
+
+      assertEquals(
+        OasysCoordinatorService.GetOperationResult.Success(
+          OasysAssociationsResponse(
+            sanAssessmentId = san.entityUuid,
+            sanAssessmentVersion = 1792584966187,
+            sentencePlanId = plan.entityUuid,
+          ),
+        ),
+        result,
+      )
+      verify(oasysVersionService, never()).fetchVersion(eq(plan.entityUuid), any())
+    }
+
+    @Test
+    fun `should throw when the requested AAP_SAN version does not exist`() {
+      val san = association(EntityType.AAP_SAN)
+      givenAssociations(san)
+      `when`(oasysVersionService.fetchVersion(san.entityUuid, 3)).thenReturn(null)
+
+      val exception = assertThrows<IllegalStateException> { getAssociations(sanVersion = 3) }
+
+      assertEquals("OASys SAN version not found for the provided entityUuid", exception.message)
+    }
+
+    @Test
+    fun `should ignore the requested SAN version for a legacy ASSESSMENT association`() {
+      val san = association(EntityType.ASSESSMENT)
+      givenAssociations(san)
+
+      val result = getAssociations(sanVersion = 3)
+
+      assertEquals(
+        OasysCoordinatorService.GetOperationResult.Success(OasysAssociationsResponse(sanAssessmentId = san.entityUuid)),
+        result,
+      )
+      verify(oasysVersionService, never()).fetchVersion(any(), any())
+    }
+
+    @Test
+    fun `should return the epoch version of the requested AAP_PLAN version`() {
+      val san = association(EntityType.AAP_SAN)
+      val plan = association(EntityType.AAP_PLAN)
+      givenAssociations(san, plan)
+      `when`(oasysVersionService.fetchVersion(plan.entityUuid, 2)).thenReturn(versionEntity(plan.entityUuid, 2))
+
+      val result = getAssociations(planVersion = 2)
+
+      assertEquals(
+        OasysCoordinatorService.GetOperationResult.Success(
+          OasysAssociationsResponse(
+            sanAssessmentId = san.entityUuid,
+            sentencePlanId = plan.entityUuid,
+            sentencePlanVersion = 1792584966187,
+          ),
+        ),
+        result,
+      )
+      verify(oasysVersionService, never()).fetchVersion(eq(san.entityUuid), any())
+    }
+
+    @Test
+    fun `should throw when the requested AAP_PLAN version does not exist`() {
+      val plan = association(EntityType.AAP_PLAN)
+      givenAssociations(plan)
+      `when`(oasysVersionService.fetchVersion(plan.entityUuid, 2)).thenReturn(null)
+
+      val exception = assertThrows<IllegalStateException> { getAssociations(planVersion = 2) }
+
+      assertEquals("OASys plan version not found for the provided entityUuid", exception.message)
+    }
+
+    @Test
+    fun `should ignore the requested plan version for a legacy PLAN association`() {
+      val plan = association(EntityType.PLAN)
+      givenAssociations(plan)
+
+      val result = getAssociations(planVersion = 2)
+
+      assertEquals(
+        OasysCoordinatorService.GetOperationResult.Success(OasysAssociationsResponse(sentencePlanId = plan.entityUuid)),
+        result,
+      )
+      verify(oasysVersionService, never()).fetchVersion(any(), any())
+    }
+
+    @Test
+    fun `should return both epoch versions when SAN and plan versions are requested`() {
+      val san = association(EntityType.AAP_SAN)
+      val plan = association(EntityType.AAP_PLAN)
+      givenAssociations(san, plan)
+      `when`(oasysVersionService.fetchVersion(san.entityUuid, 3)).thenReturn(
+        versionEntity(san.entityUuid, 3).apply { createdAt = LocalDateTime.parse("2026-10-21T12:16:38.364") },
+      )
+      `when`(oasysVersionService.fetchVersion(plan.entityUuid, 2)).thenReturn(versionEntity(plan.entityUuid, 2))
+
+      val result = getAssociations(planVersion = 2, sanVersion = 3)
+
+      assertEquals(
+        OasysCoordinatorService.GetOperationResult.Success(
+          OasysAssociationsResponse(
+            sanAssessmentId = san.entityUuid,
+            sanAssessmentVersion = 1792584998364,
+            sentencePlanId = plan.entityUuid,
+            sentencePlanVersion = 1792584966187,
+          ),
+        ),
+        result,
+      )
     }
   }
 
