@@ -19,19 +19,19 @@ import java.util.UUID
 interface EntityStrategy {
   val entityType: EntityType
 
-  fun create(createData: CreateData): OperationResult<VersionedEntity>
+  fun create(request: CreateData): OperationResult<VersionedEntity>
 
-  fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity>
 
-  fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit>
+  fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit>
 
   fun fetch(entityUuid: UUID): OperationResult<*>
 
   fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList>
 
-  fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity>
 
-  fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity>
 
   fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity>
 
