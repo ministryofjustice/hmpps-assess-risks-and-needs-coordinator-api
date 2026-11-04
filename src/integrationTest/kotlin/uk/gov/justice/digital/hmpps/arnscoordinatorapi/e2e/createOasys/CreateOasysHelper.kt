@@ -11,16 +11,16 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDet
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
 object CreateOasysHelper {
-  fun createOasys(webTestClient: WebTestClient, crn: String, oasysPk: String): OasysVersionedEntityResponse? {
+  fun createOasys(webTestClient: WebTestClient, crn: String, oasysPk: String, planType: PlanType = PlanType.INITIAL, previousOasysSpPk: String? = null): OasysVersionedEntityResponse? {
     val oasysCreateRequest = OasysCreateRequest(
       oasysAssessmentPk = oasysPk,
       subjectDetails = SubjectDetails(crn = crn),
-      planType = PlanType.INITIAL,
+      planType = planType,
       assessmentType = AssessmentType.SAN_SP,
       newPeriodOfSupervision = "N",
       regionPrisonCode = "MDI",
       userDetails = OasysUserDetails(id = "test-user", name = "Test User"),
-      previousOasysSpPk = null,
+      previousOasysSpPk = previousOasysSpPk,
       previousOasysSanPk = null,
     )
 

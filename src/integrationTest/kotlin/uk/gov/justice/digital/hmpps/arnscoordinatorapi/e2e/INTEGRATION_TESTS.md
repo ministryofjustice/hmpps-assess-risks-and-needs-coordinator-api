@@ -12,4 +12,6 @@ Get full kubectl commands from another member of the team
 ```bash
 export AAP_CLIENT_ID=$(kubectl -n hmpps-arns-assessment-platform-dev get secret)
 export AAP_CLIENT_SECRET=$(kubectl -n hmpps-arns-assessment-platform-dev get secret)
+export ARNS_ASSESSMENT_VIEW_CLIENT_ID=$(kubectl -n hmpps-assess-risks-and-needs-integrations-dev get secret)
+export ARNS_ASSESSMENT_VIEW_CLIENT_SECRET=$(kubectl -n hmpps-assess-risks-and-needs-integrations-dev get secret)
 ```
