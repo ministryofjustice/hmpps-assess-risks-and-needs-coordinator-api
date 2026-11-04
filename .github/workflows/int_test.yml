@@ -41,7 +41,7 @@ jobs:
           ARNS_ASSESSMENT_VIEW_CLIENT_SECRET: ${{ secrets.ARNS_ASSESSMENT_VIEW_CLIENT_SECRET }}
           ARNS_COORDINATOR_BASE_URL: ${{ fromJSON(vars.INT_TEST_DATA)[inputs.environment].url }}
           AAP_TEST_BASE_URL: ${{ fromJSON(vars.INT_TEST_AAP_DATA)[inputs.environment].url }}
-          ARNS_ASSESSMENT_VIEW_API_BASE_URL: ${{ fromJSON(vars.INT_TEST_AAP_DATA)[inputs.environment].arnsAssessmentViewApiUrl }}
+          ARNS_ASSESSMENT_VIEW_API_BASE_URL: ${{ fromJSON(vars.INT_TEST_DATA)[inputs.environment].arnsAssessmentViewApiUrl }}
 
       - name: Upload test results
         if: '!cancelled()'
