@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
 import java.util.UUID
@@ -35,7 +36,7 @@ class HistoricalEventsReplayJob(
   }
 
   /**
-   * Acquires a session level advisory lock. Only the pod that wins th e lock runs the replay,
+   * Acquires a session level advisory lock. Only the pod that wins the lock runs the replay,
    * the others log and skip.
    */
   internal fun runWithAdvisoryLock() {
@@ -68,8 +69,8 @@ class HistoricalEventsReplayJob(
   internal fun replayAll() {
     log.info("Historical events replay starting")
 
-    // Cache association resolution across pages so we don't re-query assoiatied details across page boundaries
-    val associationCache = HashMap<UUID, EntityAssociationDetails?>()
+    // Cache association resolution across pages so we don't re-query associated details across page boundaries
+    val associationCache = HashMap<UUID, List<OasysAssociation>>()
 
     var lastEntityUuid = ZERO_UUID
     var lastVersion = Long.MIN_VALUE
@@ -85,7 +86,8 @@ class HistoricalEventsReplayJob(
 
       for (row in page) {
         try {
-          val association = associationCache[row.entityUuid]
+          val association = resolveAssociation(row, associationCache[row.entityUuid].orEmpty())
+
           if (association == null) {
             skipped++
             log.warn(
@@ -114,36 +116,82 @@ class HistoricalEventsReplayJob(
 
   private fun resolveAssociationsForPage(
     page: List<OasysVersionEntity>,
-    cache: HashMap<UUID, EntityAssociationDetails?>,
+    cache: HashMap<UUID, List<OasysAssociation>>,
   ) {
-    val unresolved = page.map { it.entityUuid }.filter { it !in cache }.toSet()
-    if (unresolved.isEmpty()) return
+    val unresolved = page
+      .map { it.entityUuid }
+      .filter { it !in cache }
+      .toSet()
 
-    // Batch lookup (latest non-deleted AAP_PLAN/ASSESSMENT association per entity)
-    val latest = associationsService.findLatestAssociationDetailsByEntityIds(unresolved)
     for (entityUuid in unresolved) {
-      cache[entityUuid] = latest[entityUuid] ?: resolveFallback(entityUuid)
+      cache[entityUuid] = associationsService
+        .findAllIncludingDeleted(entityUuid)
+        .filter { it.entityType == EntityType.AAP_PLAN }
     }
   }
 
-  /**
-   * Fallback for entities whose associations are all soft deleted: take the latest association of
-   * any kind/state. Returns null when there is still no usable assessment, so the row is skipped
-   * rather than published.
-   */
-  private fun resolveFallback(entityUuid: UUID): EntityAssociationDetails? = associationsService
-    .findAllIncludingDeleted(entityUuid)
-    .filter { it.entityType == EntityType.AAP_PLAN }
-    .maxByOrNull { it.createdAt }
-    ?.let { association ->
-      association.oasysAssessmentPk?.let { pk ->
-        EntityAssociationDetails(
-          oasysAssessmentPk = pk,
-          regionPrisonCode = association.regionPrisonCode,
-          baseVersion = association.baseVersion,
-        )
-      }
+  private fun resolveAssociation(
+    row: OasysVersionEntity,
+    associations: List<OasysAssociation>,
+  ): EntityAssociationDetails? {
+    val eligible = associations.filter {
+      it.baseVersion <= row.version
     }
+
+    val boundary = eligible.maxOfOrNull {
+      it.baseVersion
+    }
+
+    if (boundary == null) {
+      log.warn(
+        "No historical association for entity {} version {}",
+        row.entityUuid,
+        row.version,
+      )
+      return null
+    }
+
+    val candidates = eligible.filter {
+      it.baseVersion == boundary
+    }
+
+    if (candidates.any { it.oasysAssessmentPk == null }) {
+      log.error(
+        "Missing assessment PK at historical boundary: entity={} version={} baseVersion={}",
+        row.entityUuid,
+        row.version,
+        boundary,
+      )
+      return null
+    }
+
+    val distinct = candidates.map {
+      Triple(
+        it.oasysAssessmentPk,
+        it.regionPrisonCode,
+        it.baseVersion,
+      )
+    }.distinct()
+
+    if (distinct.size != 1) {
+      log.error(
+        "Ambiguous historical association: entity={} version={} baseVersion={} candidates={}",
+        row.entityUuid,
+        row.version,
+        boundary,
+        candidates.size,
+      )
+      return null
+    }
+
+    val association = candidates.first()
+
+    return EntityAssociationDetails(
+      oasysAssessmentPk = requireNotNull(association.oasysAssessmentPk),
+      regionPrisonCode = association.regionPrisonCode,
+      baseVersion = association.baseVersion,
+    )
+  }
 
   private fun buildEvent(row: OasysVersionEntity, association: EntityAssociationDetails) = CoordinatorEvent(
     eventType = EventType.OASYS_VERSION_EVENT,
