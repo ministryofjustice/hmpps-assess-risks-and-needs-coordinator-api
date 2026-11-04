@@ -10,6 +10,8 @@ services:
     environment:
       - AAP_CLIENT_ID
       - AAP_CLIENT_SECRET
+      - ARNS_ASSESSMENT_VIEW_CLIENT_ID
+      - ARNS_ASSESSMENT_VIEW_CLIENT_SECRET
 
 volumes:
   .gradle:
