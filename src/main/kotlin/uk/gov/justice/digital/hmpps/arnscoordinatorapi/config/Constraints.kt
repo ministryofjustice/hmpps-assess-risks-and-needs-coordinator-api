@@ -7,5 +7,6 @@ class Constraints {
     const val REGION_PRISON_CODE_MAX_LENGTH = 15
     const val OASYS_USER_ID_MAX_LENGTH = 30
     const val OASYS_USER_NAME_MAX_LENGTH = 64
+    const val OASYS_FREE_TEXT_MAX_CHAR_LENGTH = 4000
   }
 }
