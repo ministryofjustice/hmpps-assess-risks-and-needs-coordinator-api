@@ -73,7 +73,7 @@ data class OasysCreateRequest(
 
   @Schema(description = "OASys answers used to pre-populate SAN. Keys are OASys question refs")
   @field:Valid
-  val oasysData: OasysData? = null
+  val oasysData: OasysData? = null,
 ) {
 
   fun previousPkFor(entityType: EntityType): String? = when (entityType) {
