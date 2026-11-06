@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.net.URI
@@ -197,6 +198,7 @@ class CreateTest : IntegrationTestBase() {
 
     stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
     stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
+    stubAAPUpdateAssessmentProperties()
     stubAAPUpdateFlags()
 
     val previousOasysPk = getRandomOasysPk()
@@ -227,6 +229,7 @@ class CreateTest : IntegrationTestBase() {
           planType = PlanType.INITIAL,
           assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+          sanAssessmentType = SanAssessmentType.COMMUNITY,
         ),
       )
       .exchange()
@@ -239,6 +242,11 @@ class CreateTest : IntegrationTestBase() {
     assertThat(persistedSentencePlanAssociation?.entityUuid).isEqualTo(planAssociation.entityUuid)
     assertThat(persistedSanAssociation?.entityUuid).isEqualTo(sanAssociation.entityUuid)
     verifyAAPUpdateFlags(planAssociation.entityUuid, listOf("SAN_BETA"))
+    verifyAAPUpdateAssessmentProperties(
+      sanAssociation.entityUuid,
+      expectedKeys = setOf("OASYS_LINKED", "SAN_ASSESSMENT_TYPE"),
+      expectedValues = mapOf("SAN_ASSESSMENT_TYPE" to "COMMUNITY"),
+    )
   }
 
   @Test

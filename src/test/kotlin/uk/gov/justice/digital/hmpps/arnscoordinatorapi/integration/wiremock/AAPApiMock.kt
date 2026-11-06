@@ -164,7 +164,7 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun stubMarkMerged(status: Int = 200) {
+  fun stubUpdateAssessmentProperties(status: Int = 200) {
     stubFor(
       post("/command")
         .withRequestBody(containing("UpdateAssessmentPropertiesCommand"))
@@ -197,6 +197,27 @@ class AAPApiMock : WireMockServer(8093) {
         ),
     )
   }
+
+  fun verifyUpdateAssessmentProperties(assessmentUuid: UUID, expectedKeys: Set<String>, expectedValues: Map<String, String>) {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "UpdateAssessmentPropertiesCommand" }
+      .filter { it.path("assessmentUuid").asText() == assessmentUuid.toString() }
+
+    assertThat(commands)
+      .describedAs("UpdateAssessmentPropertiesCommand requests for assessment $assessmentUuid")
+      .hasSize(1)
+
+    val added = commands.single().path("added")
+
+    assertThat(added.fieldNames().asSequence().toList()).containsExactlyInAnyOrderElementsOf(expectedKeys)
+    expectedValues.forEach { (key, value) ->
+      assertThat(added.path(key).path("value").asText()).describedAs(key).isEqualTo(value)
+    }
+  }
+
+  fun stubMarkMerged(status: Int = 200) = stubUpdateAssessmentProperties(status)
 
   fun stubSoftDeleteAssessment(status: Int = 200) {
     stubFor(
