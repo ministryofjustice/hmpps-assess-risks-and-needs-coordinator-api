@@ -347,6 +347,7 @@ class AAPStrengthsAndNeedsStrategy(
   private fun createdProperties(sanAssessmentType: SanAssessmentType?, oasysData: OasysData?): Map<String, PropertyValue> {
     val oasysDataReceived = oasysData?.let { objectMapper.convertValue<Map<String, String?>>(it) }.orEmpty()
       .mapKeys { (code) -> "$OASYS_DATA_PREFIX$code" }
+
     return oasysEventProperties(OASYS_CREATED, sanAssessmentType) + oasysDataReceived.toSingleValues()
   }
 

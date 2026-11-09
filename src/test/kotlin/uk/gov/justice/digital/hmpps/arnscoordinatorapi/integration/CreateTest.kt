@@ -17,9 +17,14 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.YesNo
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.ZeroToTwoOrMissing
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.net.URI
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class CreateTest : IntegrationTestBase() {
@@ -192,7 +197,7 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it successfully links existing SP and SAN when previous PKs are supplied`() {
+  fun `it successfully links existing SP and SAN when previous PKs are supplied and records only linked properties when OASys data is supplied`() {
     val planUuid = UUID.randomUUID()
     val sanUuid = UUID.randomUUID()
 
@@ -219,6 +224,8 @@ class CreateTest : IntegrationTestBase() {
       ),
     )
 
+    val requestStartedAt = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+
     webTestClient.post().uri("/oasys/create")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
@@ -230,10 +237,15 @@ class CreateTest : IntegrationTestBase() {
           assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
           sanAssessmentType = SanAssessmentType.COMMUNITY,
+          oasysData = OasysData(
+            q3p4SuitabilityOfAccommodation = ZeroToTwoOrMissing.TWO,
+            q8p1DrugsEverMisused = YesNo.YES,
+          ),
         ),
       )
       .exchange()
       .expectStatus().isCreated
+    val requestFinishedAt = Instant.now()
     val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     val persistedSentencePlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
     val persistedSanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
@@ -242,11 +254,13 @@ class CreateTest : IntegrationTestBase() {
     assertThat(persistedSentencePlanAssociation?.entityUuid).isEqualTo(planAssociation.entityUuid)
     assertThat(persistedSanAssociation?.entityUuid).isEqualTo(sanAssociation.entityUuid)
     verifyAAPUpdateFlags(planAssociation.entityUuid, listOf("SAN_BETA"))
-    verifyAAPUpdateAssessmentProperties(
+    val linkedProperties = verifyAAPUpdateAssessmentProperties(
       sanAssociation.entityUuid,
       expectedKeys = setOf("OASYS_LINKED", "SAN_ASSESSMENT_TYPE"),
       expectedValues = mapOf("SAN_ASSESSMENT_TYPE" to "COMMUNITY"),
     )
+    assertThat(Instant.parse(linkedProperties.getValue("OASYS_LINKED"))).isBetween(requestStartedAt, requestFinishedAt)
+    assertThat(linkedProperties.keys).noneMatch { it.startsWith("OASYS_DATA_") }
   }
 
   @Test

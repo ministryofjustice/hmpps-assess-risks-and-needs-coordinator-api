@@ -198,7 +198,7 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun verifyUpdateAssessmentProperties(assessmentUuid: UUID, expectedKeys: Set<String>, expectedValues: Map<String, String>) {
+  fun verifyUpdateAssessmentProperties(assessmentUuid: UUID, expectedKeys: Set<String>, expectedValues: Map<String, String>): Map<String, String> {
     val commands = findAll(postRequestedFor(urlEqualTo("/command")))
       .map { objectMapper.readTree(it.bodyAsString) }
       .flatMap { it.path("commands").toList() }
@@ -215,6 +215,7 @@ class AAPApiMock : WireMockServer(8093) {
     expectedValues.forEach { (key, value) ->
       assertThat(added.path(key).path("value").asText()).describedAs(key).isEqualTo(value)
     }
+    return added.properties().associate { (key, value) -> key to value.path("value").asText() }
   }
 
   fun stubMarkMerged(status: Int = 200) = stubUpdateAssessmentProperties(status)
