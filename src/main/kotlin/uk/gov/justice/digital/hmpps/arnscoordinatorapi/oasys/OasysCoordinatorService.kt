@@ -244,8 +244,10 @@ class OasysCoordinatorService(
       }
     }
 
-    // Ordering matters: this remote change cannot be rolled back, so it runs after everything that
-    // can fail. Newly created entities already carry their flags from buildCreateData.
+    // Ordering matters: updating flags and recording the OASys link are remote AAP changes that cannot be
+    // rolled back, so both run last, after every step that can be rolled back.
+    // Both overwrite rather than append, so if the link fails after flags were updated, an OASys retry ends in the same state.
+    // Newly created entities already carry their flags and properties from buildCreateData.
     val linkedResults = results.filter { request.previousPkFor(it.strategy.entityType) != null }
     for (linked in linkedResults) {
       val entityUuid = (linked.result as EntityResult.Success).entity.id

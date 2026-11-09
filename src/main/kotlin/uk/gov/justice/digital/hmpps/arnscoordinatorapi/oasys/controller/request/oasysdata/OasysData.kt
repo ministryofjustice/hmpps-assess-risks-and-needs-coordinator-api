@@ -31,7 +31,7 @@ data class OasysData(
   @field:Pattern(regexp = ZERO_TO_TWO_OR_MISSING)
   val q8p8MotivationToTackleDrugMisuse: String? = null,
 
-  @Schema(description = "9.2 Binge drinking or excessive of alcohol in last 6 months", example = "0")
+  @Schema(description = "9.2 Binge drinking or excessive use of alcohol in last 6 months", example = "0")
   @JsonProperty("o9-2")
   @field:Pattern(regexp = ZERO_TO_TWO_OR_MISSING)
   val q9p2BingeDrinking: String? = null,
@@ -116,7 +116,7 @@ data class OasysData(
   @field:Pattern(regexp = ZERO_TO_TWO)
   val q12p4AttitudeTowardsSupervision: String? = null,
 
-  @Schema(description = "12.1 Pro-criminal attitudes Attitude towards supervision/licence", example = "2")
+  @Schema(description = "12.1 Pro-criminal attitudes", example = "2")
   @JsonProperty("o12-1")
   @field:Pattern(regexp = ZERO_TO_TWO)
   val q12p1ProCriminalAttitudes: String? = null,
@@ -143,17 +143,17 @@ data class OasysData(
 
   @Schema(description = "2.7.1 Number of others involved", example = "15+")
   @JsonProperty("o2-7-1")
-  @field:Pattern(NUMBER_OF_OTHERS_INVOLVED)
+  @field:Pattern(regexp = NUMBER_OF_OTHERS_INVOLVED)
   val q2p7p1NumberOfOthersInvolved: String? = null,
 
   @Schema(description = "2.6 Does the offender recognise the impact and consequences of offending on victim, community/wider society?", example = "NO")
   @JsonProperty("o2-6")
-  @field:Pattern(YES_NO)
+  @field:Pattern(regexp = YES_NO)
   val q2p6RecognisesImpactOfOffending: String? = null,
 
   @Schema(description = "2.11 Does the offender accept responsibility for the current offence(s)", example = "YES")
   @JsonProperty("o2-11")
-  @field:Pattern(YES_NO)
+  @field:Pattern(regexp = YES_NO)
   val q2p11AcceptsResponsibility: String? = null,
 
   @Schema(description = "2.12 Pattern of offending (consider details of previous convictions)", example = "See the details")
