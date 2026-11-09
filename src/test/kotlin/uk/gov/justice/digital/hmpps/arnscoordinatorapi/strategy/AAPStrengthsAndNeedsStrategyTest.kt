@@ -33,9 +33,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.RelationshipStatus
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.YesNo
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.ZeroToTwoOrMissing
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
@@ -89,9 +86,9 @@ class AAPStrengthsAndNeedsStrategyTest {
     @Test
     fun `should send UTC created timestamp, SAN assessment type and prefixed OASys answers when OASys data is supplied`() {
       val oasysData = OasysData(
-        q3p4SuitabilityOfAccommodation = ZeroToTwoOrMissing.MISSING,
-        q6p8CurrentRelationshipStatus = RelationshipStatus.IN_RELATIONSHIP_NOT_LIVING_TOGETHER,
-        q8p1DrugsEverMisused = YesNo.NO,
+        q3p4SuitabilityOfAccommodation = "M",
+        q6p8CurrentRelationshipStatus = "2",
+        q8p1DrugsEverMisused = "NO",
         q8p8MotivationToTackleDrugMisuse = null,
       )
 
@@ -133,6 +130,20 @@ class AAPStrengthsAndNeedsStrategyTest {
     private val entityUuid = UUID.randomUUID()
     private val userDetails = UserDetails("id", "name")
     private val user = AAPUser("id", "name")
+
+    @Test
+    fun `should send only the linked timestamp when SAN assessment type is not supplied`() {
+      whenever(aapApi.updateAssessmentProperties(any(), any(), any()))
+        .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+
+      strategy.recordOasysLink(entityUuid, null, userDetails)
+
+      verify(aapApi).updateAssessmentProperties(
+        entityUuid,
+        mapOf("OASYS_LINKED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z")),
+        user,
+      )
+    }
 
     @Test
     fun `should send UTC linked timestamp and SAN assessment type without OASys answers when SAN is linked`() {

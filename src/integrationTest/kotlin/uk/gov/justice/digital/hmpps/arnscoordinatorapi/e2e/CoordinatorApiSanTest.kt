@@ -20,8 +20,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.YesNo
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.ZeroToTwoOrMissing
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
@@ -44,6 +42,9 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   )
   val today = LocalDate.now(ZoneId.of("UTC"))
 
+  private val createdQ3p4 = "2"
+  private val linkedQ3p4 = "0"
+
   @BeforeAll
   fun `create oasys and get entity`() {
     val createOasysResponse = createOasys(
@@ -51,7 +52,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
       crn,
       oasysPk,
       sanAssessmentType = SanAssessmentType.COMMUNITY,
-      oasysData = OasysData(q3p4SuitabilityOfAccommodation = ZeroToTwoOrMissing.TWO, q8p1DrugsEverMisused = YesNo.YES),
+      oasysData = OasysData(q3p4SuitabilityOfAccommodation = createdQ3p4, q8p1DrugsEverMisused = "YES"),
     )
 
     assertThat(createOasysResponse?.sanAssessmentId).isNotNull
@@ -133,7 +134,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
       Random.nextInt(0, 1_000_000_000).toString(),
       previousOasysSanPk = oasysPk,
       sanAssessmentType = SanAssessmentType.CUSTODY,
-      oasysData = OasysData(q3p4SuitabilityOfAccommodation = ZeroToTwoOrMissing.ZERO),
+      oasysData = OasysData(q3p4SuitabilityOfAccommodation = linkedQ3p4),
     )
 
     val properties = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
@@ -143,7 +144,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
     assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("CUSTODY"))
     assertThat(linkedAt).isAfterOrEqualTo(createdAt)
     assertThat(properties["OASYS_DATA_o3-4"])
-      .isEqualTo(SingleValue(ZeroToTwoOrMissing.TWO.value))
-      .isNotEqualTo(SingleValue(ZeroToTwoOrMissing.ZERO.value))
+      .isEqualTo(SingleValue(createdQ3p4))
+      .isNotEqualTo(SingleValue(linkedQ3p4))
   }
 }
