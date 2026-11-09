@@ -6,12 +6,21 @@ import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
 object CreateOasysHelper {
-  fun createOasys(webTestClient: WebTestClient, crn: String, oasysPk: String): OasysVersionedEntityResponse? {
+  fun createOasys(
+    webTestClient: WebTestClient,
+    crn: String,
+    oasysPk: String,
+    previousOasysSanPk: String? = null,
+    sanAssessmentType: SanAssessmentType? = null,
+    oasysData: OasysData? = null,
+  ): OasysVersionedEntityResponse? {
     val oasysCreateRequest = OasysCreateRequest(
       oasysAssessmentPk = oasysPk,
       subjectDetails = SubjectDetails(crn = crn),
@@ -21,7 +30,9 @@ object CreateOasysHelper {
       regionPrisonCode = "MDI",
       userDetails = OasysUserDetails(id = "test-user", name = "Test User"),
       previousOasysSpPk = null,
-      previousOasysSanPk = null,
+      previousOasysSanPk = previousOasysSanPk,
+      sanAssessmentType = sanAssessmentType,
+      oasysData = oasysData,
     )
 
     val createResponse = webTestClient.post().uri("/oasys/create")

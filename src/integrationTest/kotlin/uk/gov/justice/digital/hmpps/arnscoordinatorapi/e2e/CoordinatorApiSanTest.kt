@@ -16,10 +16,16 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersionsNotFound
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.query.QueryApiHelper.getQueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.YesNo
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.ZeroToTwoOrMissing
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
@@ -40,7 +46,13 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
 
   @BeforeAll
   fun `create oasys and get entity`() {
-    val createOasysResponse = createOasys(webTestClient, crn, oasysPk)
+    val createOasysResponse = createOasys(
+      webTestClient,
+      crn,
+      oasysPk,
+      sanAssessmentType = SanAssessmentType.COMMUNITY,
+      oasysData = OasysData(q3p4SuitabilityOfAccommodation = ZeroToTwoOrMissing.TWO, q8p1DrugsEverMisused = YesNo.YES),
+    )
 
     assertThat(createOasysResponse?.sanAssessmentId).isNotNull
 
@@ -98,5 +110,40 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sanAssessmentUuid)
     assertThat(getEntityVersionsResponse?.unaggregatedVersions)
       .anyMatch { it.status == "UNSIGNED" }
+  }
+
+  @Test
+  @Order(5)
+  fun `created assessment persists SAN assessment type, created timestamp and prefixed OASys data`() {
+    val properties = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
+
+    assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("COMMUNITY"))
+    assertThat(properties["OASYS_DATA_o3-4"]).isEqualTo(SingleValue("2"))
+    assertThat(properties["OASYS_DATA_o8-1"]).isEqualTo(SingleValue("YES"))
+    assertThat(Instant.parse((properties["OASYS_CREATED"] as SingleValue).value)).isBeforeOrEqualTo(Instant.now())
+    assertThat(properties).doesNotContainKey("OASYS_LINKED")
+  }
+
+  @Test
+  @Order(6)
+  fun `linked assessment persists linked timestamp and new SAN assessment type and ignores OASys data`() {
+    createOasys(
+      webTestClient,
+      crn,
+      Random.nextInt(0, 1_000_000_000).toString(),
+      previousOasysSanPk = oasysPk,
+      sanAssessmentType = SanAssessmentType.CUSTODY,
+      oasysData = OasysData(q3p4SuitabilityOfAccommodation = ZeroToTwoOrMissing.ZERO),
+    )
+
+    val properties = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
+    val createdAt = Instant.parse((properties["OASYS_CREATED"] as SingleValue).value)
+    val linkedAt = Instant.parse((properties["OASYS_LINKED"] as SingleValue).value)
+
+    assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("CUSTODY"))
+    assertThat(linkedAt).isAfterOrEqualTo(createdAt)
+    assertThat(properties["OASYS_DATA_o3-4"])
+      .isEqualTo(SingleValue(ZeroToTwoOrMissing.TWO.value))
+      .isNotEqualTo(SingleValue(ZeroToTwoOrMissing.ZERO.value))
   }
 }
