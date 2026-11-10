@@ -26,6 +26,7 @@ import kotlin.random.Random
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
   private lateinit var sentencePlanId: UUID
+  private lateinit var goalId: UUID
 
   val crn = Random.nextInt(0, 100000).toString().padStart(5, '0')
   val oasysPk = Random.nextInt(0, 1_000_000_000).toString()
@@ -42,7 +43,7 @@ class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
 
     sentencePlanId = createOasysResponse?.sentencePlanId!!
 
-    UpdateCommandHelper.createGoal(aapTestClient, sentencePlanId)
+    goalId = UpdateCommandHelper.createGoal(aapTestClient, sentencePlanId, crn)!!
 
     val getEntityResponse = webTestClient.get().uri("/entity/$sentencePlanId/AAP_PLAN")
       .accept(MediaType.APPLICATION_JSON)
@@ -84,5 +85,6 @@ class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
     val planVersion = queryResponse?.queries[0]?.result as AssessmentVersionQueryResult
     assertThat(planVersion.collections).isNotEmpty()
     assertThat(planVersion.collections[0].name).isEqualTo("GOALS")
+    assertThat(planVersion.collections[0].items[0].uuid).isEqualTo(goalId)
   }
 }

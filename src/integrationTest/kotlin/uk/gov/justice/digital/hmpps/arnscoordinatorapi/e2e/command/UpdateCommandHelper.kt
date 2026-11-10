@@ -15,7 +15,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import java.util.UUID
-import kotlin.random.Random
 
 object UpdateCommandHelper {
   fun postUpdateCommand(aapTestClient: WebTestClient, assessmentUuid: UUID): CommandSuccessCommandResult? {
@@ -41,9 +40,7 @@ object UpdateCommandHelper {
     return getResponse
   }
 
-  fun createGoal(aapTestClient: WebTestClient, assessmentUuid: UUID): UUID? {
-    val crn = Random.nextInt(0, 100_000).toString().padStart(5, '0')
-
+  fun createGoal(aapTestClient: WebTestClient, assessmentUuid: UUID, crn: String): UUID? {
     val collectionRequest = CreateCollectionCommand(
       assessmentUuid = assessmentUuid,
       user = UserDetails("test-user", "Test User"),
