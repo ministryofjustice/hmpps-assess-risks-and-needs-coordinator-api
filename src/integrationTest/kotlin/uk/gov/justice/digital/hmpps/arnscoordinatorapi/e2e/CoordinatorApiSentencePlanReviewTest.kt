@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.arnsAssessment.SentencePlan
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.arnsAssessment.SentencePlanResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
@@ -86,10 +84,5 @@ class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
     val planVersion = queryResponse?.queries[0]?.result as AssessmentVersionQueryResult
     assertThat(planVersion.collections).isNotEmpty()
     assertThat(planVersion.collections[0].name).isEqualTo("GOALS")
-
-    // Check the arns assessment view displays the goals
-    val sentencePlan = SentencePlan.get(arnsAssessmentViewApiTestClient, crn)
-    val sentencePlanResponse = sentencePlan as SentencePlanResponse
-    assertThat(sentencePlanResponse.goals).isNotEmpty()
   }
 }

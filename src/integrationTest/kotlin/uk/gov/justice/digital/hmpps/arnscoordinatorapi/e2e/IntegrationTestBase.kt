@@ -17,18 +17,13 @@ abstract class IntegrationTestBase {
   protected lateinit var webTestClient: WebTestClient
   protected lateinit var authTestClient: WebTestClient
   protected lateinit var aapTestClient: WebTestClient
-  protected lateinit var arnsAssessmentViewApiTestClient: WebTestClient
 
   @BeforeAll
   fun setup() {
     val authBaseUrl = System.getenv("AUTH_BASE_URL")
       ?: "https://sign-in-dev.hmpps.service.justice.gov.uk"
     val apiBaseUrl = System.getenv("ARNS_COORDINATOR_BASE_URL")
-      ?: "https://arns-coordinator-api-dev.hmpps.service.justice.gov.uk"
     val aapBaseUrl = System.getenv("AAP_TEST_BASE_URL")
-      ?: "https://arns-assessment-platform-api-dev.hmpps.service.justice.gov.uk"
-    val arnsAssessmentViewApiBaseUrl = System.getenv("ARNS_ASSESSMENT_VIEW_API_BASE_URL")
-      ?: "https://arns-assessment-view-api-dev.hmpps.service.justice.gov.uk"
 
     authTestClient = WebTestClient.bindToServer()
       .baseUrl(authBaseUrl)
@@ -38,11 +33,6 @@ abstract class IntegrationTestBase {
     val clientSecret = System.getenv("AAP_CLIENT_SECRET") ?: "default_secret"
 
     val token = fetchAccessToken(clientId, clientSecret)
-
-    val arnsAssessmentViewClientId = System.getenv("ARNS_ASSESSMENT_VIEW_CLIENT_ID") ?: "local-development-client-id"
-    val arnsAssessmentViewClientSecret = System.getenv("ARNS_ASSESSMENT_VIEW_CLIENT_SECRET") ?: "default_secret"
-
-    val arnsAssessmentViewToken = fetchAccessToken(arnsAssessmentViewClientId, arnsAssessmentViewClientSecret)
 
     webTestClient = WebTestClient.bindToServer()
       .baseUrl(apiBaseUrl)
@@ -55,14 +45,6 @@ abstract class IntegrationTestBase {
     aapTestClient = WebTestClient.bindToServer()
       .baseUrl(aapBaseUrl)
       .defaultHeader("Authorization", "Bearer $token")
-      .entityExchangeResultConsumer { result ->
-        FailedTestLogger.record(result)
-      }
-      .build()
-
-    arnsAssessmentViewApiTestClient = WebTestClient.bindToServer()
-      .baseUrl(arnsAssessmentViewApiBaseUrl)
-      .defaultHeader("Authorization", "Bearer $arnsAssessmentViewToken")
       .entityExchangeResultConsumer { result ->
         FailedTestLogger.record(result)
       }
