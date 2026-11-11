@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
@@ -515,6 +516,78 @@ class AAPApiTest {
       assertTrue(result is AAPApi.ApiOperationResult.Failure)
       assertEquals(
         "No command result returned from AAP API during updateFlags",
+        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
+      )
+    }
+  }
+
+  @Nested
+  inner class UpdateAssessmentProperties {
+
+    private val entityUuid = UUID.randomUUID()
+    private val user = AAPUser(id = "user-id", name = "User Name")
+    private val properties = mapOf("SAN_ASSESSMENT_TYPE" to PropertyValue(type = "Single", value = "COMMUNITY"))
+
+    @BeforeEach
+    fun setup() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+    }
+
+    @Test
+    fun `should return success when AAP API updates the properties`() {
+      val response = CommandsResponse(
+        commands = listOf(CommandResponse(mock<UpdateAssessmentPropertiesCommand>(), result = CommandSuccessResult())),
+      )
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
+
+      val result = aapApi.updateAssessmentProperties(entityUuid, properties, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when the AAP API call errors`() {
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
+
+      val result = aapApi.updateAssessmentProperties(entityUuid, properties, user)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("HTTP error during updateAssessmentProperties"))
+    }
+
+    @Test
+    fun `should return failure when AAP API rejects the properties update`() {
+      val response = CommandsResponse(
+        commands = listOf(
+          CommandResponse(
+            mock<UpdateAssessmentPropertiesCommand>(),
+            result = CommandSuccessResult(message = "Assessment is locked", success = false),
+          ),
+        ),
+      )
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
+
+      val result = aapApi.updateAssessmentProperties(entityUuid, properties, user)
+
+      assertEquals(
+        "AAP API rejected updateAssessmentProperties: Assessment is locked",
+        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
+      )
+    }
+
+    @Test
+    fun `should return failure when AAP API returns no command result`() {
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java))
+        .thenReturn(Mono.just(CommandsResponse(commands = emptyList())))
+
+      val result = aapApi.updateAssessmentProperties(entityUuid, properties, user)
+
+      assertEquals(
+        "No command result returned from AAP API during updateAssessmentProperties",
         (result as AAPApi.ApiOperationResult.Failure).errorMessage,
       )
     }

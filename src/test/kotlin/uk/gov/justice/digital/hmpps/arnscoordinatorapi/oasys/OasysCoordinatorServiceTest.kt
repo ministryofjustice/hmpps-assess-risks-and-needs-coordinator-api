@@ -45,6 +45,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
@@ -110,6 +111,31 @@ class OasysCoordinatorServiceTest {
 
   @Nested
   inner class Create {
+    private val existingSanUuid = UUID.randomUUID()
+    private val createdSp = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
+    private val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
+    private val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
+    private val linkSanRequest = OasysCreateRequest(
+      oasysAssessmentPk = "new456",
+      previousOasysSanPk = "previous123",
+      regionPrisonCode = "111111",
+      planType = PlanType.INITIAL,
+      assessmentType = AssessmentType.SAN_SP,
+      userDetails = OasysUserDetails(id = "userId", name = "John Doe"),
+      sanAssessmentType = SanAssessmentType.CUSTODY,
+    )
+
+    private fun stubLinkExistingSanAndCreateSp() {
+      `when`(oasysAssociationsService.findAssociationsByPk(anyString(), anyOrNull<Boolean>())).thenReturn(emptyList())
+      `when`(strategyFactory.getStrategiesFor(AssessmentType.SAN_SP)).thenReturn(listOf(sanStrategy, spStrategy))
+      `when`(oasysAssociationsService.findAssociationsByPkAndType(eq("previous123"), any()))
+        .thenReturn(listOf(OasysAssociation(oasysAssessmentPk = "previous123", entityType = EntityType.AAP_SAN, entityUuid = existingSanUuid, baseVersion = 5)))
+      `when`(oasysAssociationsService.storeAssociation(any())).thenReturn(OperationResult.Success(Unit))
+      `when`(spStrategy.create(any())).thenReturn(OperationResult.Success(createdSp))
+      `when`(oasysVersionService.createVersionFor(OasysEvent.CLONED, existingSanUuid))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CLONED, version = 6, entityUuid = existingSanUuid))
+      `when`(sanStrategy.updateFlags(any(), any(), any())).thenReturn(OperationResult.Success(Unit))
+    }
 
     @BeforeEach
     fun createSetUp() {
@@ -800,6 +826,37 @@ class OasysCoordinatorServiceTest {
       )
 
       verify(spStrategy, never()).updateFlags(any(), any(), any())
+      verify(transactionStatus).setRollbackOnly()
+      transactionAspect.close()
+    }
+
+    @Test
+    fun `should record OASys link only for the linked entity when an existing SAN is linked`() {
+      stubLinkExistingSanAndCreateSp()
+      `when`(sanStrategy.recordOasysLink(any(), anyOrNull(), any())).thenReturn(OperationResult.Success(Unit))
+
+      val result = oasysCoordinatorService.create(linkSanRequest)
+
+      assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+      verify(sanStrategy).recordOasysLink(existingSanUuid, SanAssessmentType.CUSTODY, linkSanRequest.userDetails.intoUserDetails())
+      verify(spStrategy, never()).recordOasysLink(any(), anyOrNull(), any())
+    }
+
+    @Test
+    fun `should roll back created entities and return failure when recording the OASys link fails`() {
+      stubLinkExistingSanAndCreateSp()
+      `when`(sanStrategy.recordOasysLink(any(), anyOrNull(), any())).thenReturn(OperationResult.Failure("AAP unavailable"))
+      val transactionStatus: TransactionStatus = mock()
+      val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+      transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+      val result = oasysCoordinatorService.create(linkSanRequest)
+
+      assertEquals(
+        "Failed to record OASys link for AAP_SAN: AAP unavailable",
+        (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+      )
+      verify(spStrategy).delete(any(), eq(createdSp.id))
       verify(transactionStatus).setRollbackOnly()
       transactionAspect.close()
     }
