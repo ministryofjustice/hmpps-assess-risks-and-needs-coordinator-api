@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
@@ -16,10 +18,13 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersionsNotFound
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.query.QueryApiHelper.getQueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
@@ -38,9 +43,18 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   )
   val today = LocalDate.now(ZoneId.of("UTC"))
 
+  private val createdOasysData = mapOf("o3-4" to "2", "o8-1" to "YES")
+  private val linkedOasysData = mapOf("o3-4" to "0")
+
   @BeforeAll
   fun `create oasys and get entity`() {
-    val createOasysResponse = createOasys(webTestClient, crn, oasysPk)
+    val createOasysResponse = createOasys(
+      webTestClient,
+      crn,
+      oasysPk,
+      sanAssessmentType = SanAssessmentType.COMMUNITY,
+      oasysData = createdOasysData,
+    )
 
     assertThat(createOasysResponse?.sanAssessmentId).isNotNull
 
@@ -99,4 +113,40 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
     assertThat(getEntityVersionsResponse?.unaggregatedVersions)
       .anyMatch { it.status == "UNSIGNED" }
   }
+
+  @Test
+  @Order(5)
+  fun `created assessment persists SAN assessment type, created timestamp and OASys prepopulation data`() {
+    val properties = assessmentProperties()
+
+    assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("COMMUNITY"))
+    assertThat(prepopulationData(properties)).isEqualTo(createdOasysData)
+    assertThat(Instant.parse((properties["OASYS_CREATED"] as SingleValue).value)).isBeforeOrEqualTo(Instant.now())
+    assertThat(properties).doesNotContainKey("OASYS_LINKED")
+  }
+
+  @Test
+  @Order(6)
+  fun `linked assessment persists linked timestamp and new SAN assessment type and ignores OASys data`() {
+    createOasys(
+      webTestClient,
+      crn,
+      Random.nextInt(0, 1_000_000_000).toString(),
+      previousOasysSanPk = oasysPk,
+      sanAssessmentType = SanAssessmentType.CUSTODY,
+      oasysData = linkedOasysData,
+    )
+
+    val properties = assessmentProperties()
+    val createdAt = Instant.parse((properties["OASYS_CREATED"] as SingleValue).value)
+    val linkedAt = Instant.parse((properties["OASYS_LINKED"] as SingleValue).value)
+
+    assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("CUSTODY"))
+    assertThat(linkedAt).isAfterOrEqualTo(createdAt)
+    assertThat(prepopulationData(properties)).isEqualTo(createdOasysData)
+  }
+  private fun assessmentProperties() = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
+
+  // AAP stores the raw hook payload as a single JSON string property
+  private fun prepopulationData(properties: Map<String, *>): Map<String, Any?> = jacksonObjectMapper().readValue((properties["oasys_prepopulation_data"] as SingleValue).value)
 }
