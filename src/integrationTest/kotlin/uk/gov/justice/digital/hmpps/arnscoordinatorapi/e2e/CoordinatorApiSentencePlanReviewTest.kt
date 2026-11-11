@@ -71,7 +71,7 @@ class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
   fun `review plan`() {
     val oasysReviewPk = Random.nextInt(0, 1_000_000_000).toString()
     // Create a review plan based on previous initial plan
-    val createOasysResponse = createOasys(webTestClient, crn, oasysReviewPk, PlanType.REVIEW, previousOasysSpPk = oasysPk)
+    val createOasysResponse = createOasys(webTestClient, crn, oasysReviewPk, planType = PlanType.REVIEW, previousOasysSpPk = oasysPk)
     val sentencePlanReviewId = createOasysResponse?.sentencePlanId!!
 
     // Check the plan is cloned on review
