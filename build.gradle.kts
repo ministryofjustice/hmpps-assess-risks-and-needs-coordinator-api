@@ -23,9 +23,6 @@ configurations {
   testImplementation { exclude(group = "org.junit.vintage") }
 }
 
-ext["netty.version"] = "4.2.18.Final"
-ext["tomcat.version"] = "11.0.26"
-
 dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.1.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
