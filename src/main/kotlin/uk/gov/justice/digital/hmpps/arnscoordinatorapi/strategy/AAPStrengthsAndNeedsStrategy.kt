@@ -348,6 +348,14 @@ class AAPStrengthsAndNeedsStrategy(
     SAN_ASSESSMENT_TYPE to sanAssessmentType?.name,
   ).toSingleValues()
 
+  private fun prepopulateFromOasysHook(sanAssessmentType: SanAssessmentType?, oasysData: Map<String, Any?>?): PrepopulateFromOasys? {
+    if (sanAssessmentType == SanAssessmentType.CUSTODY || oasysData.isNullOrEmpty()) {
+      return null
+    }
+
+    return PrepopulateFromOasys(oasysData)
+  }
+
   // AAP property values cannot be null, so unanswered questions and a missing type are omitted
   private fun Map<String, String?>.toSingleValues(): Map<String, PropertyValue> = mapNotNull { (key, value) ->
     value?.let {
@@ -364,7 +372,7 @@ class AAPStrengthsAndNeedsStrategy(
         formVersion = formVersion,
         properties = oasysEventProperties(OASYS_CREATED, it.sanAssessmentType),
         hooks = listOfNotNull(
-          it.oasysData?.takeIf { data -> data.isNotEmpty() }?.let(::PrepopulateFromOasys),
+          prepopulateFromOasysHook(it.sanAssessmentType, it.oasysData),
           UpdateOasysDataMapping(
             formConfig = objectMapper.readValue(
               requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {

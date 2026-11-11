@@ -106,7 +106,14 @@ class AAPStrengthsAndNeedsStrategyTest {
     }
 
     @Test
-    fun `should send only the created timestamp  and no PrepopulateFromOasys hook when SAN assessment type and OASys data are not supplied`() {
+    fun `should not send PrepopulateFromOasys hook when SAN assessment type is CUSTODY`() {
+      val data = createdData(SanAssessmentType.CUSTODY, mapOf("o3-4" to "2"))
+
+      assertThat(data.hooks).noneMatch { it is PrepopulateFromOasys }
+    }
+
+    @Test
+    fun `should send only the created timestamp and no PrepopulateFromOasys hook when SAN assessment type and OASys data are not supplied`() {
       val data = createdData(sanAssessmentType = null, oasysData = null)
 
       assertThat(data.properties).isEqualTo(
