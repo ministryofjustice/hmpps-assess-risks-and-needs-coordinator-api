@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.PrepopulateFromOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.MultiValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
@@ -32,7 +33,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
@@ -74,51 +74,52 @@ class AAPStrengthsAndNeedsStrategyTest {
         .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CREATED, entityUuid = versionedEntity.id, version = versionedEntity.version))
     }
 
-    private fun createdProperties(sanAssessmentType: SanAssessmentType?, oasysData: OasysData?): Map<String, PropertyValue> {
+    private fun createdData(sanAssessmentType: SanAssessmentType?, oasysData: Map<String, Any?>?): AAPCreateAssessmentData {
       val captor = argumentCaptor<AAPCreateAssessmentData>()
 
       strategy.create(CreateData(assessment = CreateAssessmentData(UserDetails("id", "name"), sanAssessmentType, oasysData)))
       verify(aapApi).createAssessment(any(), captor.capture())
 
-      return captor.firstValue.properties
+      return captor.firstValue
     }
 
     @Test
-    fun `should send UTC created timestamp, SAN assessment type and prefixed OASys answers when OASys data is supplied`() {
-      val oasysData = OasysData(
-        q3p4SuitabilityOfAccommodation = "M",
-        q6p8CurrentRelationshipStatus = "2",
-        q8p1DrugsEverMisused = "NO",
-        q8p8MotivationToTackleDrugMisuse = null,
-      )
+    fun `should send PrepopulateFromOasys hook when OASys data is supplied`() {
+      val oasysData = mapOf("o3-4" to "M", "o8-1" to "NO")
 
-      val properties = createdProperties(SanAssessmentType.COMMUNITY, oasysData)
+      val data = createdData(SanAssessmentType.COMMUNITY, oasysData)
 
-      assertThat(properties).isEqualTo(
+      assertThat(data.hooks.first()).isEqualTo(PrepopulateFromOasys(oasysData))
+      assertThat(data.properties).isEqualTo(
         mapOf(
           "OASYS_CREATED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z"),
           "SAN_ASSESSMENT_TYPE" to PropertyValue(type = "Single", value = "COMMUNITY"),
-          "OASYS_DATA_o3-4" to PropertyValue(type = "Single", value = "M"),
-          "OASYS_DATA_o6-8" to PropertyValue(type = "Single", value = "2"),
-          "OASYS_DATA_o8-1" to PropertyValue(type = "Single", value = "NO"),
         ),
       )
     }
 
     @Test
-    fun `should send only the created timestamp when SAN assessment type and OASys data are not supplied`() {
-      val properties = createdProperties(sanAssessmentType = null, oasysData = null)
+    fun `should not send PrepopulateFromOasys hook when OASys data is empty`() {
+      val data = createdData(sanAssessmentType = null, oasysData = emptyMap())
 
-      assertThat(properties).isEqualTo(
+      assertThat(data.hooks).noneMatch { it is PrepopulateFromOasys }
+    }
+
+    @Test
+    fun `should send only the created timestamp  and no PrepopulateFromOasys hook when SAN assessment type and OASys data are not supplied`() {
+      val data = createdData(sanAssessmentType = null, oasysData = null)
+
+      assertThat(data.properties).isEqualTo(
         mapOf("OASYS_CREATED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z")),
       )
+      assertThat(data.hooks).noneMatch { it is PrepopulateFromOasys }
     }
 
     @Test
     fun `should truncate created timestamp to milliseconds when clock has sub-millisecond precision`() {
       whenever(clock.now()).thenReturn(LocalDateTime.parse("2026-01-09T12:00:00.123456789"))
 
-      val properties = createdProperties(sanAssessmentType = null, oasysData = null)
+      val properties = createdData(sanAssessmentType = null, oasysData = null).properties
 
       assertThat(properties["OASYS_CREATED"]?.value).isEqualTo("2026-01-09T12:00:00.123Z")
     }

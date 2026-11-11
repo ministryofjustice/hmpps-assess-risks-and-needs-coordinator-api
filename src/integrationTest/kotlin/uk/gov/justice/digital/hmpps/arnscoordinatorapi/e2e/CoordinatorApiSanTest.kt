@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
@@ -19,7 +21,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
@@ -42,8 +43,8 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   )
   val today = LocalDate.now(ZoneId.of("UTC"))
 
-  private val createdQ3p4 = "2"
-  private val linkedQ3p4 = "0"
+  private val createdOasysData = mapOf("o3-4" to "2", "o8-1" to "YES")
+  private val linkedOasysData = mapOf("o3-4" to "0")
 
   @BeforeAll
   fun `create oasys and get entity`() {
@@ -52,7 +53,7 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
       crn,
       oasysPk,
       sanAssessmentType = SanAssessmentType.COMMUNITY,
-      oasysData = OasysData(q3p4SuitabilityOfAccommodation = createdQ3p4, q8p1DrugsEverMisused = "YES"),
+      oasysData = createdOasysData,
     )
 
     assertThat(createOasysResponse?.sanAssessmentId).isNotNull
@@ -115,12 +116,11 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
 
   @Test
   @Order(5)
-  fun `created assessment persists SAN assessment type, created timestamp and prefixed OASys data`() {
-    val properties = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
+  fun `created assessment persists SAN assessment type, created timestamp and OASys prepopulation data`() {
+    val properties = assessmentProperties()
 
     assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("COMMUNITY"))
-    assertThat(properties["OASYS_DATA_o3-4"]).isEqualTo(SingleValue("2"))
-    assertThat(properties["OASYS_DATA_o8-1"]).isEqualTo(SingleValue("YES"))
+    assertThat(prepopulationData(properties)).isEqualTo(createdOasysData)
     assertThat(Instant.parse((properties["OASYS_CREATED"] as SingleValue).value)).isBeforeOrEqualTo(Instant.now())
     assertThat(properties).doesNotContainKey("OASYS_LINKED")
   }
@@ -134,17 +134,19 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
       Random.nextInt(0, 1_000_000_000).toString(),
       previousOasysSanPk = oasysPk,
       sanAssessmentType = SanAssessmentType.CUSTODY,
-      oasysData = OasysData(q3p4SuitabilityOfAccommodation = linkedQ3p4),
+      oasysData = linkedOasysData,
     )
 
-    val properties = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
+    val properties = assessmentProperties()
     val createdAt = Instant.parse((properties["OASYS_CREATED"] as SingleValue).value)
     val linkedAt = Instant.parse((properties["OASYS_LINKED"] as SingleValue).value)
 
     assertThat(properties["SAN_ASSESSMENT_TYPE"]).isEqualTo(SingleValue("CUSTODY"))
     assertThat(linkedAt).isAfterOrEqualTo(createdAt)
-    assertThat(properties["OASYS_DATA_o3-4"])
-      .isEqualTo(SingleValue(createdQ3p4))
-      .isNotEqualTo(SingleValue(linkedQ3p4))
+    assertThat(prepopulationData(properties)).isEqualTo(createdOasysData)
   }
+  private fun assessmentProperties() = (getQueryResponse(aapTestClient, sanAssessmentUuid)?.queries[0]?.result as AssessmentVersionQueryResult).properties
+
+  // AAP stores the raw hook payload as a single JSON string property
+  private fun prepopulationData(properties: Map<String, *>): Map<String, Any?> = jacksonObjectMapper().readValue((properties["oasys_prepopulation_data"] as SingleValue).value)
 }

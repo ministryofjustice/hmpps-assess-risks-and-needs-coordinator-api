@@ -86,6 +86,8 @@ abstract class IntegrationTestBase {
     expectedValues: Map<String, String>,
   ): Map<String, String> = aapApiMock.verifyUpdateAssessmentProperties(assessmentUuid, expectedKeys, expectedValues)
 
+  protected fun verifyAAPCreateAssessmentHookData(assessmentType: String, hookType: String): Map<String, String>? = aapApiMock.verifyCreateAssessmentHookData(assessmentType, hookType)
+
   protected fun stubAAPQueryPlanVersions(status: Int = 200, uuid: UUID) {
     aapApiMock.stubQueryPlanVersions(status, uuid)
   }

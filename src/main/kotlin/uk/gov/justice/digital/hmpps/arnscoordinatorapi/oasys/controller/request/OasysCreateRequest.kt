@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
 
@@ -71,9 +70,11 @@ data class OasysCreateRequest(
   )
   val sanAssessmentType: SanAssessmentType? = null,
 
-  @Schema(description = "OASys answers used to pre-populate SAN. Keys are OASys question refs")
-  @field:Valid
-  val oasysData: OasysData? = null,
+  @Schema(
+    description = "OASys answers used to pre-populate SAN. Keys are OASys question refs",
+    example = "{\"o3-4\": \"2\"}",
+  )
+  val oasysData: Map<String, Any?>? = null,
 ) {
 
   fun previousPkFor(entityType: EntityType): String? = when (entityType) {

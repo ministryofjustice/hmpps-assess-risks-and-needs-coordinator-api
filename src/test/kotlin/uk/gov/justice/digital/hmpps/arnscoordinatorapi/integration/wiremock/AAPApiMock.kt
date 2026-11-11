@@ -220,6 +220,24 @@ class AAPApiMock : WireMockServer(8093) {
 
   fun stubMarkMerged(status: Int = 200) = stubUpdateAssessmentProperties(status)
 
+  fun verifyCreateAssessmentHookData(assessmentType: String, hookType: String): Map<String, String>? {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "CreateAssessmentCommand" }
+      .filter { it.path("assessmentType").asText() == assessmentType }
+
+    assertThat(commands)
+      .describedAs("CreateAssessmentCommand requests for $assessmentType")
+      .hasSize(1)
+
+    return commands.single().path("hooks")
+      .firstOrNull { it.path("type").asText() == hookType }
+      ?.path("data")
+      ?.properties()
+      ?.associate { (key, value) -> key to value.asText() }
+  }
+
   fun stubSoftDeleteAssessment(status: Int = 200) {
     stubFor(
       post("/command")

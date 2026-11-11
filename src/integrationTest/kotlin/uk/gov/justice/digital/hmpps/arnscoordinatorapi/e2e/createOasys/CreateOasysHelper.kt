@@ -7,7 +7,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
@@ -19,7 +18,7 @@ object CreateOasysHelper {
     oasysPk: String,
     previousOasysSanPk: String? = null,
     sanAssessmentType: SanAssessmentType? = null,
-    oasysData: OasysData? = null,
+    oasysData: Map<String, Any?>? = null,
   ): OasysVersionedEntityResponse? {
     val oasysCreateRequest = OasysCreateRequest(
       oasysAssessmentPk = oasysPk,

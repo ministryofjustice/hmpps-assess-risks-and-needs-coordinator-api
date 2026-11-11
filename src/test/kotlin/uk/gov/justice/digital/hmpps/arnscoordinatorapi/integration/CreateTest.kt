@@ -17,7 +17,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.net.URI
@@ -102,6 +101,27 @@ class CreateTest : IntegrationTestBase() {
     assertThat(sanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
     assertThat(aapPlanAssociation?.entityUuid).isEqualTo(planUuid)
     assertThat(sanAssociation?.entityUuid).isEqualTo(sanUuid)
+  }
+
+  @Test
+  fun `it sends OASys data to AAP as a PrepopulateFromOasys hook on the SAN create only`() {
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          oasysAssessmentPk = getRandomOasysPk(),
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+          oasysData = mapOf("o3-4" to "2", "o8-1" to "YES"),
+        ),
+      )
+      .exchange()
+      .expectStatus().isCreated
+
+    assertThat(verifyAAPCreateAssessmentHookData("STRENGTHS_AND_NEEDS", "PrepopulateFromOasys"))
+      .isEqualTo(mapOf("o3-4" to "2", "o8-1" to "YES"))
+    assertThat(verifyAAPCreateAssessmentHookData("SENTENCE_PLAN", "PrepopulateFromOasys")).isNull()
   }
 
   @Test
@@ -195,7 +215,7 @@ class CreateTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it successfully links existing SP and SAN when previous PKs are supplied, records only linked properties and ignores OASys data when supplied`() {
+  fun `it successfully links existing SP and SAN when previous PKs are supplied, records only linked properties`() {
     val planUuid = UUID.randomUUID()
     val sanUuid = UUID.randomUUID()
 
@@ -235,10 +255,7 @@ class CreateTest : IntegrationTestBase() {
           assessmentType = AssessmentType.SAN_SP,
           userDetails = OasysUserDetails(id = "1", name = "Test Name"),
           sanAssessmentType = SanAssessmentType.COMMUNITY,
-          oasysData = OasysData(
-            q3p4SuitabilityOfAccommodation = "2",
-            q8p1DrugsEverMisused = "YES",
-          ),
+          oasysData = mapOf("o3-4" to "2", "o8-1" to "YES"),
         ),
       )
       .exchange()
@@ -258,35 +275,6 @@ class CreateTest : IntegrationTestBase() {
       expectedValues = mapOf("SAN_ASSESSMENT_TYPE" to "COMMUNITY"),
     )
     assertThat(Instant.parse(linkedProperties.getValue("OASYS_LINKED"))).isBetween(requestStartedAt, requestFinishedAt)
-    assertThat(linkedProperties.keys).noneMatch { it.startsWith("OASYS_DATA_") }
-  }
-
-  @Test
-  fun `it returns 400 listing every invalid OASys answer when OASys data does not match the allowed codes`() {
-    val response = webTestClient.post().uri("/oasys/create")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
-      .bodyValue(
-        OasysCreateRequest(
-          oasysAssessmentPk = getRandomOasysPk(),
-          planType = PlanType.INITIAL,
-          assessmentType = AssessmentType.SAN_SP,
-          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
-          oasysData = OasysData(
-            q3p4SuitabilityOfAccommodation = "3",
-            q8p1DrugsEverMisused = "0",
-            q2p1BriefOffenceDetails = "a".repeat(OasysData.FREE_TEXT_MAX_CHAR_LENGTH + 1),
-          ),
-        ),
-      )
-      .exchange()
-      .expectStatus().isBadRequest
-      .expectBody<ErrorResponse>()
-      .returnResult()
-
-    assertThat(response.responseBody?.developerMessage)
-      .contains("oasysData.q3p4SuitabilityOfAccommodation - must match \"${OasysData.ZERO_TO_TWO_OR_MISSING}\"")
-      .contains("oasysData.q8p1DrugsEverMisused - must match \"${OasysData.YES_NO}\"")
-      .contains("oasysData.q2p1BriefOffenceDetails - size must be between 0 and ${OasysData.FREE_TEXT_MAX_CHAR_LENGTH}")
   }
 
   @Test

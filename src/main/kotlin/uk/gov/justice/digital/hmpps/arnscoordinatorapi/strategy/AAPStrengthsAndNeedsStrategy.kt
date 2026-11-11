@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -14,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.PrepopulateFromOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.UpdateOasysDataMapping
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.formconfig.FormConfig
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
@@ -44,7 +44,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
@@ -344,13 +343,6 @@ class AAPStrengthsAndNeedsStrategy(
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
 
-  private fun createdProperties(sanAssessmentType: SanAssessmentType?, oasysData: OasysData?): Map<String, PropertyValue> {
-    val oasysDataReceived = oasysData?.let { objectMapper.convertValue<Map<String, String?>>(it) }.orEmpty()
-      .mapKeys { (code) -> "$OASYS_DATA_PREFIX$code" }
-
-    return oasysEventProperties(OASYS_CREATED, sanAssessmentType) + oasysDataReceived.toSingleValues()
-  }
-
   private fun oasysEventProperties(timestampKey: String, sanAssessmentType: SanAssessmentType?): Map<String, PropertyValue> = mapOf(
     timestampKey to clock.now().atZone(ZoneId.systemDefault()).toInstant().truncatedTo(ChronoUnit.MILLIS).toString(),
     SAN_ASSESSMENT_TYPE to sanAssessmentType?.name,
@@ -370,8 +362,9 @@ class AAPStrengthsAndNeedsStrategy(
         userDetails = it.userDetails,
         subjectDetails = plan?.subjectDetails, // We didn't originally capture this in OG SAN so let's grab it from plan
         formVersion = formVersion,
-        properties = createdProperties(it.sanAssessmentType, it.oasysData),
-        hooks = listOf(
+        properties = oasysEventProperties(OASYS_CREATED, it.sanAssessmentType),
+        hooks = listOfNotNull(
+          it.oasysData?.takeIf { data -> data.isNotEmpty() }?.let(::PrepopulateFromOasys),
           UpdateOasysDataMapping(
             formConfig = objectMapper.readValue(
               requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {
@@ -390,6 +383,5 @@ class AAPStrengthsAndNeedsStrategy(
     private const val SAN_ASSESSMENT_TYPE = "SAN_ASSESSMENT_TYPE"
     private const val OASYS_CREATED = "OASYS_CREATED"
     private const val OASYS_LINKED = "OASYS_LINKED"
-    private const val OASYS_DATA_PREFIX = "OASYS_DATA_"
   }
 }

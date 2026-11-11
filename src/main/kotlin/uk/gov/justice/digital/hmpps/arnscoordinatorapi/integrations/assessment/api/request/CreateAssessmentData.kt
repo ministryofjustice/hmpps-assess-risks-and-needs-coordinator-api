@@ -3,15 +3,14 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 import com.fasterxml.jackson.annotation.JsonIgnore
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.oasysdata.OasysData
 
 data class CreateAssessmentData(
   val userDetails: UserDetails,
 
-  // Both fields are used to build AAP properties and won't be sent to the old SAN (Strengths and needs api)
+  // Both fields are only sent to AAP (as properties and the PrepopulateFromOasys hook) and won't be sent to the old SAN (Strengths and needs api)
   @JsonIgnore
   val sanAssessmentType: SanAssessmentType? = null,
 
   @JsonIgnore
-  val oasysData: OasysData? = null,
+  val oasysData: Map<String, Any?>? = null,
 )
