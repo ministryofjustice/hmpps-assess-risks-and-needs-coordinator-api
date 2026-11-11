@@ -13,6 +13,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.ResetPlanRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.StartNewPathwayRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
@@ -32,6 +33,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -173,6 +175,30 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
+  }
+
+  fun startNewPathway(assessmentUuid: UUID, user: AAPUser, previousPathway: SanAssessmentType, newPathway: SanAssessmentType): ApiOperationResult<Unit> = try {
+    val request = StartNewPathwayRequest(
+      user = user,
+      assessmentUuid = assessmentUuid,
+      previousPathway = previousPathway,
+      newPathway = newPathway,
+    )
+    aapApiWebClient.post()
+      .uri(apiProperties.endpoints.startNewPathway)
+      .body(BodyInserters.fromValue(request))
+      .retrieve()
+      .bodyToMono(Void::class.java)
+      .block()
+
+    ApiOperationResult.Success(Unit)
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during startNewPathway: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during startNewPathway: ${ex.message}", ex)
   }
 
   fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {

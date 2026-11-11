@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -590,6 +591,57 @@ class AAPApiTest {
         "No command result returned from AAP API during updateAssessmentProperties",
         (result as AAPApi.ApiOperationResult.Failure).errorMessage,
       )
+    }
+  }
+
+  @Nested
+  inner class StartNewPathwayTest {
+    private val assessmentUuid = UUID.randomUUID()
+    private val user = AAPUser(id = "user-id", name = "User Name")
+
+    @Test
+    fun `should return success when AAP API returns a valid response`() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/san/start-new-pathway")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(Void::class.java)).thenReturn(Mono.empty())
+
+      val result = aapApi.startNewPathway(assessmentUuid, user, SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when AAP API returns HTTP error`() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/san/start-new-pathway")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(Void::class.java))
+        .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
+
+      val result = aapApi.startNewPathway(assessmentUuid, user, SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      val failureResult = result as AAPApi.ApiOperationResult.Failure
+      assertTrue(failureResult.errorMessage.contains("HTTP error during startNewPathway"))
+    }
+
+    @Test
+    fun `should return failure when unexpected exception occurs`() {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/san/start-new-pathway")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(Void::class.java))
+        .thenReturn(Mono.error(RuntimeException("Unexpected error")))
+
+      val result = aapApi.startNewPathway(assessmentUuid, user, SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
+
+      assertTrue(result is AAPApi.ApiOperationResult.Failure)
+      val failureResult = result as AAPApi.ApiOperationResult.Failure
+      assertTrue(failureResult.errorMessage.contains("Unexpected error during startNewPathway"))
     }
   }
 }
