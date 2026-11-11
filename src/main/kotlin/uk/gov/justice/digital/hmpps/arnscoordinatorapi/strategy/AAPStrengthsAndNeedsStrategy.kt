@@ -364,7 +364,7 @@ class AAPStrengthsAndNeedsStrategy(
   }.toMap()
 
   fun CreateData.toCreateAssessmentData(): CreateAssessmentData? {
-    val formVersion = "v1.0"
+    val formVersion = "v2.0"
     return assessment?.let {
       CreateAssessmentData(
         userDetails = it.userDetails,
