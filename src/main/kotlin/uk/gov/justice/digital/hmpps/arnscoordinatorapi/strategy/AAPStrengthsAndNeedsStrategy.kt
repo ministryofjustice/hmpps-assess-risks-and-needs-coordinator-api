@@ -341,6 +341,26 @@ class AAPStrengthsAndNeedsStrategy(
     }
   }
 
+  override fun changePathway(entityUuid: UUID, newPathway: SanAssessmentType, userDetails: UserDetails): OperationResult<VersionedEntity?> {
+    val assessment = when (val result = aapApi.fetchAssessment(entityUuid, clock.now())) {
+      is AAPApi.ApiOperationResult.Failure -> return Failure(result.errorMessage)
+      is AAPApi.ApiOperationResult.Success -> result.data
+    }
+
+    val previousPathway = (assessment.properties[SAN_ASSESSMENT_TYPE] as? SingleValue)?.value
+      ?.let { value -> SanAssessmentType.values().find { it.name == value } }
+      ?: SanAssessmentType.COMMUNITY // default to COMMUNITY if not set as all SAN v1 assessments were COMMUNITY
+
+    if (previousPathway == newPathway) return Success(null)
+
+    val user = AAPUser(id = userDetails.id, name = userDetails.name)
+      return when (val result = aapApi.startNewPathway(entityUuid, user, previousPathway, newPathway)) {
+        is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
+          .toOperationResult()
+        is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
+      }
+    }
+
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
 
   private fun oasysEventProperties(timestampKey: String, sanAssessmentType: SanAssessmentType?): Map<String, PropertyValue> = mapOf(
