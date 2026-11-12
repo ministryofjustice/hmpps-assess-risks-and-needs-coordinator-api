@@ -70,6 +70,8 @@ class OasysCoordinatorService(
     ),
     assessment = CreateAssessmentData(
       userDetails = requestData.userDetails.intoUserDetails(),
+      sanAssessmentType = requestData.sanAssessmentType,
+      oasysData = requestData.oasysData,
     ),
   )
 
@@ -242,20 +244,27 @@ class OasysCoordinatorService(
       }
     }
 
-    // Ordering matters: this remote change cannot be rolled back, so it runs after everything that
-    // can fail. Newly created entities already carry their flags from buildCreateData.
+    // Ordering matters: updating flags and recording the OASys link are remote AAP changes that cannot be
+    // rolled back, so both run last, after every step that can be rolled back.
+    // Both overwrite rather than append, so if the link fails after flags were updated, an OASys retry ends in the same state.
+    // Newly created entities already carry their flags and properties from buildCreateData.
     val linkedResults = results.filter { request.previousPkFor(it.strategy.entityType) != null }
     for (linked in linkedResults) {
-      val updateFlagsResult = linked.strategy.updateFlags(
-        entityUuid = (linked.result as EntityResult.Success).entity.id,
-        flags = request.assessmentType.toFlags(),
-        userDetails = request.userDetails.intoUserDetails(),
-      )
+      val entityUuid = (linked.result as EntityResult.Success).entity.id
+      val userDetails = request.userDetails.intoUserDetails()
 
+      val updateFlagsResult = linked.strategy.updateFlags(entityUuid, request.assessmentType.toFlags(), userDetails)
       if (updateFlagsResult is OperationResult.Failure) {
         commands.forEach { it.rollback() }
         TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
         return CreateOperationResult.Failure("Failed to update flags for ${linked.strategy.entityType}: ${updateFlagsResult.errorMessage}")
+      }
+
+      val recordLinkResult = linked.strategy.recordOasysLink(entityUuid, request.sanAssessmentType, userDetails)
+      if (recordLinkResult is OperationResult.Failure) {
+        commands.forEach { it.rollback() }
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
+        return CreateOperationResult.Failure("Failed to record OASys link for ${linked.strategy.entityType}: ${recordLinkResult.errorMessage}")
       }
     }
 
