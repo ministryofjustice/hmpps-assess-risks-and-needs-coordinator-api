@@ -113,7 +113,10 @@ class OasysCoordinatorServiceTest {
   inner class Create {
     private val existingSanUuid = UUID.randomUUID()
     private val createdSp = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_PLAN)
-    private val sanStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_SAN }
+    private val sanStrategy: EntityStrategy = mock {
+      on { entityType } doReturn EntityType.AAP_SAN
+      on { changePathway(any(), any(), any()) } doReturn OperationResult.Success(null)
+    }
     private val spStrategy: EntityStrategy = mock { on { entityType } doReturn EntityType.AAP_PLAN }
     private val linkSanRequest = OasysCreateRequest(
       oasysAssessmentPk = "new456",
