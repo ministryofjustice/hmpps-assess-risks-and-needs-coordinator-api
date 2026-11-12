@@ -354,12 +354,12 @@ class AAPStrengthsAndNeedsStrategy(
     if (previousPathway == newPathway) return Success(null)
 
     val user = AAPUser(id = userDetails.id, name = userDetails.name)
-      return when (val result = aapApi.startNewPathway(entityUuid, user, previousPathway, newPathway)) {
-        is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
-          .toOperationResult()
-        is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
-      }
+    return when (val result = aapApi.startNewPathway(entityUuid, user, previousPathway, newPathway)) {
+      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
+        .toOperationResult()
+      is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
     }
+  }
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))
 

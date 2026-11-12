@@ -488,9 +488,9 @@ class AAPStrengthsAndNeedsStrategyTest {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
         AAPApi.ApiOperationResult.Success(
           assessmentOn(
-            pathway
-          )
-        )
+            pathway,
+          ),
+        ),
       )
     }
 
@@ -558,8 +558,8 @@ class AAPStrengthsAndNeedsStrategyTest {
       whenever(
         aapApi.fetchAssessment(
           entityUuid,
-          now
-        )
+          now,
+        ),
       ).thenReturn(AAPApi.ApiOperationResult.Failure("Fetch failed"))
 
       val result = strategy.changePathway(entityUuid, SanAssessmentType.COMMUNITY, userDetails)
@@ -567,6 +567,7 @@ class AAPStrengthsAndNeedsStrategyTest {
       assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
       verify(aapApi, never()).startNewPathway(any(), any(), any(), any())
     }
+
     @Test
     fun `should return clear failed when the startNewPathway call fails`() {
       givenStoredPathway("COMMUNITY")
