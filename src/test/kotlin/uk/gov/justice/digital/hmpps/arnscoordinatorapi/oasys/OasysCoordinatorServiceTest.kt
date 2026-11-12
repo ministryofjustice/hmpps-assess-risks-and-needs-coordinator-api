@@ -879,6 +879,68 @@ class OasysCoordinatorServiceTest {
       assertThat(publishedEvents).isEmpty()
       transactionAspect.close()
     }
+
+    @Nested
+    inner class ChangePathwayOnLink {
+      @BeforeEach
+      fun setup() {
+        stubLinkExistingSanAndCreateSp()
+        `when`(sanStrategy.recordOasysLink(any(), anyOrNull(), any())).thenReturn(OperationResult.Success(Unit))
+      }
+
+      @Test
+      fun `should point the new PK at the post-clear version when the SAN pathway changes`() {
+        `when`(
+          sanStrategy.changePathway(
+            existingSanUuid,
+            SanAssessmentType.CUSTODY,
+            linkSanRequest.userDetails.intoUserDetails(),
+          ),
+        )
+          .thenReturn(OperationResult.Success(VersionedEntity(existingSanUuid, 10, EntityType.AAP_SAN)))
+
+        val result = oasysCoordinatorService.create(linkSanRequest)
+
+        assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+        verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 10L })
+        assertEquals(10L, (result as OasysCoordinatorService.CreateOperationResult.Success).data.sanAssessmentVersion)
+      }
+
+      @Test
+      fun `should keep the link version when the SAN pathway has not changed`() {
+        val result = oasysCoordinatorService.create(linkSanRequest)
+
+        assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+        verify(sanStrategy).changePathway(existingSanUuid, SanAssessmentType.CUSTODY, linkSanRequest.userDetails.intoUserDetails())
+        verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 6L })
+      }
+
+      @Test
+      fun `should not check the pathway when OASys sends no pathway`() {
+        val result = oasysCoordinatorService.create(linkSanRequest.copy(sanAssessmentType = null))
+
+        assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
+        verify(sanStrategy, never()).changePathway(any(), anyOrNull(), any())
+      }
+
+      @Test
+      fun `should return failure when changing the SAN pathway fails`() {
+        `when`(sanStrategy.changePathway(any(), anyOrNull(), any())).thenReturn(OperationResult.Failure("AAP unavailable"))
+        val transactionStatus: TransactionStatus = mock()
+        val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
+        transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
+
+        val result = oasysCoordinatorService.create(linkSanRequest)
+
+        assertEquals(
+          "Failed to change pathway for AAP_SAN: AAP unavailable",
+          (result as OasysCoordinatorService.CreateOperationResult.Failure).errorMessage,
+        )
+        verify(transactionStatus).setRollbackOnly()
+        verify(sanStrategy, never()).recordOasysLink(any(), anyOrNull(), any())
+        transactionAspect.close()
+      }
+    }
   }
 
   @Nested
