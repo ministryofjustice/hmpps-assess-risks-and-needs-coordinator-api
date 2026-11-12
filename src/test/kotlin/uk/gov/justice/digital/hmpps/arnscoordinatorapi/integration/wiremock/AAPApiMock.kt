@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import java.util.UUID
+import kotlin.String
 
 class AAPApiMock : WireMockServer(8093) {
 
@@ -30,33 +33,36 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun stubCreateAssessment(status: Int = 201) {
+  fun stubCreateAssessment(status: Int = 201, assessmentType: String, uuid: UUID) {
     stubFor(
       post("/command")
         .withRequestBody(containing("CreateAssessmentCommand"))
+        .withRequestBody(
+          matchingJsonPath("$.commands.[0].assessmentType", equalTo(assessmentType)),
+        )
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
             .withBody(
               """
-                {
-                  "commands": [
-                    {
-                      "request": {
-                        "type": "CreateAssessmentCommand",
-                        "assessmentType": "SENTENCE_PLAN",
-                        "formVersion": "",
-                        "user": { "id": 1, "name": "Test Name" }
-                      },
-                      "result": {
-                        "type": "CreateAssessmentCommandResult",
-                        "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "message": "Assessment created successfully",
-                        "success": true
-                      }
+              {
+                "commands": [
+                  {
+                    "request": {
+                      "type": "CreateAssessmentCommand",
+                      "assessmentType": "$assessmentType",
+                      "formVersion": "",
+                      "user": { "id": 1, "name": "Test Name" }
+                    },
+                    "result": {
+                      "type": "CreateAssessmentCommandResult",
+                      "assessmentUuid": "$uuid",
+                      "message": "Assessment created successfully",
+                      "success": true
                     }
-                  ]
-                }
+                  }
+                ]
+              }
               """.trimIndent(),
             )
             .withStatus(status),
@@ -113,26 +119,30 @@ class AAPApiMock : WireMockServer(8093) {
     assertThat(commands.single().path("timeline").path("type").asText()).isEqualTo("FLAGS_UPDATED")
   }
 
-  fun stubQueryAssessment(status: Int = 200) {
+  fun stubQueryAssessment(status: Int = 200, assessmentType: String, uuid: UUID) {
     stubFor(
-      post("/query").willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
+      post("/query")
+        .withRequestBody(
+          matchingJsonPath("$.queries.[0].assessmentIdentifier.uuid", equalTo(uuid.toString())),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
               {
                 "queries": [
                   {
                     "request": {
                       "type": "AssessmentVersionQuery",
                       "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
-                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
                     },
                     "result": {
                       "type": "AssessmentVersionQueryResult",
-                      "assessmentUuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "assessmentUuid": "$uuid",
                       "aggregateUuid": "6fa85f64-5717-4562-b3fc-2c963f66afa6",
-                      "assessmentType": "SENTENCE_PLAN",
+                      "assessmentType": "$assessmentType",
                       "formVersion": "1.0",
                       "createdAt": "2026-01-09T12:00:00",
                       "updatedAt": "2026-01-09T12:30:00",
@@ -147,14 +157,14 @@ class AAPApiMock : WireMockServer(8093) {
                   }
                 ]
               }
-            """.trimIndent(),
-          )
-          .withStatus(status),
-      ),
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 
-  fun stubMarkMerged(status: Int = 200) {
+  fun stubUpdateAssessmentProperties(status: Int = 200) {
     stubFor(
       post("/command")
         .withRequestBody(containing("UpdateAssessmentPropertiesCommand"))
@@ -186,6 +196,46 @@ class AAPApiMock : WireMockServer(8093) {
             .withStatus(status),
         ),
     )
+  }
+
+  fun verifyUpdateAssessmentProperties(assessmentUuid: UUID, expectedKeys: Set<String>, expectedValues: Map<String, String>): Map<String, String> {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "UpdateAssessmentPropertiesCommand" }
+      .filter { it.path("assessmentUuid").asText() == assessmentUuid.toString() }
+
+    assertThat(commands)
+      .describedAs("UpdateAssessmentPropertiesCommand requests for assessment $assessmentUuid")
+      .hasSize(1)
+
+    val added = commands.single().path("added")
+
+    assertThat(added.fieldNames().asSequence().toList()).containsExactlyInAnyOrderElementsOf(expectedKeys)
+    expectedValues.forEach { (key, value) ->
+      assertThat(added.path(key).path("value").asText()).describedAs(key).isEqualTo(value)
+    }
+    return added.properties().associate { (key, value) -> key to value.path("value").asText() }
+  }
+
+  fun stubMarkMerged(status: Int = 200) = stubUpdateAssessmentProperties(status)
+
+  fun verifyCreateAssessmentHookData(assessmentType: String, hookType: String): Map<String, String>? {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "CreateAssessmentCommand" }
+      .filter { it.path("assessmentType").asText() == assessmentType }
+
+    assertThat(commands)
+      .describedAs("CreateAssessmentCommand requests for $assessmentType")
+      .hasSize(1)
+
+    return commands.single().path("hooks")
+      .firstOrNull { it.path("type").asText() == hookType }
+      ?.path("data")
+      ?.properties()
+      ?.associate { (key, value) -> key to value.asText() }
   }
 
   fun stubSoftDeleteAssessment(status: Int = 200) {
@@ -262,20 +312,24 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun stubQueryAssessmentVersions(status: Int = 200) {
+  fun stubQueryPlanVersions(status: Int = 200, uuid: UUID) {
     stubFor(
-      post("/query").willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(
-            """
+      post("/query")
+        .withRequestBody(
+          matchingJsonPath("$.queries.[0].assessmentIdentifier.uuid", equalTo(uuid.toString())),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
               {
                 "queries": [
                   {
                     "request": {
                       "type": "DailyVersionsQuery",
                       "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
-                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
                     },
                     "result": {
                       "type": "DailyVersionsQueryResult",
@@ -297,7 +351,7 @@ class AAPApiMock : WireMockServer(8093) {
                     "request": {
                       "type": "TimelineQuery",
                       "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
-                      "assessmentIdentifier": { "type": "UUID", "uuid": "5fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
                     },
                     "result": {
                       "type": "TimelineQueryResult",
@@ -310,7 +364,7 @@ class AAPApiMock : WireMockServer(8093) {
                           "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                           "timestamp": "2025-04-23T14:40:53.105Z",
                           "user": { "id": 1, "name": "Test User" },
-                          "assessment": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "assessment": "$uuid",
                           "event": "ASSESSMENT_ANSWERS_UPDATED",
                           "customType": "PLAN_AGREEMENT_STATUS_CHANGED",
                           "customData": { "status": "AGREED" }
@@ -320,10 +374,49 @@ class AAPApiMock : WireMockServer(8093) {
                   }
                 ]
               }
-            """.trimIndent(),
-          )
-          .withStatus(status),
-      ),
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
+    )
+  }
+
+  fun stubQuerySanVersions(status: Int = 200, uuid: UUID) {
+    stubFor(
+      post("/query")
+        .withRequestBody(
+          matchingJsonPath("$.queries.[0].assessmentIdentifier.uuid", equalTo(uuid.toString())),
+        )
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+              {
+                "queries": [
+                  {
+                    "request": {
+                      "type": "DailyVersionsQuery",
+                      "user": { "id": "COORDINATOR_API", "name": "Coordinator API User" },
+                      "assessmentIdentifier": { "type": "UUID", "uuid": "$uuid" }
+                    },
+                    "result": {
+                      "type": "DailyVersionsQueryResult",
+                      "versions": [
+                        {
+                          "createdAt": "2025-05-23T13:22:54.105",
+                          "updatedAt": "2025-05-23T13:22:54.105",
+                          "lastTimelineItemUuid": "61369578-18f5-488c-bc99-7cc6249f39a2"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 }

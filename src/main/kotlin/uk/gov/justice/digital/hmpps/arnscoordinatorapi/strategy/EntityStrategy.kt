@@ -14,24 +14,25 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import java.util.UUID
 
 interface EntityStrategy {
   val entityType: EntityType
 
-  fun create(createData: CreateData): OperationResult<VersionedEntity>
+  fun create(request: CreateData): OperationResult<VersionedEntity>
 
-  fun clone(createData: CreateData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun clone(request: CreateData, entityUuid: UUID): OperationResult<VersionedEntity>
 
-  fun delete(deleteData: DeleteData, entityUuid: UUID): OperationResult<Unit>
+  fun delete(request: DeleteData, entityUuid: UUID): OperationResult<Unit>
 
   fun fetch(entityUuid: UUID): OperationResult<*>
 
   fun fetchVersions(entityUuid: UUID): OperationResult<VersionDetailsList>
 
-  fun sign(signData: SignData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun sign(request: SignData, entityUuid: UUID): OperationResult<VersionedEntity>
 
-  fun lock(lockData: LockData, entityUuid: UUID): OperationResult<VersionedEntity>
+  fun lock(request: LockData, entityUuid: UUID): OperationResult<VersionedEntity>
 
   fun rollback(request: OasysRollbackRequest, entityUuid: UUID): OperationResult<VersionedEntity>
 
@@ -46,4 +47,6 @@ interface EntityStrategy {
   fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 
   fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit>
+
+  fun recordOasysLink(entityUuid: UUID, sanAssessmentType: SanAssessmentType?, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 }

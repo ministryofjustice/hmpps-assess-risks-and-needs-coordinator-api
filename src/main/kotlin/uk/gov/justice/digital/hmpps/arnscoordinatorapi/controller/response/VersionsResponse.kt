@@ -21,4 +21,5 @@ typealias VersionsTable = SortedMap<LocalDate, LastVersionsOnDate>
 data class VersionsResponse(
   val allVersions: VersionsTable = emptySortedMap(),
   val countersignedVersions: VersionsTable = emptySortedMap(),
+  val unaggregatedVersions: List<VersionDetails> = emptyList(),
 )

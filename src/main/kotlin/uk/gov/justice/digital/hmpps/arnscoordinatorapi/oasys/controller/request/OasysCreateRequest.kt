@@ -63,10 +63,22 @@ data class OasysCreateRequest(
   )
   @field:Pattern(regexp = "^[YN]$", message = "Must be 'Y' or 'N'")
   val newPeriodOfSupervision: String? = null,
+
+  @Schema(
+    description = "SAN pathway for this assessment. Null when assessmentType is SP.",
+    example = "COMMUNITY",
+  )
+  val sanAssessmentType: SanAssessmentType? = null,
+
+  @Schema(
+    description = "OASys answers used to pre-populate SAN. Keys are OASys question refs",
+    example = "{\"o3-4\": \"2\"}",
+  )
+  val oasysData: Map<String, Any?>? = null,
 ) {
 
   fun previousPkFor(entityType: EntityType): String? = when (entityType) {
-    EntityType.ASSESSMENT -> previousOasysSanPk
+    EntityType.ASSESSMENT, EntityType.AAP_SAN -> previousOasysSanPk
     EntityType.PLAN, EntityType.AAP_PLAN -> previousOasysSpPk
   }
 
