@@ -25,7 +25,6 @@ import java.time.LocalDate
 import java.util.UUID
 import kotlin.properties.Delegates
 
-
 @Tag("test")
 @DisplayName("Coordinator counter-sign API Tests")
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
@@ -55,7 +54,7 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
     }?.key
 
     assertThat(entityVersion?.allVersions?.get(planLastUpdatedDate)?.planVersion?.entityType).isEqualTo(
-      EntityType.AAP_PLAN
+      EntityType.AAP_PLAN,
     )
 
     val assessmentUpdatedDate = entityVersion?.allVersions?.entries?.lastOrNull { (_, versionValue) ->
@@ -63,7 +62,7 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
     }?.key
 
     assertThat(entityVersion?.allVersions?.get(assessmentUpdatedDate)?.assessmentVersion?.entityType).isEqualTo(
-      EntityType.AAP_SAN
+      EntityType.AAP_SAN,
     )
 
     sentencePlanVersion = entityVersion?.allVersions?.get(planLastUpdatedDate)?.planVersion?.version!!
@@ -132,5 +131,4 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.countersignedVersions?.get(today)?.planVersion?.status).isEqualTo("COUNTERSIGNED")
   }
-
 }

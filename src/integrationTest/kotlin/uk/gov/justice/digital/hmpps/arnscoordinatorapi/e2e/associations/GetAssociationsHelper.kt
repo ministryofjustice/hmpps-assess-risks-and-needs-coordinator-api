@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 
 object GetAssociationsHelper {
   fun getAssociations(webTestClient: WebTestClient, oasysPk: String): OasysAssociationsResponse? {
-    val getResponse = webTestClient.get().uri("/oasys/${oasysPk}/associations")
+    val getResponse = webTestClient.get().uri("/oasys/$oasysPk/associations")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus().isOk
