@@ -1,0 +1,54 @@
+---
+# Per environment values which override defaults in hmpps-template-kotlin/values.yaml
+
+generic-service:
+  replicaCount: 1
+  serviceAccountName: hmpps-arns-assessment-platform-service-account
+
+  ingress:
+    host: arns-coordinator-api-training.hmpps.service.justice.gov.uk
+    className: modsec-non-prod
+    modsecurity_enabled: true
+    modsecurity_snippet: |
+      SecRuleEngine On
+      # Team here grants access to the OpenSearch logs to delve into the cause of the blockage
+      SecDefaultAction "phase:2,pass,log,tag:github_team=hmpps-assessments,tag:namespace={{ .Release.Namespace }}"
+      # Disables request body scanning so free-text form fields (goal titles, step descriptions) do not trigger false positives
+      SecRuleUpdateTargetById 920272 "!REQUEST_BODY"
+      # Change default denial to be a 406 so that we can tell easily that it is modsecurity doing the blocking
+      SecRuleUpdateActionById 949110 "t:none,deny,status:406,logdata:%{SERVER_NAME}"
+      SecRuleUpdateActionById 959100 "t:none,deny,status:406,logdata:%{SERVER_NAME}"
+      SecAction "id:900000,phase:1,nolog,pass,t:none,setvar:tx.paranoia_level=2"
+
+  env:
+    APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
+    HMPPS_AUTH_BASE_URL: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
+    # SAN is being deprecated, so SAN and Sentence Plan stay on test for now. To confirm with James Boobier.
+    SAN_API_BASE_URL: "https://api.strengths-based-needs-test.hmpps.service.justice.gov.uk"
+    SP_API_BASE_URL: "https://sentence-plan-api-test.hmpps.service.justice.gov.uk"
+    AAP_API_BASE_URL: "http://hmpps-arns-assessment-platform-api.hmpps-arns-assessment-platform-training.svc.cluster.local"
+
+  allowlist:
+    mp-nat-egress-one: 13.43.9.198/32
+    mp-nat-egress-two: 13.42.163.245/32
+    mp-nat-egress-three: 18.132.208.127/32    
+    nat-gw-one: 35.178.209.113/31
+    nat-gw-two: 3.8.51.207/31
+    nat-gw-three: 35.177.252.54/31
+    capita-dev: 51.104.16.30/31
+    captia-further: 172.167.141.40/32
+    neil-test: 51.155.102.238/32
+    capita-developers-vms-one: 85.115.52.180/32
+    capita-developers-vms-two: 85.115.52.200/29
+    capita-developers-vms-three: 85.115.53.180/32
+    capita-developers-vms-four: 85.115.53.200/29
+    capita-developers-vms-five: 85.115.54.180/32
+    capita-developers-vms-six: 85.115.54.200/29
+    oasys-box-t2 : 10.26.12.211/32
+    accessibility-audit: 5.181.59.114/32
+
+# CloudPlatform AlertManager receiver to route prometheus alerts to slack
+# See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
+generic-prometheus-alerts:
+  businessHoursOnly: true
+  
