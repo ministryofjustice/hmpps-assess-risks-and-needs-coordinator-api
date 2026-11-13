@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
@@ -419,6 +420,16 @@ class AAPApiMock : WireMockServer(8093) {
         ),
     )
   }
+
+  fun stubStartNewPathway(status: Int = 200) {
+    stubFor(
+      post("/san/start-new-pathway")
+        .willReturn(aResponse().withStatus(status)),
+    )
+  }
+
+  fun findStartNewPathwayRequests(): List<JsonNode> = findAll(postRequestedFor(urlEqualTo("/san/start-new-pathway")))
+    .map { objectMapper.readTree(it.bodyAsString) }
 }
 
 class AAPApiMockExtension :

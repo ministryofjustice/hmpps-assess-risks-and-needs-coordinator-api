@@ -219,6 +219,7 @@ class CreateTest : IntegrationTestBase() {
     val planUuid = UUID.randomUUID()
     val sanUuid = UUID.randomUUID()
 
+    stubAAPQueryAssessment(200, "STRENGTHS_AND_NEEDS", sanUuid)
     stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
     stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
     stubAAPUpdateAssessmentProperties()
@@ -411,5 +412,62 @@ class CreateTest : IntegrationTestBase() {
     assertThat(response.responseBody?.developerMessage).contains("previousOasysSanPk - size must be between 1 and 15")
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - Must only contain numeric characters")
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - size must be between 1 and 15")
+    assertThat(findAAPStartNewPathwayRequests()).isEmpty()
+  }
+
+  @Test
+  fun `it clears SAN answers via AAP when an existing SAN is linked with a different pathway`() {
+    val planUuid = UUID.randomUUID()
+    val sanUuid = UUID.randomUUID()
+
+    stubAAPQueryAssessment(200, "STRENGTHS_AND_NEEDS", sanUuid)
+    stubAAPStartNewPathway(200)
+    stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
+    stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
+    stubAAPUpdateAssessmentProperties()
+    stubAAPUpdateFlags()
+
+    val previousOasysPk = getRandomOasysPk()
+    val oasysAssessmentPk = getRandomOasysPk()
+
+    oasysAssociationRepository.saveAll(
+      listOf(
+        OasysAssociation(
+          oasysAssessmentPk = previousOasysPk,
+          entityType = EntityType.AAP_PLAN,
+          entityUuid = planUuid,
+        ),
+        OasysAssociation(
+          oasysAssessmentPk = previousOasysPk,
+          entityType = EntityType.AAP_SAN,
+          entityUuid = sanUuid,
+        ),
+      ),
+    )
+
+    webTestClient.post().uri("/oasys/create")
+      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
+      .bodyValue(
+        OasysCreateRequest(
+          previousOasysSanPk = previousOasysPk,
+          previousOasysSpPk = previousOasysPk,
+          oasysAssessmentPk = oasysAssessmentPk,
+          planType = PlanType.INITIAL,
+          assessmentType = AssessmentType.SAN_SP,
+          userDetails = OasysUserDetails(id = "1", name = "Test Name"),
+          sanAssessmentType = SanAssessmentType.CUSTODY,
+        ),
+      )
+      .exchange()
+      .expectStatus().isCreated
+
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
+    val calls = findAAPStartNewPathwayRequests()
+
+    assertThat(calls).hasSize(1)
+    assertThat(calls.single().path("assessmentUuid").asText()).isEqualTo(sanUuid.toString())
+    assertThat(calls.single().path("previousPathway").asText()).isEqualTo("COMMUNITY")
+    assertThat(calls.single().path("newPathway").asText()).isEqualTo("CUSTODY")
+    assertThat(associations.first { it.entityType == EntityType.AAP_SAN }.entityUuid).isEqualTo(sanUuid)
   }
 }
