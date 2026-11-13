@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.http.MediaType
@@ -22,6 +23,8 @@ import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
 
+@Tag("dev")
+@Tag("test")
 @DisplayName("Sentence Plan Review API Tests")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
