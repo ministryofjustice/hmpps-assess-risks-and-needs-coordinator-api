@@ -39,7 +39,8 @@ abstract class IntegrationTestBase {
   @Autowired
   lateinit var randomOasysPk: RandomOasysPk
 
-  @Autowired lateinit var assessmentTypeConfig: AssessmentTypeConfig
+  @Autowired
+  lateinit var assessmentTypeConfig: AssessmentTypeConfig
 
   fun getRandomOasysPk() = randomOasysPk.get()
 
@@ -111,4 +112,8 @@ abstract class IntegrationTestBase {
   protected fun verifyAAPUndeleteAssessmentNotCalled() {
     aapApiMock.verifyUndeleteAssessmentNotCalled()
   }
+
+  protected fun stubAAPStartNewPathway(status: Int = 200) = aapApiMock.stubStartNewPathway(status)
+
+  protected fun findAAPStartNewPathwayRequests() = aapApiMock.findStartNewPathwayRequests()
 }
