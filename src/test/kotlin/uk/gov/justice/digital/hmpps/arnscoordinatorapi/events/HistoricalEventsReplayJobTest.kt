@@ -10,7 +10,6 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
@@ -60,8 +59,18 @@ class HistoricalEventsReplayJobTest {
     )
     whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
       .thenReturn(rows, emptyList())
-    whenever(associationsService.findLatestAssociationDetailsByEntityIds(any()))
-      .thenReturn(mapOf(entityUuid to EntityAssociationDetails("PK-123", "MDI", 5L)))
+    whenever(associationsService.findAllIncludingDeleted(entityUuid))
+      .thenReturn(
+        listOf(
+          OasysAssociation(
+            entityUuid = entityUuid,
+            entityType = EntityType.AAP_PLAN,
+            oasysAssessmentPk = "PK-123",
+            regionPrisonCode = "MDI",
+            baseVersion = 5L,
+          ),
+        ),
+      )
 
     job.replayAll()
 
@@ -94,8 +103,17 @@ class HistoricalEventsReplayJobTest {
     val row = versionRow(version = 300, event = PersistenceOasysEvent.LOCKED, updated = mutatedAt)
     whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
       .thenReturn(listOf(row), emptyList())
-    whenever(associationsService.findLatestAssociationDetailsByEntityIds(any()))
-      .thenReturn(mapOf(entityUuid to EntityAssociationDetails("PK-123", null, 1L)))
+    whenever(associationsService.findAllIncludingDeleted(entityUuid))
+      .thenReturn(
+        listOf(
+          OasysAssociation(
+            entityUuid = entityUuid,
+            entityType = EntityType.AAP_PLAN,
+            oasysAssessmentPk = "PK-123",
+            baseVersion = 1L,
+          ),
+        ),
+      )
 
     job.replayAll()
 
@@ -115,9 +133,18 @@ class HistoricalEventsReplayJobTest {
     )
     whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
       .thenReturn(rows, emptyList())
-    whenever(associationsService.findLatestAssociationDetailsByEntityIds(any()))
-      .thenReturn(mapOf(entityUuid to EntityAssociationDetails("PK-123", "MDI", 5L)))
-    // orphan has no live association and no fallback -> skipped
+    whenever(associationsService.findAllIncludingDeleted(entityUuid))
+      .thenReturn(
+        listOf(
+          OasysAssociation(
+            entityUuid = entityUuid,
+            entityType = EntityType.AAP_PLAN,
+            oasysAssessmentPk = "PK-123",
+            regionPrisonCode = "MDI",
+            baseVersion = 5L,
+          ),
+        ),
+      )
     whenever(associationsService.findAllIncludingDeleted(orphanUuid)).thenReturn(emptyList())
 
     job.replayAll()
@@ -128,11 +155,10 @@ class HistoricalEventsReplayJobTest {
   }
 
   @Test
-  fun `replayAll falls back to a soft deleted association when no live association exists`() {
+  fun `replayAll uses a soft deleted historical association`() {
     val row = versionRow(version = 100, event = PersistenceOasysEvent.CREATED)
     whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
       .thenReturn(listOf(row), emptyList())
-    whenever(associationsService.findLatestAssociationDetailsByEntityIds(any())).thenReturn(emptyMap())
     whenever(associationsService.findAllIncludingDeleted(entityUuid)).thenReturn(
       listOf(
         OasysAssociation(
@@ -160,8 +186,18 @@ class HistoricalEventsReplayJobTest {
     val page2 = listOf(versionRow(version = 200, event = PersistenceOasysEvent.LOCKED))
     whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
       .thenReturn(page1, page2, emptyList())
-    whenever(associationsService.findLatestAssociationDetailsByEntityIds(any()))
-      .thenReturn(mapOf(entityUuid to EntityAssociationDetails("PK-123", "MDI", 5L)))
+    whenever(associationsService.findAllIncludingDeleted(entityUuid))
+      .thenReturn(
+        listOf(
+          OasysAssociation(
+            entityUuid = entityUuid,
+            entityType = EntityType.AAP_PLAN,
+            oasysAssessmentPk = "PK-123",
+            regionPrisonCode = "MDI",
+            baseVersion = 5L,
+          ),
+        ),
+      )
 
     job.replayAll()
 
@@ -208,5 +244,58 @@ class HistoricalEventsReplayJobTest {
 
     verify(versionRepository).findNextPageIncludingDeleted(any(), any(), any())
     verify(connection).prepareStatement(eq("SELECT pg_advisory_unlock(?)"))
+  }
+
+  @Test
+  fun `replay resolves assessment association separately for each version`() {
+    fun association(pk: String, baseVersion: Long) = OasysAssociation(
+      entityUuid = entityUuid,
+      entityType = EntityType.AAP_PLAN,
+      oasysAssessmentPk = pk,
+      regionPrisonCode = "N55",
+      baseVersion = baseVersion,
+    )
+
+    val rows = listOf(
+      versionRow(1781018571990L, PersistenceOasysEvent.SELF_SIGNED),
+      versionRow(1781021847672L, PersistenceOasysEvent.SELF_SIGNED),
+      versionRow(1783013801383L, PersistenceOasysEvent.SELF_SIGNED),
+    )
+
+    whenever(versionRepository.findNextPageIncludingDeleted(any(), any(), any()))
+      .thenReturn(rows, emptyList())
+
+    // Deliberately unordered: resolution must depend on version boundaries.
+    whenever(associationsService.findAllIncludingDeleted(entityUuid))
+      .thenReturn(
+        listOf(
+          association("2516198429", 1781185754299L),
+          association("2516087153", 0L),
+          association("2516191781", 1781021599157L),
+        ),
+      )
+
+    job.replayAll()
+
+    val events = argumentCaptor<CoordinatorEvent>()
+    verify(publisher, times(3)).publish(events.capture())
+
+    val mappings = events.allValues.map {
+      val payload = it.message as VersionPayload
+      Triple(
+        payload.version,
+        payload.association.oasysAssessmentPk,
+        payload.association.baseVersion,
+      )
+    }
+
+    assertThat(mappings).containsExactly(
+      Triple(1781018571990L, "2516087153", 0L),
+      Triple(1781021847672L, "2516191781", 1781021599157L),
+      Triple(1783013801383L, "2516198429", 1781185754299L),
+    )
+
+    verify(associationsService, never())
+      .findLatestAssociationDetailsByEntityIds(any())
   }
 }
