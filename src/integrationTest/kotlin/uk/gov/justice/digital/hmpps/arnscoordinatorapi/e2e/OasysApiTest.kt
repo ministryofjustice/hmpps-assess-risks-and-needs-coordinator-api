@@ -2,10 +2,13 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
 import kotlin.random.Random
 
+@Tag("dev")
+@Tag("test")
 @DisplayName("Oasys API Tests")
 class OasysApiTest : IntegrationTestBase() {
 
