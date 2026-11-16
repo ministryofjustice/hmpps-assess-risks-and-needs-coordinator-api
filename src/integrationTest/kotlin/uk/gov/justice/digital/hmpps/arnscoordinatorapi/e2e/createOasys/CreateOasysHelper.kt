@@ -15,11 +15,9 @@ object CreateOasysHelper {
     webTestClient: WebTestClient,
     crn: String,
     oasysPk: String,
-    previousOasysSanPk: String? = null,
-    sanAssessmentType: SanAssessmentType? = null,
-    oasysData: Map<String, Any?>? = null,
     planType: PlanType = PlanType.INITIAL,
     previousOasysSpPk: String? = null,
+    previousOasysSanPk: String? = null,
   ): OasysVersionedEntityResponse? {
     val oasysCreateRequest = OasysCreateRequest(
       oasysAssessmentPk = oasysPk,
@@ -31,8 +29,6 @@ object CreateOasysHelper {
       userDetails = OasysUserDetails(id = "test-user", name = "Test User"),
       previousOasysSpPk = previousOasysSpPk,
       previousOasysSanPk = previousOasysSanPk,
-      sanAssessmentType = sanAssessmentType,
-      oasysData = oasysData,
     )
 
     val createResponse = webTestClient.post().uri("/oasys/create")
