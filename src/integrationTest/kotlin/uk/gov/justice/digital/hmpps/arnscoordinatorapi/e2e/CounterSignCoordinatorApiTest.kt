@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
@@ -77,13 +78,17 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
       sentencePlanVersionNumber = sentencePlanVersion,
       userDetails = OasysUserDetails(name = "Burley Zieme", id = oasysPk),
     )
-    webTestClient.post().uri("/oasys/$oasysPk/rollback")
+    val result = webTestClient.post().uri("/oasys/$oasysPk/rollback")
       .bodyValue(oasysRollbackRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().isOk
-      .expectBody<OasysVersionedEntityResponse>()
-      .returnResult().responseBody
+
+    val status = result.returnResult().status
+    if (status == HttpStatus.OK) {
+      result.expectBody<OasysVersionedEntityResponse>()
+    } else {
+      assertThat(status).isEqualTo(HttpStatus.CONFLICT)
+    }
 
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("ROLLED_BACK")

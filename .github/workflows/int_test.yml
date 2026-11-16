@@ -39,6 +39,7 @@ jobs:
           AAP_CLIENT_SECRET: ${{ secrets.ARNS_ASSESSMENT_CLIENT_SECRET }}
           ARNS_COORDINATOR_BASE_URL: ${{ fromJSON(vars.INT_TEST_DATA)[inputs.environment].url }}
           AAP_TEST_BASE_URL: ${{ fromJSON(vars.INT_TEST_AAP_DATA)[inputs.environment].url }}
+          TEST_TAG: ${{ fromJSON(vars.INT_TEST_TAGS)[inputs.environment].tag }}
 
       - name: Upload test results
         if: '!cancelled()'
