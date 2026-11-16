@@ -164,7 +164,7 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun stubMarkMerged(status: Int = 200) {
+  fun stubUpdateAssessmentProperties(status: Int = 200) {
     stubFor(
       post("/command")
         .withRequestBody(containing("UpdateAssessmentPropertiesCommand"))
@@ -196,6 +196,46 @@ class AAPApiMock : WireMockServer(8093) {
             .withStatus(status),
         ),
     )
+  }
+
+  fun verifyUpdateAssessmentProperties(assessmentUuid: UUID, expectedKeys: Set<String>, expectedValues: Map<String, String>): Map<String, String> {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "UpdateAssessmentPropertiesCommand" }
+      .filter { it.path("assessmentUuid").asText() == assessmentUuid.toString() }
+
+    assertThat(commands)
+      .describedAs("UpdateAssessmentPropertiesCommand requests for assessment $assessmentUuid")
+      .hasSize(1)
+
+    val added = commands.single().path("added")
+
+    assertThat(added.fieldNames().asSequence().toList()).containsExactlyInAnyOrderElementsOf(expectedKeys)
+    expectedValues.forEach { (key, value) ->
+      assertThat(added.path(key).path("value").asText()).describedAs(key).isEqualTo(value)
+    }
+    return added.properties().associate { (key, value) -> key to value.path("value").asText() }
+  }
+
+  fun stubMarkMerged(status: Int = 200) = stubUpdateAssessmentProperties(status)
+
+  fun verifyCreateAssessmentHookData(assessmentType: String, hookType: String): Map<String, String>? {
+    val commands = findAll(postRequestedFor(urlEqualTo("/command")))
+      .map { objectMapper.readTree(it.bodyAsString) }
+      .flatMap { it.path("commands").toList() }
+      .filter { it.path("type").asText() == "CreateAssessmentCommand" }
+      .filter { it.path("assessmentType").asText() == assessmentType }
+
+    assertThat(commands)
+      .describedAs("CreateAssessmentCommand requests for $assessmentType")
+      .hasSize(1)
+
+    return commands.single().path("hooks")
+      .firstOrNull { it.path("type").asText() == hookType }
+      ?.path("data")
+      ?.properties()
+      ?.associate { (key, value) -> key to value.asText() }
   }
 
   fun stubSoftDeleteAssessment(status: Int = 200) {

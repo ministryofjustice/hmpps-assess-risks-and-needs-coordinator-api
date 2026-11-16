@@ -305,6 +305,36 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during updateFlags: ${ex.message}", ex)
   }
 
+  fun updateAssessmentProperties(assessmentUuid: UUID, added: Map<String, PropertyValue>, user: AAPUser): ApiOperationResult<Unit> = try {
+    val command = UpdateAssessmentPropertiesCommand(
+      assessmentUuid = assessmentUuid,
+      user = user,
+      added = added,
+    )
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+
+    val result = response?.commands?.firstOrNull()?.result
+
+    when {
+      result == null -> ApiOperationResult.Failure("No command result returned from AAP API during updateAssessmentProperties")
+      !result.success -> ApiOperationResult.Failure("AAP API rejected updateAssessmentProperties: ${result.message}")
+      else -> ApiOperationResult.Success(Unit)
+    }
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during updateAssessmentProperties: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during updateAssessmentProperties: ${ex.message}", ex)
+  }
+
   fun runQueries(vararg queries: Query): ApiOperationResult<QueriesResponse> = try {
     aapApiWebClient.post()
       .uri(apiProperties.endpoints.query)

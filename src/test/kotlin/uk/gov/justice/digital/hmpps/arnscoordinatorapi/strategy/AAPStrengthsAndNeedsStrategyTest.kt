@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -16,23 +17,29 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.PrepopulateFromOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.MultiValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.Value
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.request.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service.OasysVersionService
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData as AAPCreateAssessmentData
 
 class AAPStrengthsAndNeedsStrategyTest {
   private val aapApi: AAPApi = mock()
@@ -53,6 +60,123 @@ class AAPStrengthsAndNeedsStrategyTest {
     )
 
     whenever(clock.now()).thenReturn(now)
+  }
+
+  @Nested
+  inner class Create {
+
+    private val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, EntityType.AAP_SAN)
+
+    @BeforeEach
+    fun setup() {
+      whenever(aapApi.createAssessment(any(), any())).thenReturn(AAPApi.ApiOperationResult.Success(versionedEntity))
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CREATED, versionedEntity.id))
+        .thenReturn(OasysVersionEntity(createdBy = OasysEvent.CREATED, entityUuid = versionedEntity.id, version = versionedEntity.version))
+    }
+
+    private fun createdData(sanAssessmentType: SanAssessmentType?, oasysData: Map<String, Any?>?): AAPCreateAssessmentData {
+      val captor = argumentCaptor<AAPCreateAssessmentData>()
+
+      strategy.create(CreateData(assessment = CreateAssessmentData(UserDetails("id", "name"), sanAssessmentType, oasysData)))
+      verify(aapApi).createAssessment(any(), captor.capture())
+
+      return captor.firstValue
+    }
+
+    @Test
+    fun `should send PrepopulateFromOasys hook when OASys data is supplied`() {
+      val oasysData = mapOf("o3-4" to "M", "o8-1" to "NO")
+
+      val data = createdData(SanAssessmentType.COMMUNITY, oasysData)
+
+      assertThat(data.hooks.first()).isEqualTo(PrepopulateFromOasys(oasysData))
+      assertThat(data.properties).isEqualTo(
+        mapOf(
+          "OASYS_CREATED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z"),
+          "SAN_ASSESSMENT_TYPE" to PropertyValue(type = "Single", value = "COMMUNITY"),
+        ),
+      )
+    }
+
+    @Test
+    fun `should not send PrepopulateFromOasys hook when OASys data is empty`() {
+      val data = createdData(sanAssessmentType = null, oasysData = emptyMap())
+
+      assertThat(data.hooks).noneMatch { it is PrepopulateFromOasys }
+    }
+
+    @Test
+    fun `should not send PrepopulateFromOasys hook when SAN assessment type is CUSTODY`() {
+      val data = createdData(SanAssessmentType.CUSTODY, mapOf("o3-4" to "2"))
+
+      assertThat(data.hooks).noneMatch { it is PrepopulateFromOasys }
+    }
+
+    @Test
+    fun `should send only the created timestamp and no PrepopulateFromOasys hook when SAN assessment type and OASys data are not supplied`() {
+      val data = createdData(sanAssessmentType = null, oasysData = null)
+
+      assertThat(data.properties).isEqualTo(
+        mapOf("OASYS_CREATED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z")),
+      )
+      assertThat(data.hooks).noneMatch { it is PrepopulateFromOasys }
+    }
+
+    @Test
+    fun `should truncate created timestamp to milliseconds when clock has sub-millisecond precision`() {
+      whenever(clock.now()).thenReturn(LocalDateTime.parse("2026-01-09T12:00:00.123456789"))
+
+      val properties = createdData(sanAssessmentType = null, oasysData = null).properties
+
+      assertThat(properties["OASYS_CREATED"]?.value).isEqualTo("2026-01-09T12:00:00.123Z")
+    }
+  }
+
+  @Nested
+  inner class RecordOasysLink {
+
+    private val entityUuid = UUID.randomUUID()
+    private val userDetails = UserDetails("id", "name")
+    private val user = AAPUser("id", "name")
+
+    @Test
+    fun `should send only the linked timestamp when SAN assessment type is not supplied`() {
+      whenever(aapApi.updateAssessmentProperties(any(), any(), any()))
+        .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+
+      strategy.recordOasysLink(entityUuid, null, userDetails)
+
+      verify(aapApi).updateAssessmentProperties(
+        entityUuid,
+        mapOf("OASYS_LINKED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z")),
+        user,
+      )
+    }
+
+    @Test
+    fun `should send UTC linked timestamp and SAN assessment type without OASys answers when SAN is linked`() {
+      val expectedProperties = mapOf(
+        "OASYS_LINKED" to PropertyValue(type = "Single", value = "2026-01-09T12:00:00Z"),
+        "SAN_ASSESSMENT_TYPE" to PropertyValue(type = "Single", value = "CUSTODY"),
+      )
+      whenever(aapApi.updateAssessmentProperties(entityUuid, expectedProperties, user))
+        .thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+
+      val result = strategy.recordOasysLink(entityUuid, SanAssessmentType.CUSTODY, userDetails)
+
+      assertThat(result).isEqualTo(OperationResult.Success(Unit))
+      verify(aapApi).updateAssessmentProperties(entityUuid, expectedProperties, user)
+    }
+
+    @Test
+    fun `should return failure when AAP properties cannot be updated`() {
+      whenever(aapApi.updateAssessmentProperties(any(), any(), any()))
+        .thenReturn(AAPApi.ApiOperationResult.Failure("Update failed"))
+
+      val result = strategy.recordOasysLink(entityUuid, SanAssessmentType.CUSTODY, userDetails)
+
+      assertThat(result).isEqualTo(OperationResult.Failure<Unit>("Update failed"))
+    }
   }
 
   @Nested

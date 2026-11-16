@@ -76,6 +76,18 @@ abstract class IntegrationTestBase {
     aapApiMock.verifyUpdateFlags(assessmentUuid, flags)
   }
 
+  protected fun stubAAPUpdateAssessmentProperties(status: Int = 200) {
+    aapApiMock.stubUpdateAssessmentProperties(status)
+  }
+
+  protected fun verifyAAPUpdateAssessmentProperties(
+    assessmentUuid: UUID,
+    expectedKeys: Set<String>,
+    expectedValues: Map<String, String>,
+  ): Map<String, String> = aapApiMock.verifyUpdateAssessmentProperties(assessmentUuid, expectedKeys, expectedValues)
+
+  protected fun verifyAAPCreateAssessmentHookData(assessmentType: String, hookType: String): Map<String, String>? = aapApiMock.verifyCreateAssessmentHookData(assessmentType, hookType)
+
   protected fun stubAAPQueryPlanVersions(status: Int = 200, uuid: UUID) {
     aapApiMock.stubQueryPlanVersions(status, uuid)
   }
