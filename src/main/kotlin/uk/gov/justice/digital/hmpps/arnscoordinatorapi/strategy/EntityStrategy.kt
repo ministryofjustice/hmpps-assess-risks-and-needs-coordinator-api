@@ -14,7 +14,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import java.util.UUID
 
 interface EntityStrategy {
@@ -47,6 +46,4 @@ interface EntityStrategy {
   fun markMerged(entityUuid: UUID, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 
   fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit>
-
-  fun recordOasysLink(entityUuid: UUID, sanAssessmentType: SanAssessmentType?, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 }
