@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -83,11 +84,10 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
 
-    val status = result.returnResult().status
-    if (status == HttpStatus.OK) {
-      result.expectBody<OasysVersionedEntityResponse>()
-    } else {
-      assertThat(status).isEqualTo(HttpStatus.CONFLICT)
+    when (val status = result.returnResult().status) {
+      HttpStatus.OK -> result.expectBody<OasysVersionedEntityResponse>()
+      HttpStatus.CONFLICT -> Unit
+      else -> fail("Expected HTTP 200 OK or 409 CONFLICT, but got $status")
     }
 
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
