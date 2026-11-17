@@ -9,7 +9,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy.EntityStrategy
 class CreateCommand(
   private val strategy: EntityStrategy,
   private val createData: CreateData,
-) : Command {
+) : RollbackableCommand {
 
   lateinit var createdEntity: VersionedEntity
 
@@ -20,5 +20,5 @@ class CreateCommand(
     else -> result
   }
 
-  fun rollback() = strategy.delete(DeleteData.from(createData), createdEntity.id)
+  override fun rollback() = strategy.delete(DeleteData.from(createData), createdEntity.id)
 }

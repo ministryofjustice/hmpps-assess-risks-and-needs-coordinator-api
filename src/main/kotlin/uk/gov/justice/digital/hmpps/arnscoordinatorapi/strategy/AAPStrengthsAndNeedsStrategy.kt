@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult.Failure
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult.Success
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.PathwayChange
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
@@ -342,7 +343,7 @@ class AAPStrengthsAndNeedsStrategy(
     }
   }
 
-  override fun changePathway(entityUuid: UUID, newPathway: SanAssessmentType, userDetails: UserDetails): OperationResult<VersionedEntity?> {
+  override fun changePathway(entityUuid: UUID, newPathway: SanAssessmentType, userDetails: UserDetails): OperationResult<PathwayChange?> {
     val assessment = when (val result = aapApi.fetchAssessment(entityUuid, clock.now())) {
       is AAPApi.ApiOperationResult.Failure -> return Failure(result.errorMessage)
       is AAPApi.ApiOperationResult.Success -> result.data
@@ -368,10 +369,19 @@ class AAPStrengthsAndNeedsStrategy(
         hooks = listOf(updateOasysDataMappingHook(assessment.formVersion)),
       )
     ) {
-      is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
-        .toOperationResult()
+      is AAPApi.ApiOperationResult.Success -> {
+        val version = oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
+        Success(PathwayChange(VersionedEntity(version.entityUuid, version.version, entityType), clearedFrom = assessment.updatedAt))
+      }
       is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
     }
+  }
+
+  override fun undoPathwayChange(entityUuid: UUID, clearedFrom: LocalDateTime, userDetails: UserDetails): OperationResult<Unit> = when (
+    val result = aapApi.rollbackAssessment(entityUuid, clearedFrom, AAPUser(id = userDetails.id, name = userDetails.name))
+  ) {
+    is AAPApi.ApiOperationResult.Success -> Success(Unit)
+    is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
   }
 
   private fun OasysVersionEntity.toOperationResult() = Success(VersionedEntity(entityUuid, version, entityType))

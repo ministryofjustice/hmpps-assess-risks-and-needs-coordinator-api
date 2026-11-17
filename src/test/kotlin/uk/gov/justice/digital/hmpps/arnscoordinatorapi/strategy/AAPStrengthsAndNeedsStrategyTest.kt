@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.a
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.api.response.AssessmentResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.CreateData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.PathwayChange
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserType
@@ -473,6 +474,7 @@ class AAPStrengthsAndNeedsStrategyTest {
     private val userDetails = UserDetails("id", "name")
     private val user = AAPUser("id", "name")
     private val newVersion = OasysVersionEntity(createdBy = OasysEvent.CLONED, entityUuid = entityUuid, version = 123L)
+    private val lastUpdated = now.minusMinutes(5)
 
     private fun assessmentOn(pathway: String?) = AssessmentVersionQueryResult(
       assessmentUuid = entityUuid,
@@ -480,7 +482,7 @@ class AAPStrengthsAndNeedsStrategyTest {
       assessmentType = "STRENGTHS_AND_NEEDS",
       formVersion = "v2.0",
       createdAt = now,
-      updatedAt = now,
+      updatedAt = lastUpdated,
       answers = emptyMap(),
       properties = pathway?.let { mapOf("SAN_ASSESSMENT_TYPE" to SingleValue(it)) } ?: emptyMap(),
       collections = emptyList(),
@@ -531,7 +533,7 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       val result = strategy.changePathway(entityUuid, SanAssessmentType.CUSTODY, userDetails)
 
-      assertThat(result).isEqualTo(OperationResult.Success(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN)))
+      assertThat(result).isEqualTo(OperationResult.Success(PathwayChange(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN), clearedFrom = lastUpdated)))
       verifyClearSent(SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
       inOrder(aapApi, oasysVersionService) {
         verify(aapApi).fetchAssessment(entityUuid, now)
@@ -548,7 +550,7 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       val result = strategy.changePathway(entityUuid, SanAssessmentType.COMMUNITY, userDetails)
 
-      assertThat(result).isEqualTo(OperationResult.Success(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN)))
+      assertThat(result).isEqualTo(OperationResult.Success(PathwayChange(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN), clearedFrom = lastUpdated)))
       verifyClearSent(SanAssessmentType.CUSTODY, SanAssessmentType.COMMUNITY)
       inOrder(aapApi, oasysVersionService) {
         verify(aapApi).fetchAssessment(entityUuid, now)
@@ -565,7 +567,7 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       val result = strategy.changePathway(entityUuid, SanAssessmentType.CUSTODY, userDetails)
 
-      assertThat(result).isEqualTo(OperationResult.Success(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN)))
+      assertThat(result).isEqualTo(OperationResult.Success(PathwayChange(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN), clearedFrom = lastUpdated)))
       verifyClearSent(SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
     }
 
@@ -605,6 +607,31 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
       verify(oasysVersionService, never()).createVersionFor(any(), any())
+    }
+  }
+
+  @Nested
+  inner class UndoPathwayChange {
+    private val entityUuid = UUID.randomUUID()
+    private val clearedFrom = now.minusMinutes(5)
+
+    @Test
+    fun `should roll the assessment back to before the clear`() {
+      whenever(aapApi.rollbackAssessment(entityUuid, clearedFrom, AAPUser("id", "name"))).thenReturn(AAPApi.ApiOperationResult.Success(Unit))
+
+      val result = strategy.undoPathwayChange(entityUuid, clearedFrom, UserDetails("id", "name"))
+
+      assertThat(result).isEqualTo(OperationResult.Success(Unit))
+      verify(aapApi).rollbackAssessment(entityUuid, clearedFrom, AAPUser("id", "name"))
+    }
+
+    @Test
+    fun `should return failure when the rollback fails`() {
+      whenever(aapApi.rollbackAssessment(any(), any(), any())).thenReturn(AAPApi.ApiOperationResult.Failure("Rollback failed"))
+
+      val result = strategy.undoPathwayChange(entityUuid, clearedFrom, UserDetails("id", "name"))
+
+      assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
     }
   }
 }
