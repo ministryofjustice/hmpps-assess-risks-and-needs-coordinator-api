@@ -412,7 +412,7 @@ class CreateTest : IntegrationTestBase() {
     assertThat(response.responseBody?.developerMessage).contains("previousOasysSanPk - size must be between 1 and 15")
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - Must only contain numeric characters")
     assertThat(response.responseBody?.developerMessage).contains("oasysAssessmentPk - size must be between 1 and 15")
-    assertThat(findAAPStartNewPathwayRequests()).isEmpty()
+    assertThat(findAAPClearAssessmentCommands()).isEmpty()
   }
 
   @Test
@@ -421,7 +421,7 @@ class CreateTest : IntegrationTestBase() {
     val sanUuid = UUID.randomUUID()
 
     stubAAPQueryAssessment(200, "STRENGTHS_AND_NEEDS", sanUuid)
-    stubAAPStartNewPathway(200)
+    stubAAPClearAssessment()
     stubAAPCreateAssessment(201, "SENTENCE_PLAN", planUuid)
     stubAAPCreateAssessment(201, "STRENGTHS_AND_NEEDS", sanUuid)
     stubAAPUpdateAssessmentProperties()
@@ -461,13 +461,16 @@ class CreateTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isCreated
 
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
-    val calls = findAAPStartNewPathwayRequests()
+    val calls = findAAPClearAssessmentCommands()
 
     assertThat(calls).hasSize(1)
-    assertThat(calls.single().path("assessmentUuid").asText()).isEqualTo(sanUuid.toString())
-    assertThat(calls.single().path("previousPathway").asText()).isEqualTo("COMMUNITY")
-    assertThat(calls.single().path("newPathway").asText()).isEqualTo("CUSTODY")
-    assertThat(associations.first { it.entityType == EntityType.AAP_SAN }.entityUuid).isEqualTo(sanUuid)
+    val command = calls.single()
+    assertThat(command.path("assessmentUuid").asText()).isEqualTo(sanUuid.toString())
+    assertThat(command.path("properties").map { it.asText() }).containsExactly("*_section_complete", "is_user_submitted_*")
+    assertThat(command.path("collections").map { it.asText() }).containsExactly("OFFENCE_ANALYSIS_VICTIM")
+    assertThat(command.path("timeline").path("type").asText()).isEqualTo("PATHWAY_CHANGE")
+    assertThat(command.path("timeline").path("data").path("previousPathway").asText()).isEqualTo("COMMUNITY")
+    assertThat(command.path("timeline").path("data").path("newPathway").asText()).isEqualTo("CUSTODY")
+    assertThat(command.path("hooks").map { it.path("type").asText() }).containsExactly("UpdateOasysDataMapping")
   }
 }

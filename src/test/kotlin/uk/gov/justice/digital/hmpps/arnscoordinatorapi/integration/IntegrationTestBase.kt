@@ -113,7 +113,7 @@ abstract class IntegrationTestBase {
     aapApiMock.verifyUndeleteAssessmentNotCalled()
   }
 
-  protected fun stubAAPStartNewPathway(status: Int = 200) = aapApiMock.stubStartNewPathway(status)
+  protected fun stubAAPClearAssessment(status: Int = 200) = aapApiMock.stubClearAssessment(status)
 
-  protected fun findAAPStartNewPathwayRequests() = aapApiMock.findStartNewPathwayRequests()
+  protected fun findAAPClearAssessmentCommands() = aapApiMock.findClearAssessmentCommands()
 }

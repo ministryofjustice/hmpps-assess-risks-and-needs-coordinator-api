@@ -420,16 +420,43 @@ class AAPApiMock : WireMockServer(8093) {
         ),
     )
   }
-
-  fun stubStartNewPathway(status: Int = 200) {
+  fun stubClearAssessment(status: Int = 200) {
     stubFor(
-      post("/san/start-new-pathway")
-        .willReturn(aResponse().withStatus(status)),
+      post("/command")
+        .withRequestBody(containing("ClearAssessmentCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "ClearAssessmentCommand",
+                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
+                        "user": { "id": "1", "name": "Test Name" },
+                        "timeline": { "type": "PATHWAY_CHANGE" }
+                      },
+                      "result": {
+                        "type": "CommandSuccessCommandResult",
+                        "message": "Done",
+                        "success": true
+                      }
+                    }
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
     )
   }
 
-  fun findStartNewPathwayRequests(): List<JsonNode> = findAll(postRequestedFor(urlEqualTo("/san/start-new-pathway")))
+  fun findClearAssessmentCommands(): List<JsonNode> = findAll(postRequestedFor(urlEqualTo("/command")))
     .map { objectMapper.readTree(it.bodyAsString) }
+    .flatMap { it.path("commands").toList() }
+    .filter { it.path("type").asText() == "ClearAssessmentCommand" }
 }
 
 class AAPApiMockExtension :
