@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
   JsonSubTypes.Type(value = UndeleteAssessmentCommand::class, name = "UndeleteCommand"),
   JsonSubTypes.Type(value = UpdateAssessmentPropertiesCommand::class, name = "UpdateAssessmentPropertiesCommand"),
   JsonSubTypes.Type(value = UpdateFlagsCommand::class, name = "UpdateFlagsCommand"),
+  JsonSubTypes.Type(value = ClearAssessmentCommand::class, name = "ClearAssessmentCommand"),
 )
 sealed interface Command {
   val user: AAPUser

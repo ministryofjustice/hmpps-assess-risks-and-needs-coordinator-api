@@ -13,7 +13,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.ResetPlanRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.StartNewPathwayRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.ClearAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.Hook
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.QueriesRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.Query
@@ -33,7 +34,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueriesResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -177,28 +177,44 @@ class AAPApi(
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
   }
 
-  fun startNewPathway(assessmentUuid: UUID, user: AAPUser, previousPathway: SanAssessmentType, newPathway: SanAssessmentType): ApiOperationResult<Unit> = try {
-    val request = StartNewPathwayRequest(
-      user = user,
+  fun clearAssessment(
+    assessmentUuid: UUID,
+    user: AAPUser,
+    properties: List<String>,
+    collections: List<String>,
+    timeline: Timeline? = null,
+    hooks: List<Hook>,
+  ): ApiOperationResult<Unit> = try {
+    val command = ClearAssessmentCommand(
       assessmentUuid = assessmentUuid,
-      previousPathway = previousPathway,
-      newPathway = newPathway,
+      user = user,
+      properties = properties,
+      collections = collections,
+      timeline = timeline,
+      hooks = hooks,
     )
-    aapApiWebClient.post()
-      .uri(apiProperties.endpoints.startNewPathway)
-      .body(BodyInserters.fromValue(request))
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
       .retrieve()
-      .bodyToMono(Void::class.java)
+      .bodyToMono(CommandsResponse::class.java)
       .block()
 
-    ApiOperationResult.Success(Unit)
+    val result = response?.commands?.firstOrNull()?.result
+
+    when {
+      result == null -> ApiOperationResult.Failure("No command result returned from AAP API during clearAssessment")
+      !result.success -> ApiOperationResult.Failure("AAP API rejected clearAssessment: ${result.message}")
+      else -> ApiOperationResult.Success(Unit)
+    }
   } catch (ex: WebClientResponseException) {
     ApiOperationResult.Failure(
-      "HTTP error during startNewPathway: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      "HTTP error during clearAssessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
       ex,
     )
   } catch (ex: Exception) {
-    ApiOperationResult.Failure("Unexpected error during startNewPathway: ${ex.message}", ex)
+    ApiOperationResult.Failure("Unexpected error during clearAssessment: ${ex.message}", ex)
   }
 
   fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
