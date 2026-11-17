@@ -144,7 +144,7 @@ class AAPApiMock : WireMockServer(8093) {
                       "assessmentUuid": "$uuid",
                       "aggregateUuid": "6fa85f64-5717-4562-b3fc-2c963f66afa6",
                       "assessmentType": "$assessmentType",
-                      "formVersion": "1.0",
+                      "formVersion": "v1.0",
                       "createdAt": "2026-01-09T12:00:00",
                       "updatedAt": "2026-01-09T12:30:00",
                       "answers": {},

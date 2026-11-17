@@ -365,7 +365,7 @@ class AAPStrengthsAndNeedsStrategy(
           type = "PATHWAY_CHANGE",
           data = mapOf("previousPathway" to previousPathway.name, "newPathway" to newPathway.name),
         ),
-        hooks = listOf(updateOasysDataMappingHook(SAN_FORM_VERSION)),
+        hooks = listOf(updateOasysDataMappingHook(assessment.formVersion)),
       )
     ) {
       is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
