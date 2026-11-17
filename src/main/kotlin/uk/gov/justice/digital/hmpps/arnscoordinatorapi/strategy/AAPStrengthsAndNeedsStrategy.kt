@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.PrepopulateFromOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.UpdateOasysDataMapping
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.formconfig.FormConfig
@@ -354,7 +355,19 @@ class AAPStrengthsAndNeedsStrategy(
     if (previousPathway == newPathway) return Success(null)
 
     val user = AAPUser(id = userDetails.id, name = userDetails.name)
-    return when (val result = aapApi.startNewPathway(entityUuid, user, previousPathway, newPathway)) {
+    return when (
+      val result = aapApi.clearAssessment(
+        assessmentUuid = entityUuid,
+        user = user,
+        properties = PATHWAY_CHANGE_CLEARED_PROPERTIES,
+        collections = PATHWAY_CHANGE_CLEARED_COLLECTIONS,
+        timeline = Timeline(
+          type = "PATHWAY_CHANGE",
+          data = mapOf("previousPathway" to previousPathway.name, "newPathway" to newPathway.name),
+        ),
+        hooks = listOf(updateOasysDataMappingHook(SAN_FORM_VERSION)),
+      )
+    ) {
       is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
         .toOperationResult()
       is AAPApi.ApiOperationResult.Failure -> Failure(result.errorMessage)
@@ -383,8 +396,17 @@ class AAPStrengthsAndNeedsStrategy(
     }
   }.toMap()
 
+  private fun updateOasysDataMappingHook(formVersion: String): UpdateOasysDataMapping = UpdateOasysDataMapping(
+    formConfig = objectMapper.readValue(
+      requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {
+        "Missing form config fixture: src/main/resources/san/formconfig/$formVersion.json"
+      },
+      FormConfig::class.java,
+    ),
+  )
+
   fun CreateData.toCreateAssessmentData(): CreateAssessmentData? {
-    val formVersion = "v2.0"
+    val formVersion = SAN_FORM_VERSION
     return assessment?.let {
       CreateAssessmentData(
         userDetails = it.userDetails,
@@ -393,14 +415,7 @@ class AAPStrengthsAndNeedsStrategy(
         properties = oasysEventProperties(OASYS_CREATED, it.sanAssessmentType),
         hooks = listOfNotNull(
           prepopulateFromOasysHook(it.sanAssessmentType, it.oasysData),
-          UpdateOasysDataMapping(
-            formConfig = objectMapper.readValue(
-              requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {
-                "Missing form config fixture: src/main/resources/san/formconfig/$formVersion.json"
-              },
-              FormConfig::class.java,
-            ),
-          ),
+          updateOasysDataMappingHook(formVersion),
         ),
       )
     }
@@ -411,5 +426,8 @@ class AAPStrengthsAndNeedsStrategy(
     private const val SAN_ASSESSMENT_TYPE = "SAN_ASSESSMENT_TYPE"
     private const val OASYS_CREATED = "OASYS_CREATED"
     private const val OASYS_LINKED = "OASYS_LINKED"
+    private const val SAN_FORM_VERSION = "v2.0"
+    private val PATHWAY_CHANGE_CLEARED_PROPERTIES = listOf("*_section_complete", "is_user_submitted_*")
+    private val PATHWAY_CHANGE_CLEARED_COLLECTIONS = listOf("OFFENCE_ANALYSIS_VICTIM")
   }
 }

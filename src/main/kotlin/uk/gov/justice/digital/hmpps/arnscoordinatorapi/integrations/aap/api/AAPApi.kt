@@ -182,7 +182,7 @@ class AAPApi(
     user: AAPUser,
     properties: List<String>,
     collections: List<String>,
-    timeline: Timeline? = null,
+    timeline: Timeline,
     hooks: List<Hook>,
   ): ApiOperationResult<Unit> = try {
     val command = ClearAssessmentCommand(
