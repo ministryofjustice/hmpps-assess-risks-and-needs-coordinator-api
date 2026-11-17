@@ -397,12 +397,13 @@ class AAPStrengthsAndNeedsStrategy(
   }.toMap()
 
   private fun updateOasysDataMappingHook(formVersion: String): UpdateOasysDataMapping = UpdateOasysDataMapping(
-    formConfig = objectMapper.readValue(
-      requireNotNull(javaClass.getResourceAsStream("/san/formconfig/$formVersion.json")) {
-        "Missing form config fixture: src/main/resources/san/formconfig/$formVersion.json"
-      },
-      FormConfig::class.java,
-    ),
+    formConfig = requireNotNull(
+      javaClass.getResourceAsStream("/san/formconfig/$formVersion.json"),
+    ) {
+      "Missing form config resource: /san/formconfig/$formVersion.json"
+    }.use { stream ->
+      objectMapper.readValue(stream, FormConfig::class.java)
+    },
   )
 
   fun CreateData.toCreateAssessmentData(): CreateAssessmentData? {
