@@ -1,11 +1,14 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.strategy
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
 
 class StrategyFactoryTest {
   private val assessmentStrategy: AssessmentStrategy = mock()
@@ -34,6 +37,27 @@ class StrategyFactoryTest {
       val result = entityStrategyFactory.getStrategy(EntityType.PLAN)
 
       assertSame(planStrategy, result)
+    }
+  }
+
+  @Nested
+  inner class GetStrategiesForWithAssessmentDisabled {
+    private val factory = StrategyFactory(null, planStrategy, aapPlanStrategy)
+
+    @BeforeEach
+    fun setUp() {
+      whenever(planStrategy.entityType).thenReturn(EntityType.PLAN)
+      whenever(aapPlanStrategy.entityType).thenReturn(EntityType.AAP_PLAN)
+    }
+
+    @Test
+    fun `should return only the AAP plan strategy for SAN_SP`() {
+      assertEquals(listOf(aapPlanStrategy), factory.getStrategiesFor(AssessmentType.SAN_SP))
+    }
+
+    @Test
+    fun `should return only the AAP plan strategy for SP`() {
+      assertEquals(listOf(aapPlanStrategy), factory.getStrategiesFor(AssessmentType.SP))
     }
   }
 }
