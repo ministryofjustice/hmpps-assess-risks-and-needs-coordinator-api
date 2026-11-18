@@ -170,6 +170,27 @@ class OasysCoordinatorService(
         }
       }
 
+      val newPathway = request.sanAssessmentType
+      if (linkResult.result is EntityResult.Success && newPathway != null) {
+        when (val pathwayResult = strategy.changePathway(linkResult.result.entity.id, newPathway, request.userDetails.intoUserDetails())) {
+          is OperationResult.Failure -> return EntityResultWithCommand(
+            EntityResult.Failure("Failed to change pathway for ${strategy.entityType}: ${pathwayResult.errorMessage}"),
+            null,
+            null,
+            strategy,
+          )
+          is OperationResult.Success -> pathwayResult.data?.let { newVersion ->
+            linkResult.pendingAssociation?.apply { baseVersion = newVersion.version }
+            return EntityResultWithCommand(
+              EntityResult.Success(newVersion),
+              null,
+              linkResult.pendingAssociation,
+              strategy,
+            )
+          }
+        }
+      }
+
       if (linkResult.result is EntityResult.Success && request.shouldClone(strategy.entityType)) {
         when (val cloneResult = strategy.clone(buildCreateData(request), linkResult.result.entity.id)) {
           is OperationResult.Failure -> return EntityResultWithCommand(

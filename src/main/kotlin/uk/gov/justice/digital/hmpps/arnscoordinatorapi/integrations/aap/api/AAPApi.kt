@@ -13,6 +13,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.ResetPlanRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.ClearAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CommandsRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
@@ -23,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.Hook
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.QueriesRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.Query
@@ -173,6 +175,46 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during resetPlan: ${ex.message}", ex)
+  }
+
+  fun clearAssessment(
+    assessmentUuid: UUID,
+    user: AAPUser,
+    properties: List<String>,
+    collections: List<String>,
+    timeline: Timeline,
+    hooks: List<Hook>,
+  ): ApiOperationResult<Unit> = try {
+    val command = ClearAssessmentCommand(
+      assessmentUuid = assessmentUuid,
+      user = user,
+      properties = properties,
+      collections = collections,
+      timeline = timeline,
+      hooks = hooks,
+    )
+
+    val response = aapApiWebClient.post()
+      .uri(apiProperties.endpoints.command)
+      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
+      .retrieve()
+      .bodyToMono(CommandsResponse::class.java)
+      .block()
+
+    val result = response?.commands?.firstOrNull()?.result
+
+    when {
+      result == null -> ApiOperationResult.Failure("No command result returned from AAP API during clearAssessment")
+      !result.success -> ApiOperationResult.Failure("AAP API rejected clearAssessment: ${result.message}")
+      else -> ApiOperationResult.Success(Unit)
+    }
+  } catch (ex: WebClientResponseException) {
+    ApiOperationResult.Failure(
+      "HTTP error during clearAssessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
+      ex,
+    )
+  } catch (ex: Exception) {
+    ApiOperationResult.Failure("Unexpected error during clearAssessment: ${ex.message}", ex)
   }
 
   fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {

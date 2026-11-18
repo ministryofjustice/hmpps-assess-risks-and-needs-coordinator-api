@@ -49,4 +49,6 @@ interface EntityStrategy {
   fun updateFlags(entityUuid: UUID, flags: List<String>, userDetails: UserDetails): OperationResult<Unit>
 
   fun recordOasysLink(entityUuid: UUID, sanAssessmentType: SanAssessmentType?, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
+
+  fun changePathway(entityUuid: UUID, newPathway: SanAssessmentType, userDetails: UserDetails): OperationResult<VersionedEntity?> = OperationResult.Success(null)
 }

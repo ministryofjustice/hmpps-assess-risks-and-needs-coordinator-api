@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -18,7 +19,10 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.Hook
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.PrepopulateFromOasys
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.UpdateOasysDataMapping
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.MultiValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
@@ -460,6 +464,147 @@ class AAPStrengthsAndNeedsStrategyTest {
         verify(aapApi, never()).undeleteAssessment(any(), any(), any())
         verify(oasysVersionService, never()).undeleteVersions(any(), any(), anyOrNull())
       }
+    }
+  }
+
+  @Nested
+  inner class ChangePathway {
+    private val entityUuid = UUID.randomUUID()
+    private val userDetails = UserDetails("id", "name")
+    private val user = AAPUser("id", "name")
+    private val newVersion = OasysVersionEntity(createdBy = OasysEvent.CLONED, entityUuid = entityUuid, version = 123L)
+
+    private fun assessmentOn(pathway: String?) = AssessmentVersionQueryResult(
+      assessmentUuid = entityUuid,
+      aggregateUuid = UUID.randomUUID(),
+      assessmentType = "STRENGTHS_AND_NEEDS",
+      formVersion = "v2.0",
+      createdAt = now,
+      updatedAt = now,
+      answers = emptyMap(),
+      properties = pathway?.let { mapOf("SAN_ASSESSMENT_TYPE" to SingleValue(it)) } ?: emptyMap(),
+      collections = emptyList(),
+      collaborators = emptySet(),
+      identifiers = emptyMap(),
+    )
+
+    private fun givenStoredPathway(pathway: String?) {
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
+        AAPApi.ApiOperationResult.Success(
+          assessmentOn(
+            pathway,
+          ),
+        ),
+      )
+    }
+
+    private fun givenClearReturns(result: AAPApi.ApiOperationResult<Unit>) {
+      whenever(aapApi.clearAssessment(any(), any(), any(), any(), any(), any())).thenReturn(result)
+    }
+
+    private fun verifyClearSent(previousPathway: SanAssessmentType, newPathway: SanAssessmentType) {
+      val timeline = argumentCaptor<Timeline>()
+      val hooks = argumentCaptor<List<Hook>>()
+
+      verify(aapApi).clearAssessment(
+        eq(entityUuid),
+        eq(user),
+        eq(listOf("*_section_complete", "is_user_submitted_*")),
+        eq(listOf("OFFENCE_ANALYSIS_VICTIM")),
+        timeline.capture(),
+        hooks.capture(),
+      )
+      assertThat(timeline.firstValue).isEqualTo(
+        Timeline(
+          type = "PATHWAY_CHANGE",
+          data = mapOf("previousPathway" to previousPathway.name, "newPathway" to newPathway.name),
+        ),
+      )
+      assertThat(hooks.firstValue).singleElement().isInstanceOf(UpdateOasysDataMapping::class.java)
+    }
+
+    @Test
+    fun `should clear answers and return a new version when the pathway changes from community to custody`() {
+      givenStoredPathway("COMMUNITY")
+      givenClearReturns(AAPApi.ApiOperationResult.Success(Unit))
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)).thenReturn(newVersion)
+
+      val result = strategy.changePathway(entityUuid, SanAssessmentType.CUSTODY, userDetails)
+
+      assertThat(result).isEqualTo(OperationResult.Success(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN)))
+      verifyClearSent(SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
+      inOrder(aapApi, oasysVersionService) {
+        verify(aapApi).fetchAssessment(entityUuid, now)
+        verify(aapApi).clearAssessment(any(), any(), any(), any(), any(), any())
+        verify(oasysVersionService).createVersionFor(OasysEvent.CLONED, entityUuid)
+      }
+    }
+
+    @Test
+    fun `should clear answers and return a new version when the pathway changes from custody to community`() {
+      givenStoredPathway("CUSTODY")
+      givenClearReturns(AAPApi.ApiOperationResult.Success(Unit))
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)).thenReturn(newVersion)
+
+      val result = strategy.changePathway(entityUuid, SanAssessmentType.COMMUNITY, userDetails)
+
+      assertThat(result).isEqualTo(OperationResult.Success(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN)))
+      verifyClearSent(SanAssessmentType.CUSTODY, SanAssessmentType.COMMUNITY)
+      inOrder(aapApi, oasysVersionService) {
+        verify(aapApi).fetchAssessment(entityUuid, now)
+        verify(aapApi).clearAssessment(any(), any(), any(), any(), any(), any())
+        verify(oasysVersionService).createVersionFor(OasysEvent.CLONED, entityUuid)
+      }
+    }
+
+    @Test
+    fun `should treat a missing pathway as community and clear answers when moving to custody`() {
+      givenStoredPathway(null)
+      givenClearReturns(AAPApi.ApiOperationResult.Success(Unit))
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)).thenReturn(newVersion)
+
+      val result = strategy.changePathway(entityUuid, SanAssessmentType.CUSTODY, userDetails)
+
+      assertThat(result).isEqualTo(OperationResult.Success(VersionedEntity(entityUuid, 123L, EntityType.AAP_SAN)))
+      verifyClearSent(SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
+    }
+
+    @Test
+    fun `should do nothing when the pathway does not change`() {
+      givenStoredPathway("COMMUNITY")
+
+      val result = strategy.changePathway(entityUuid, SanAssessmentType.COMMUNITY, userDetails)
+
+      assertThat(result).isEqualTo(OperationResult.Success(null))
+      verify(aapApi).fetchAssessment(entityUuid, now)
+      verify(aapApi, never()).clearAssessment(any(), any(), any(), any(), any(), any())
+      verify(oasysVersionService, never()).createVersionFor(any(), any())
+    }
+
+    @Test
+    fun `should return failure and not clear when fetching the assessment fails`() {
+      whenever(
+        aapApi.fetchAssessment(
+          entityUuid,
+          now,
+        ),
+      ).thenReturn(AAPApi.ApiOperationResult.Failure("Fetch failed"))
+
+      val result = strategy.changePathway(entityUuid, SanAssessmentType.COMMUNITY, userDetails)
+
+      assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
+      verify(aapApi, never()).clearAssessment(any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `should return failure and not create a version when the clear fails`() {
+      givenStoredPathway("COMMUNITY")
+      givenClearReturns(AAPApi.ApiOperationResult.Failure("Clear failed"))
+
+      val result = strategy.changePathway(entityUuid, SanAssessmentType.CUSTODY, userDetails)
+
+      assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
+      verify(oasysVersionService, never()).createVersionFor(any(), any())
     }
   }
 }

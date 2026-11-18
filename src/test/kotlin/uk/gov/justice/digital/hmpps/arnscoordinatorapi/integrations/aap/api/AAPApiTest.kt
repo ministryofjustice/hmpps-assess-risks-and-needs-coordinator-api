@@ -15,10 +15,12 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.ClearAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
@@ -590,6 +592,105 @@ class AAPApiTest {
         "No command result returned from AAP API during updateAssessmentProperties",
         (result as AAPApi.ApiOperationResult.Failure).errorMessage,
       )
+    }
+  }
+
+  @Nested
+  inner class ClearAssessment {
+    private val assessmentUuid = UUID.randomUUID()
+    private val user = AAPUser(id = "user-id", name = "User Name")
+
+    private fun clearAssessment() = aapApi.clearAssessment(
+      assessmentUuid = assessmentUuid,
+      user = user,
+      properties = listOf("*_section_complete"),
+      collections = listOf("OFFENCE_ANALYSIS_VICTIM"),
+      timeline = Timeline(type = "PATHWAY_CHANGE"),
+      hooks = emptyList(),
+    )
+
+    private fun stubCommandResponse(response: Mono<CommandsResponse>) {
+      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
+      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
+      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
+      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
+      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(response)
+    }
+
+    @Test
+    fun `should return success when AAP API clears the assessment`() {
+      stubCommandResponse(
+        Mono.just(
+          CommandsResponse(
+            commands = listOf(CommandResponse(mock<ClearAssessmentCommand>(), result = CommandSuccessResult())),
+          ),
+        ),
+      )
+
+      assertTrue(clearAssessment() is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when AAP API rejects the clear`() {
+      stubCommandResponse(
+        Mono.just(
+          CommandsResponse(
+            commands = listOf(
+              CommandResponse(
+                mock<ClearAssessmentCommand>(),
+                result = CommandSuccessResult(message = "Assessment is locked", success = false),
+              ),
+            ),
+          ),
+        ),
+      )
+
+      val result = clearAssessment()
+
+      assertEquals(
+        "AAP API rejected clearAssessment: Assessment is locked",
+        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
+      )
+    }
+
+    @Test
+    fun `should return failure when AAP API returns no command result`() {
+      stubCommandResponse(Mono.just(CommandsResponse(commands = emptyList())))
+
+      val result = clearAssessment()
+
+      assertEquals(
+        "No command result returned from AAP API during clearAssessment",
+        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
+      )
+    }
+
+    @Test
+    fun `should return failure when AAP API returns HTTP error`() {
+      stubCommandResponse(
+        Mono.error(
+          WebClientResponseException.create(
+            HttpStatus.BAD_REQUEST.value(),
+            "Bad Request",
+            HttpHeaders.EMPTY,
+            "Error body".toByteArray(),
+            null,
+          ),
+        ),
+      )
+
+      val result = clearAssessment()
+
+      assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("HTTP error during clearAssessment"))
+    }
+
+    @Test
+    fun `should return failure when unexpected exception occurs`() {
+      stubCommandResponse(Mono.error(RuntimeException("Unexpected error")))
+
+      val result = clearAssessment()
+
+      assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("Unexpected error during clearAssessment"))
     }
   }
 }

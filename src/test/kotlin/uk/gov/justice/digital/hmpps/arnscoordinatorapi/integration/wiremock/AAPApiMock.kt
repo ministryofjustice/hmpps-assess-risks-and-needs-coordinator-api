@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
@@ -143,7 +144,7 @@ class AAPApiMock : WireMockServer(8093) {
                       "assessmentUuid": "$uuid",
                       "aggregateUuid": "6fa85f64-5717-4562-b3fc-2c963f66afa6",
                       "assessmentType": "$assessmentType",
-                      "formVersion": "1.0",
+                      "formVersion": "v1.0",
                       "createdAt": "2026-01-09T12:00:00",
                       "updatedAt": "2026-01-09T12:30:00",
                       "answers": {},
@@ -419,6 +420,43 @@ class AAPApiMock : WireMockServer(8093) {
         ),
     )
   }
+  fun stubClearAssessment(status: Int = 200) {
+    stubFor(
+      post("/command")
+        .withRequestBody(containing("ClearAssessmentCommand"))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              """
+                {
+                  "commands": [
+                    {
+                      "request": {
+                        "type": "ClearAssessmentCommand",
+                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
+                        "user": { "id": "1", "name": "Test Name" },
+                        "timeline": { "type": "PATHWAY_CHANGE" }
+                      },
+                      "result": {
+                        "type": "CommandSuccessCommandResult",
+                        "message": "Done",
+                        "success": true
+                      }
+                    }
+                  ]
+                }
+              """.trimIndent(),
+            )
+            .withStatus(status),
+        ),
+    )
+  }
+
+  fun findClearAssessmentCommands(): List<JsonNode> = findAll(postRequestedFor(urlEqualTo("/command")))
+    .map { objectMapper.readTree(it.bodyAsString) }
+    .flatMap { it.path("commands").toList() }
+    .filter { it.path("type").asText() == "ClearAssessmentCommand" }
 }
 
 class AAPApiMockExtension :
