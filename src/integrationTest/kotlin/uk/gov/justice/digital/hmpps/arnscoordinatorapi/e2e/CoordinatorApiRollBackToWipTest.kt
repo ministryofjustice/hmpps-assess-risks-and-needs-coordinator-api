@@ -1,13 +1,12 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.createGoal
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityHelper.getEntitySentencePlan
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
@@ -41,11 +40,11 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
   fun `create oasys and lock plan`() {
     val createOasysResponse = CreateOasysHelper.createOasys(webTestClient, crn, oasysPk)
 
-    Assertions.assertThat(createOasysResponse?.sentencePlanId).isNotNull
+    assertThat(createOasysResponse?.sentencePlanId).isNotNull
 
     sentencePlanId = createOasysResponse?.sentencePlanId!!
 
-    UpdateCommandHelper.createGoal(aapTestClient, sentencePlanId, crn)!!
+    createGoal(aapTestClient, sentencePlanId, crn)!!
 
     val getEntityResponse = getEntitySentencePlan(webTestClient, sentencePlanId)
 
@@ -57,7 +56,7 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     sentencePlanVersion = getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.version!!
     assessmentVersion = getEntityVersionsResponse.allVersions[today]?.assessmentVersion?.version!!
-    Assertions.assertThat(getEntityVersionsResponse.allVersions[today]?.planVersion?.status).isEqualTo("LOCKED")
+    assertThat(getEntityVersionsResponse.allVersions[today]?.planVersion?.status).isEqualTo("LOCKED")
   }
 
   @Test
