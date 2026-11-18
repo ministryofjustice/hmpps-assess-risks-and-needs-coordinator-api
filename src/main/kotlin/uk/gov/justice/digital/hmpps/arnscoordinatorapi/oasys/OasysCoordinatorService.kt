@@ -10,14 +10,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.interceptor.TransactionAspectSupport
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.ChangePathwayCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CounterSignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.CreateCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.FetchVersionsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.LockCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.RollbackCommand
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.RollbackableCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SignCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.SoftDeleteCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.commands.UndeleteCommand
@@ -174,19 +172,18 @@ class OasysCoordinatorService(
 
       val newPathway = request.sanAssessmentType
       if (linkResult.result is EntityResult.Success && newPathway != null) {
-        val command = ChangePathwayCommand(strategy, linkResult.result.entity.id, newPathway, request.userDetails.intoUserDetails())
-        when (val pathwayResult = command.execute()) {
+        when (val pathwayResult = strategy.changePathway(linkResult.result.entity.id, newPathway, request.userDetails.intoUserDetails())) {
           is OperationResult.Failure -> return EntityResultWithCommand(
             EntityResult.Failure("Failed to change pathway for ${strategy.entityType}: ${pathwayResult.errorMessage}"),
             null,
             null,
             strategy,
           )
-          is OperationResult.Success -> pathwayResult.data?.let { pathwayChange ->
-            linkResult.pendingAssociation?.apply { baseVersion = pathwayChange.version.version }
+          is OperationResult.Success -> pathwayResult.data?.let { newVersion ->
+            linkResult.pendingAssociation?.apply { baseVersion = newVersion.version }
             return EntityResultWithCommand(
-              EntityResult.Success(pathwayChange.version),
-              command,
+              EntityResult.Success(newVersion),
+              null,
               linkResult.pendingAssociation,
               strategy,
             )
@@ -897,7 +894,7 @@ class OasysCoordinatorService(
 
   private data class EntityResultWithCommand(
     val result: EntityResult,
-    val command: RollbackableCommand?,
+    val command: CreateCommand?,
     val pendingAssociation: OasysAssociation?,
     val strategy: EntityStrategy,
   )

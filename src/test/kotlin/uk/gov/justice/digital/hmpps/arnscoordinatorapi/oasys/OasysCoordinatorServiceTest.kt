@@ -32,7 +32,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.VersionPayload
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.PathwayChange
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
@@ -883,8 +882,6 @@ class OasysCoordinatorServiceTest {
 
     @Nested
     inner class ChangePathwayOnLink {
-      private val clearedFrom = LocalDateTime.parse("2026-01-09T11:55:00")
-
       @BeforeEach
       fun setup() {
         stubLinkExistingSanAndCreateSp()
@@ -900,31 +897,13 @@ class OasysCoordinatorServiceTest {
             linkSanRequest.userDetails.intoUserDetails(),
           ),
         )
-          .thenReturn(OperationResult.Success(PathwayChange(VersionedEntity(existingSanUuid, 10, EntityType.AAP_SAN), clearedFrom)))
+          .thenReturn(OperationResult.Success(VersionedEntity(existingSanUuid, 10, EntityType.AAP_SAN)))
 
         val result = oasysCoordinatorService.create(linkSanRequest)
 
         assertTrue(result is OasysCoordinatorService.CreateOperationResult.Success)
         verify(oasysAssociationsService).storeAssociation(argThat { entityType == EntityType.AAP_SAN && baseVersion == 10L })
         assertEquals(10L, (result as OasysCoordinatorService.CreateOperationResult.Success).data.sanAssessmentVersion)
-        verify(sanStrategy, never()).undoPathwayChange(any(), any(), any())
-      }
-
-      @Test
-      fun `should undo the SAN pathway change when a later step fails`() {
-        `when`(sanStrategy.changePathway(any(), anyOrNull(), any()))
-          .thenReturn(OperationResult.Success(PathwayChange(VersionedEntity(existingSanUuid, 10, EntityType.AAP_SAN), clearedFrom)))
-        `when`(sanStrategy.recordOasysLink(any(), anyOrNull(), any())).thenReturn(OperationResult.Failure("AAP unavailable"))
-        val transactionStatus: TransactionStatus = mock()
-        val transactionAspect: MockedStatic<TransactionAspectSupport> = mockStatic(TransactionAspectSupport::class.java)
-        transactionAspect.`when`<TransactionStatus> { TransactionAspectSupport.currentTransactionStatus() }.thenReturn(transactionStatus)
-
-        val result = oasysCoordinatorService.create(linkSanRequest)
-
-        assertTrue(result is OasysCoordinatorService.CreateOperationResult.Failure)
-        verify(sanStrategy).undoPathwayChange(existingSanUuid, clearedFrom, linkSanRequest.userDetails.intoUserDetails())
-        verify(transactionStatus).setRollbackOnly()
-        transactionAspect.close()
       }
 
       @Test

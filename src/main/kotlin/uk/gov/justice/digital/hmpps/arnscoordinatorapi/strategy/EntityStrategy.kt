@@ -4,7 +4,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entit
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.DeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.LockData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.OperationResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.PathwayChange
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.ResetData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SoftDeleteData
@@ -16,7 +15,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.reposi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.SanAssessmentType
-import java.time.LocalDateTime
 import java.util.UUID
 
 interface EntityStrategy {
@@ -52,7 +50,5 @@ interface EntityStrategy {
 
   fun recordOasysLink(entityUuid: UUID, sanAssessmentType: SanAssessmentType?, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
 
-  fun changePathway(entityUuid: UUID, newPathway: SanAssessmentType, userDetails: UserDetails): OperationResult<PathwayChange?> = OperationResult.Success(null)
-
-  fun undoPathwayChange(entityUuid: UUID, clearedFrom: LocalDateTime, userDetails: UserDetails): OperationResult<Unit> = OperationResult.Success(Unit)
+  fun changePathway(entityUuid: UUID, newPathway: SanAssessmentType, userDetails: UserDetails): OperationResult<VersionedEntity?> = OperationResult.Success(null)
 }

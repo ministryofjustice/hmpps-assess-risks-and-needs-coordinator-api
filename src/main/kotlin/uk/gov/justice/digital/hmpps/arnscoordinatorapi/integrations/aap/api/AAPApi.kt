@@ -19,7 +19,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.IdentifierType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.RollbackAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
@@ -216,36 +215,6 @@ class AAPApi(
     )
   } catch (ex: Exception) {
     ApiOperationResult.Failure("Unexpected error during clearAssessment: ${ex.message}", ex)
-  }
-
-  fun rollbackAssessment(assessmentUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {
-    val command = RollbackAssessmentCommand(
-      assessmentUuid = assessmentUuid,
-      user = user,
-      pointInTime = pointInTime,
-    )
-
-    val response = aapApiWebClient.post()
-      .uri(apiProperties.endpoints.command)
-      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
-      .retrieve()
-      .bodyToMono(CommandsResponse::class.java)
-      .block()
-
-    val result = response?.commands?.firstOrNull()?.result
-
-    when {
-      result == null -> ApiOperationResult.Failure("No command result returned from AAP API during rollbackAssessment")
-      !result.success -> ApiOperationResult.Failure("AAP API rejected rollbackAssessment: ${result.message}")
-      else -> ApiOperationResult.Success(Unit)
-    }
-  } catch (ex: WebClientResponseException) {
-    ApiOperationResult.Failure(
-      "HTTP error during rollbackAssessment: Status code ${ex.statusCode}, Response body: ${ex.responseBodyAsString}",
-      ex,
-    )
-  } catch (ex: Exception) {
-    ApiOperationResult.Failure("Unexpected error during rollbackAssessment: ${ex.message}", ex)
   }
 
   fun softDeleteAssessment(entityUuid: UUID, pointInTime: LocalDateTime, user: AAPUser): ApiOperationResult<Unit> = try {

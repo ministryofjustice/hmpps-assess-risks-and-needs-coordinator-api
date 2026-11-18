@@ -19,7 +19,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.CreateAssessmentData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.RollbackAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
@@ -692,78 +691,6 @@ class AAPApiTest {
       val result = clearAssessment()
 
       assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("Unexpected error during clearAssessment"))
-    }
-  }
-
-  @Nested
-  inner class RollbackAssessment {
-    private val assessmentUuid = UUID.randomUUID()
-    private val user = AAPUser(id = "user-id", name = "User Name")
-    private val pointInTime = LocalDateTime.parse("2026-01-09T11:55:00")
-
-    private fun rollbackAssessment() = aapApi.rollbackAssessment(assessmentUuid, pointInTime, user)
-
-    private fun stubCommandResponse(response: Mono<CommandsResponse>) {
-      `when`(webClient.post()).thenReturn(requestBodyUriSpec)
-      `when`(requestBodyUriSpec.uri("/command")).thenReturn(requestBodySpec)
-      `when`(requestBodySpec.body(any())).thenReturn(requestHeadersSpec)
-      `when`(requestHeadersSpec.retrieve()).thenReturn(responseSpec)
-      `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(response)
-    }
-
-    @Test
-    fun `should return success when AAP API rolls back the assessment`() {
-      stubCommandResponse(
-        Mono.just(
-          CommandsResponse(
-            commands = listOf(CommandResponse(mock<RollbackAssessmentCommand>(), result = CommandSuccessResult())),
-          ),
-        ),
-      )
-
-      assertTrue(rollbackAssessment() is AAPApi.ApiOperationResult.Success)
-    }
-
-    @Test
-    fun `should return failure when AAP API rejects the rollback`() {
-      stubCommandResponse(
-        Mono.just(
-          CommandsResponse(
-            commands = listOf(
-              CommandResponse(
-                mock<RollbackAssessmentCommand>(),
-                result = CommandSuccessResult(message = "Assessment is locked", success = false),
-              ),
-            ),
-          ),
-        ),
-      )
-
-      val result = rollbackAssessment()
-
-      assertEquals(
-        "AAP API rejected rollbackAssessment: Assessment is locked",
-        (result as AAPApi.ApiOperationResult.Failure).errorMessage,
-      )
-    }
-
-    @Test
-    fun `should return failure when AAP API returns HTTP error`() {
-      stubCommandResponse(
-        Mono.error(
-          WebClientResponseException.create(
-            HttpStatus.BAD_REQUEST.value(),
-            "Bad Request",
-            HttpHeaders.EMPTY,
-            "Error body".toByteArray(),
-            null,
-          ),
-        ),
-      )
-
-      val result = rollbackAssessment()
-
-      assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("HTTP error during rollbackAssessment"))
     }
   }
 }
