@@ -116,4 +116,6 @@ abstract class IntegrationTestBase {
   protected fun stubAAPClearAssessment(status: Int = 200) = aapApiMock.stubClearAssessment(status)
 
   protected fun findAAPClearAssessmentCommands() = aapApiMock.findClearAssessmentCommands()
+
+  protected fun findAAPCommands(type: String) = aapApiMock.findCommands(type)
 }

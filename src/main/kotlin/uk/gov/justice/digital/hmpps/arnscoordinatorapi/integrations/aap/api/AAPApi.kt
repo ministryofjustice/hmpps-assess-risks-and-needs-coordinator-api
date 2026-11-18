@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFormVersionCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.hook.Hook
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.QueriesRequest
@@ -184,8 +185,13 @@ class AAPApi(
     collections: List<String>,
     timeline: Timeline,
     hooks: List<Hook>,
+    formVersion: String? = null,
   ): ApiOperationResult<Unit> = try {
-    val command = ClearAssessmentCommand(
+    // Sent in the same request as the clear so AAP applies both in one transaction
+    val updateFormVersion = formVersion?.let {
+      UpdateFormVersionCommand(assessmentUuid = assessmentUuid, user = user, version = it)
+    }
+    val clear = ClearAssessmentCommand(
       assessmentUuid = assessmentUuid,
       user = user,
       properties = properties,
@@ -193,19 +199,21 @@ class AAPApi(
       timeline = timeline,
       hooks = hooks,
     )
+    val commands = listOfNotNull(updateFormVersion, clear)
 
     val response = aapApiWebClient.post()
       .uri(apiProperties.endpoints.command)
-      .body(BodyInserters.fromValue(CommandsRequest.of(command)))
+      .body(BodyInserters.fromValue(CommandsRequest(commands)))
       .retrieve()
       .bodyToMono(CommandsResponse::class.java)
       .block()
 
-    val result = response?.commands?.firstOrNull()?.result
+    val results = response?.commands?.map { it.result }.orEmpty()
+    val rejected = results.firstOrNull { !it.success }
 
     when {
-      result == null -> ApiOperationResult.Failure("No command result returned from AAP API during clearAssessment")
-      !result.success -> ApiOperationResult.Failure("AAP API rejected clearAssessment: ${result.message}")
+      results.size != commands.size -> ApiOperationResult.Failure("No command result returned from AAP API during clearAssessment")
+      rejected != null -> ApiOperationResult.Failure("AAP API rejected clearAssessment: ${rejected.message}")
       else -> ApiOperationResult.Success(Unit)
     }
   } catch (ex: WebClientResponseException) {

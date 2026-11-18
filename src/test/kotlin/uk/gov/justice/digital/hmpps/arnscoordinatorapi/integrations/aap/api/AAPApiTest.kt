@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.requ
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFormVersionCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CommandSuccessResult
@@ -691,6 +692,42 @@ class AAPApiTest {
       val result = clearAssessment()
 
       assertTrue((result as AAPApi.ApiOperationResult.Failure).errorMessage.contains("Unexpected error during clearAssessment"))
+    }
+
+    @Test
+    fun `should return success when AAP API updates the form version and clears the assessment`() {
+      stubCommandResponse(
+        Mono.just(
+          CommandsResponse(
+            commands = listOf(
+              CommandResponse(mock<UpdateFormVersionCommand>(), result = CommandSuccessResult()),
+              CommandResponse(mock<ClearAssessmentCommand>(), result = CommandSuccessResult()),
+            ),
+          ),
+        ),
+      )
+
+      val result = aapApi.clearAssessment(assessmentUuid, user, emptyList(), emptyList(), Timeline(type = "PATHWAY_CHANGE"), emptyList(), formVersion = "v2.0")
+
+      assertTrue(result is AAPApi.ApiOperationResult.Success)
+    }
+
+    @Test
+    fun `should return failure when AAP API rejects the form version update`() {
+      stubCommandResponse(
+        Mono.just(
+          CommandsResponse(
+            commands = listOf(
+              CommandResponse(mock<UpdateFormVersionCommand>(), result = CommandSuccessResult(message = "Bad version", success = false)),
+              CommandResponse(mock<ClearAssessmentCommand>(), result = CommandSuccessResult()),
+            ),
+          ),
+        ),
+      )
+
+      val result = aapApi.clearAssessment(assessmentUuid, user, emptyList(), emptyList(), Timeline(type = "PATHWAY_CHANGE"), emptyList(), formVersion = "v2.0")
+
+      assertEquals("AAP API rejected clearAssessment: Bad version", (result as AAPApi.ApiOperationResult.Failure).errorMessage)
     }
   }
 }

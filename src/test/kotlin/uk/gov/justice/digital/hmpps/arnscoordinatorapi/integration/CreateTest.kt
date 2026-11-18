@@ -472,5 +472,9 @@ class CreateTest : IntegrationTestBase() {
     assertThat(command.path("timeline").path("data").path("previousPathway").asText()).isEqualTo("COMMUNITY")
     assertThat(command.path("timeline").path("data").path("newPathway").asText()).isEqualTo("CUSTODY")
     assertThat(command.path("hooks").map { it.path("type").asText() }).containsExactly("UpdateOasysDataMapping")
+
+    val formVersionUpdate = findAAPCommands("UpdateFormVersionCommand").single()
+    assertThat(formVersionUpdate.path("assessmentUuid").asText()).isEqualTo(sanUuid.toString())
+    assertThat(formVersionUpdate.path("version").asText()).isEqualTo("v2.0")
   }
 }

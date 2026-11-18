@@ -474,11 +474,11 @@ class AAPStrengthsAndNeedsStrategyTest {
     private val user = AAPUser("id", "name")
     private val newVersion = OasysVersionEntity(createdBy = OasysEvent.CLONED, entityUuid = entityUuid, version = 123L)
 
-    private fun assessmentOn(pathway: String?) = AssessmentVersionQueryResult(
+    private fun assessmentOn(pathway: String?, formVersion: String) = AssessmentVersionQueryResult(
       assessmentUuid = entityUuid,
       aggregateUuid = UUID.randomUUID(),
       assessmentType = "STRENGTHS_AND_NEEDS",
-      formVersion = "v2.0",
+      formVersion = formVersion,
       createdAt = now,
       updatedAt = now,
       answers = emptyMap(),
@@ -488,21 +488,17 @@ class AAPStrengthsAndNeedsStrategyTest {
       identifiers = emptyMap(),
     )
 
-    private fun givenStoredPathway(pathway: String?) {
+    private fun givenStoredPathway(pathway: String?, formVersion: String = "v2.0") {
       whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(
-        AAPApi.ApiOperationResult.Success(
-          assessmentOn(
-            pathway,
-          ),
-        ),
+        AAPApi.ApiOperationResult.Success(assessmentOn(pathway, formVersion)),
       )
     }
 
     private fun givenClearReturns(result: AAPApi.ApiOperationResult<Unit>) {
-      whenever(aapApi.clearAssessment(any(), any(), any(), any(), any(), any())).thenReturn(result)
+      whenever(aapApi.clearAssessment(any(), any(), any(), any(), any(), any(), anyOrNull())).thenReturn(result)
     }
 
-    private fun verifyClearSent(previousPathway: SanAssessmentType, newPathway: SanAssessmentType) {
+    private fun verifyClearSent(previousPathway: SanAssessmentType, newPathway: SanAssessmentType, formVersion: String? = null) {
       val timeline = argumentCaptor<Timeline>()
       val hooks = argumentCaptor<List<Hook>>()
 
@@ -513,6 +509,7 @@ class AAPStrengthsAndNeedsStrategyTest {
         eq(listOf("OFFENCE_ANALYSIS_VICTIM")),
         timeline.capture(),
         hooks.capture(),
+        eq(formVersion),
       )
       assertThat(timeline.firstValue).isEqualTo(
         Timeline(
@@ -535,7 +532,7 @@ class AAPStrengthsAndNeedsStrategyTest {
       verifyClearSent(SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY)
       inOrder(aapApi, oasysVersionService) {
         verify(aapApi).fetchAssessment(entityUuid, now)
-        verify(aapApi).clearAssessment(any(), any(), any(), any(), any(), any())
+        verify(aapApi).clearAssessment(any(), any(), any(), any(), any(), any(), anyOrNull())
         verify(oasysVersionService).createVersionFor(OasysEvent.CLONED, entityUuid)
       }
     }
@@ -552,7 +549,7 @@ class AAPStrengthsAndNeedsStrategyTest {
       verifyClearSent(SanAssessmentType.CUSTODY, SanAssessmentType.COMMUNITY)
       inOrder(aapApi, oasysVersionService) {
         verify(aapApi).fetchAssessment(entityUuid, now)
-        verify(aapApi).clearAssessment(any(), any(), any(), any(), any(), any())
+        verify(aapApi).clearAssessment(any(), any(), any(), any(), any(), any(), anyOrNull())
         verify(oasysVersionService).createVersionFor(OasysEvent.CLONED, entityUuid)
       }
     }
@@ -577,7 +574,7 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       assertThat(result).isEqualTo(OperationResult.Success(null))
       verify(aapApi).fetchAssessment(entityUuid, now)
-      verify(aapApi, never()).clearAssessment(any(), any(), any(), any(), any(), any())
+      verify(aapApi, never()).clearAssessment(any(), any(), any(), any(), any(), any(), anyOrNull())
       verify(oasysVersionService, never()).createVersionFor(any(), any())
     }
 
@@ -593,7 +590,7 @@ class AAPStrengthsAndNeedsStrategyTest {
       val result = strategy.changePathway(entityUuid, SanAssessmentType.COMMUNITY, userDetails)
 
       assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
-      verify(aapApi, never()).clearAssessment(any(), any(), any(), any(), any(), any())
+      verify(aapApi, never()).clearAssessment(any(), any(), any(), any(), any(), any(), anyOrNull())
     }
 
     @Test
@@ -605,6 +602,17 @@ class AAPStrengthsAndNeedsStrategyTest {
 
       assertThat(result).isInstanceOf(OperationResult.Failure::class.java)
       verify(oasysVersionService, never()).createVersionFor(any(), any())
+    }
+
+    @Test
+    fun `should update a v1_0 assessment to v2_0 when the pathway changes`() {
+      givenStoredPathway("COMMUNITY", formVersion = "v1.0")
+      givenClearReturns(AAPApi.ApiOperationResult.Success(Unit))
+      whenever(oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)).thenReturn(newVersion)
+
+      strategy.changePathway(entityUuid, SanAssessmentType.CUSTODY, userDetails)
+
+      verifyClearSent(SanAssessmentType.COMMUNITY, SanAssessmentType.CUSTODY, formVersion = "v2.0")
     }
   }
 }

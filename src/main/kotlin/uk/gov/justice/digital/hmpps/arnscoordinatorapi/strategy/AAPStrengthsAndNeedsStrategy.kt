@@ -365,7 +365,9 @@ class AAPStrengthsAndNeedsStrategy(
           type = "PATHWAY_CHANGE",
           data = mapOf("previousPathway" to previousPathway.name, "newPathway" to newPathway.name),
         ),
-        hooks = listOf(updateOasysDataMappingHook(assessment.formVersion)),
+        hooks = listOf(updateOasysDataMappingHook(SAN_FORM_VERSION)),
+        // A cleared SAN starts again as a blank v2.0, so the UI doesn't treat it as a v1.0 to migrate
+        formVersion = SAN_FORM_VERSION.takeIf { it != assessment.formVersion },
       )
     ) {
       is AAPApi.ApiOperationResult.Success -> oasysVersionService.createVersionFor(OasysEvent.CLONED, entityUuid)
