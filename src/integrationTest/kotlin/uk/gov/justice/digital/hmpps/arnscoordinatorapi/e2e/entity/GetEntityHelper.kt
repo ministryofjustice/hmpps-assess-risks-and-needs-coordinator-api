@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import java.util.UUID
 
