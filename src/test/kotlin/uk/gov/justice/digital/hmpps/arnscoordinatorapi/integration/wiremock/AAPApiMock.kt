@@ -433,19 +433,6 @@ class AAPApiMock : WireMockServer(8093) {
                   "commands": [
                     {
                       "request": {
-                        "type": "UpdateFormVersionCommand",
-                        "assessmentUuid": "00000000-0000-0000-0000-000000000000",
-                        "user": { "id": "1", "name": "Test Name" },
-                        "version": "v2.0"
-                      },
-                      "result": {
-                        "type": "CommandSuccessCommandResult",
-                        "message": "Done",
-                        "success": true
-                      }
-                    },
-                    {
-                      "request": {
                         "type": "ClearAssessmentCommand",
                         "assessmentUuid": "00000000-0000-0000-0000-000000000000",
                         "user": { "id": "1", "name": "Test Name" },
@@ -466,12 +453,10 @@ class AAPApiMock : WireMockServer(8093) {
     )
   }
 
-  fun findClearAssessmentCommands(): List<JsonNode> = findCommands("ClearAssessmentCommand")
-
-  fun findCommands(type: String): List<JsonNode> = findAll(postRequestedFor(urlEqualTo("/command")))
+  fun findClearAssessmentCommands(): List<JsonNode> = findAll(postRequestedFor(urlEqualTo("/command")))
     .map { objectMapper.readTree(it.bodyAsString) }
     .flatMap { it.path("commands").toList() }
-    .filter { it.path("type").asText() == type }
+    .filter { it.path("type").asText() == "ClearAssessmentCommand" }
 }
 
 class AAPApiMockExtension :
