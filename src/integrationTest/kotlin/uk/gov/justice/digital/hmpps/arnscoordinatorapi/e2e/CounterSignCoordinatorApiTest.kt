@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -10,12 +9,12 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.associations.GetAssociationsHelper.getAssociations
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.rollback.CreateRollbackHelper.createRollback
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
@@ -79,16 +78,7 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
       sentencePlanVersionNumber = sentencePlanVersion,
       userDetails = OasysUserDetails(name = "Burley Zieme", id = oasysPk),
     )
-    val result = webTestClient.post().uri("/oasys/$oasysPk/rollback")
-      .bodyValue(oasysRollbackRequest)
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-
-    when (val status = result.returnResult().status) {
-      HttpStatus.OK -> result.expectBody<OasysVersionedEntityResponse>()
-      HttpStatus.CONFLICT -> Unit
-      else -> fail("Expected HTTP 200 OK or 409 CONFLICT, but got $status")
-    }
+    createRollback(webTestClient, oasysPk, oasysRollbackRequest)
 
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("ROLLED_BACK")

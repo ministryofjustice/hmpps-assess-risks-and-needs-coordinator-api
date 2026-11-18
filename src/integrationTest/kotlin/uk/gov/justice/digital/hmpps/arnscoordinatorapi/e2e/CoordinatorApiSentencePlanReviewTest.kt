@@ -9,14 +9,15 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityHelper.getEntitySentencePlan
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.lock.CreateLockHelper.createLock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.query.QueryApiHelper.getQueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import java.time.LocalDate
 import java.util.UUID
@@ -45,23 +46,12 @@ class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
 
     goalId = UpdateCommandHelper.createGoal(aapTestClient, sentencePlanId, crn)!!
 
-    val getEntityResponse = webTestClient.get().uri("/entity/$sentencePlanId/AAP_PLAN")
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isOk
-      .expectBody<OasysGetResponse>()
-      .returnResult().responseBody
+    val getEntityResponse = getEntitySentencePlan(webTestClient, sentencePlanId)
 
     assertThat(getEntityResponse?.planType).isEqualTo(PlanType.INITIAL)
     assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
 
-    webTestClient.post().uri("/oasys/$oasysPk/lock")
-      .bodyValue(oasysGenericRequest)
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isOk
-      .expectBody<OasysVersionedEntityResponse>()
-      .returnResult().responseBody
+    createLock(webTestClient, oasysPk, oasysGenericRequest)
 
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
