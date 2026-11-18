@@ -24,7 +24,7 @@ import kotlin.properties.Delegates
 import kotlin.random.Random
 
 @Tag("test")
-@DisplayName("Rollback to WIP from Lock Oasys")
+@DisplayName("Rollback to wip API Tests")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
   private lateinit var sentencePlanId: UUID
