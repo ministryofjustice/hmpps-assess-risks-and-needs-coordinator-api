@@ -27,18 +27,19 @@ class GetVersionsTest : IntegrationTestBase() {
   @Autowired
   lateinit var oasysVersionRepository: OasysVersionRepository
 
+  val planEntityUuid: UUID = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6")
+  val sanEntityUuid: UUID = UUID.fromString("2fa85f64-5717-4562-b3fc-2c963f66afa6")
+
   @BeforeEach
   fun setUp() {
     stubGrantToken()
-    stubAssessmentsGetVersions()
-    stubAAPQueryAssessmentVersions()
+    stubAAPQueryPlanVersions(200, planEntityUuid)
+    stubAAPQuerySanVersions(200, sanEntityUuid)
   }
 
   @Test
   fun `it successfully gets SAN and SP versions for an OASys PK linked to a given Plan or Assessment UUID`() {
     val oasysAssessmentPk = getRandomOasysPk()
-    val planEntityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6")
-    val sanEntityUuid = UUID.fromString("2fa85f64-5717-4562-b3fc-2c963f66afa6")
 
     oasysAssociationRepository.saveAll(
       listOf(
@@ -49,7 +50,7 @@ class GetVersionsTest : IntegrationTestBase() {
         ),
         OasysAssociation(
           oasysAssessmentPk = oasysAssessmentPk,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
           entityUuid = sanEntityUuid,
         ),
       ),
@@ -59,24 +60,35 @@ class GetVersionsTest : IntegrationTestBase() {
       .findAllByEntityUuid(planEntityUuid)
       .run(oasysVersionRepository::deleteAll)
 
-    val oasysVersion = OasysVersionEntity(
-      createdAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
-      createdBy = OasysEvent.AWAITING_COUNTERSIGN,
-      updatedAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
-      version = LocalDateTime.parse("2025-06-23T14:44:53.105").toInstant(ZoneOffset.UTC).toEpochMilli(),
-      entityUuid = planEntityUuid,
-    ).run(oasysVersionRepository::save)
+    val (planVersion, sanversion) = oasysVersionRepository.saveAll(
+      listOf(
+        OasysVersionEntity(
+          createdAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
+          createdBy = OasysEvent.AWAITING_COUNTERSIGN,
+          updatedAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
+          version = LocalDateTime.parse("2025-06-23T14:44:53.105").toInstant(ZoneOffset.UTC).toEpochMilli(),
+          entityUuid = planEntityUuid,
+        ),
+        OasysVersionEntity(
+          createdAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
+          createdBy = OasysEvent.LOCKED,
+          updatedAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
+          version = LocalDateTime.parse("2025-06-23T13:22:54.105").toInstant(ZoneOffset.UTC).toEpochMilli(),
+          entityUuid = sanEntityUuid,
+        ),
+      ),
+    )
 
-    val planResponse = webTestClient.get().uri("/entity/versions/5fa85f64-5717-4562-b3fc-2c963f66afa6")
-      .headers(setAuthorisation(roles = listOf("ROLE_SENTENCE_PLAN_READ")))
+    val planResponse = webTestClient.get().uri("/entity/versions/$planEntityUuid")
+      .headers(setAuthorisation(roles = listOf("ROLE_AAP__FRONTEND_RW")))
       .exchange()
       .expectStatus().isEqualTo(200)
       .expectBody(VersionsResponse::class.java)
       .returnResult()
       .responseBody
 
-    val assessmentResponse = webTestClient.get().uri("/entity/versions/2fa85f64-5717-4562-b3fc-2c963f66afa6")
-      .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_READ")))
+    val assessmentResponse = webTestClient.get().uri("/entity/versions/$sanEntityUuid")
+      .headers(setAuthorisation(roles = listOf("ROLE_AAP__FRONTEND_RW")))
       .exchange()
       .expectStatus().isEqualTo(200)
       .expectBody(VersionsResponse::class.java)
@@ -90,17 +102,17 @@ class GetVersionsTest : IntegrationTestBase() {
       LocalDate.parse("2025-06-23") to LastVersionsOnDate(
         description = "Assessment and plan updated",
         assessmentVersion = VersionDetails(
-          uuid = UUID.fromString("11db45b5-215d-4405-a887-a7efd5216fa2"),
-          version = 1,
+          uuid = sanversion.uuid,
+          version = sanversion.version,
           createdAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
           updatedAt = LocalDateTime.parse("2025-06-23T13:22:54.105"),
           status = "LOCKED",
           planAgreementStatus = null,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
         ),
         planVersion = VersionDetails(
-          uuid = oasysVersion.uuid,
-          version = oasysVersion.version,
+          uuid = planVersion.uuid,
+          version = planVersion.version,
           createdAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
           updatedAt = LocalDateTime.parse("2025-06-23T14:44:53.105"),
           status = "AWAITING_COUNTERSIGN",
@@ -112,12 +124,12 @@ class GetVersionsTest : IntegrationTestBase() {
         description = "Plan updated",
         assessmentVersion = VersionDetails(
           uuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2"),
-          version = 0,
+          version = LocalDateTime.parse("2025-05-23T13:22:54.105").toInstant(ZoneOffset.UTC).toEpochMilli(),
           createdAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
           updatedAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
           status = "UNSIGNED",
           planAgreementStatus = null,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
         ),
         planVersion = VersionDetails(
           uuid = UUID.fromString("645951e9-15ed-43a1-ac8b-19e97ae0ddf1"),
@@ -133,12 +145,12 @@ class GetVersionsTest : IntegrationTestBase() {
         description = "Assessment updated",
         assessmentVersion = VersionDetails(
           uuid = UUID.fromString("61369578-18f5-488c-bc99-7cc6249f39a2"),
-          version = 0,
+          version = LocalDateTime.parse("2025-05-23T13:22:54.105").toInstant(ZoneOffset.UTC).toEpochMilli(),
           createdAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
           updatedAt = LocalDateTime.parse("2025-05-23T13:22:54.105"),
           status = "UNSIGNED",
           planAgreementStatus = null,
-          entityType = EntityType.ASSESSMENT,
+          entityType = EntityType.AAP_SAN,
         ),
         planVersion = VersionDetails(
           uuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -171,7 +183,7 @@ class GetVersionsTest : IntegrationTestBase() {
   @Test
   fun `get versions by a non-existent entity UUID returns not found`() {
     webTestClient.get().uri("/entity/versions/5dc85f64-5717-4562-b3fc-2c963f66afa7")
-      .headers(setAuthorisation(roles = listOf("ROLE_SENTENCE_PLAN_READ")))
+      .headers(setAuthorisation(roles = listOf("ROLE_AAP__FRONTEND_RW")))
       .exchange()
       .expectStatus().isEqualTo(404)
   }

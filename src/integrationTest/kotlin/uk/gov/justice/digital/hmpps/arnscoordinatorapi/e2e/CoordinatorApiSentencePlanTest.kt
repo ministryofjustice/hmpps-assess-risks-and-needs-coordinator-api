@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
@@ -23,11 +24,14 @@ import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
 
-@DisplayName("Coordinator API Tests")
+@Tag("dev")
+@Tag("test")
+@DisplayName("Coordinator API Tests - SP")
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CoordinatorApiTest : IntegrationTestBase() {
+class CoordinatorApiSentencePlanTest : IntegrationTestBase() {
   private lateinit var sentencePlanId: UUID
+
   val crn = Random.nextInt(0, 100000).toString().padStart(5, '0')
   val oasysPk = Random.nextInt(0, 1_000_000_000).toString()
   val oasysGenericRequest = OasysGenericRequest(
@@ -38,8 +42,11 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @BeforeAll
   fun `create oasys and get entity`() {
     val createOasysResponse = createOasys(webTestClient, crn, oasysPk)
+
     assertThat(createOasysResponse?.sentencePlanId).isNotNull
+
     sentencePlanId = createOasysResponse?.sentencePlanId!!
+
     val getEntityResponse = webTestClient.get().uri("/entity/$sentencePlanId/AAP_PLAN")
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -54,7 +61,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @Test
   @Order(1)
   fun `lock plan`() {
-    val lockApiResponse = webTestClient.post().uri("/oasys/$oasysPk/lock")
+    webTestClient.post().uri("/oasys/$oasysPk/lock")
       .bodyValue(oasysGenericRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -69,7 +76,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @Test
   @Order(2)
   fun `soft-delete plan`() {
-    val softDeleteApiResponse = webTestClient.post().uri("/oasys/$oasysPk/soft-delete")
+    webTestClient.post().uri("/oasys/$oasysPk/soft-delete")
       .bodyValue(oasysGenericRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
@@ -84,7 +91,7 @@ class CoordinatorApiTest : IntegrationTestBase() {
   @Test
   @Order(3)
   fun `undelete plan`() {
-    val undeleteApiResponse = webTestClient.post().uri("/oasys/$oasysPk/undelete")
+    webTestClient.post().uri("/oasys/$oasysPk/undelete")
       .bodyValue(oasysGenericRequest)
       .accept(MediaType.APPLICATION_JSON)
       .exchange()

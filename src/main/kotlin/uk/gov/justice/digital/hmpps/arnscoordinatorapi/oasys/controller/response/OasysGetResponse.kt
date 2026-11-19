@@ -29,12 +29,12 @@ data class OasysGetResponse(
   sentencePlanVersion = sentencePlanVersion,
 ) {
   fun idFor(entityType: EntityType): UUID? = when (entityType) {
-    EntityType.ASSESSMENT -> sanAssessmentId
+    EntityType.ASSESSMENT, EntityType.AAP_SAN -> sanAssessmentId
     EntityType.PLAN, EntityType.AAP_PLAN -> sentencePlanId
   }
 
   fun versionFor(entityType: EntityType): Long? = when (entityType) {
-    EntityType.ASSESSMENT -> sanAssessmentVersion
+    EntityType.ASSESSMENT, EntityType.AAP_SAN -> sanAssessmentVersion
     EntityType.PLAN, EntityType.AAP_PLAN -> sentencePlanVersion
   }
 
