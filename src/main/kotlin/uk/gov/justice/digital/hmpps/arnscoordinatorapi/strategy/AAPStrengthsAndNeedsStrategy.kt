@@ -98,7 +98,11 @@ class AAPStrengthsAndNeedsStrategy(
               formVersion = apiResponse.data.formVersion,
             ),
             assessment = objectMapper.readValue<AssessmentData>(
-              unescapeHtmlEntities(objectMapper.writeValueAsString(apiResponse.data.answers)),
+              unescapeHtmlEntities(
+                objectMapper.writeValueAsString(
+                  apiResponse.data.properties.filterKeys { it.endsWith("_section_complete") } + apiResponse.data.answers,
+                ),
+              ),
             ),
             oasysEquivalent = (apiResponse.data.properties["oasys_equivalent"] as? SingleValue)
               ?.value

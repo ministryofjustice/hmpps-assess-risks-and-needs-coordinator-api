@@ -107,6 +107,31 @@ class AAPStrengthsAndNeedsStrategyTest {
     }
 
     @Test
+    fun `includes only section complete properties in the assessment data`() {
+      val entityUuid = UUID.randomUUID()
+      val result = queryResult(
+        entityUuid,
+        answers = mapOf("alcohol_use_changes" to SingleValue("MADE_CHANGES")),
+        properties = mapOf(
+          "alcohol_use_section_complete" to SingleValue("YES"),
+          "oasys_equivalent" to SingleValue("{}"),
+          "extra_stuff_in_properties" to SingleValue("SHOULD_NOT_BE_INCLUDED"),
+        ),
+      )
+
+      whenever(aapApi.fetchAssessment(entityUuid, now)).thenReturn(AAPApi.ApiOperationResult.Success(result))
+
+      val response = (strategy.fetch(entityUuid) as OperationResult.Success<*>).data as AssessmentResponse
+
+      assertThat(response.assessment).isEqualTo(
+        mapOf(
+          "alcohol_use_changes" to mapOf("value" to "MADE_CHANGES"),
+          "alcohol_use_section_complete" to mapOf("value" to "YES"),
+        ),
+      )
+    }
+
+    @Test
     fun `unescapes HTML entities in the answers`() {
       val entityUuid = UUID.randomUUID()
       // AAP HTML-escapes free text answers, e.g. "\" as "&#x5C;" and "/" as "&#x2F;"
