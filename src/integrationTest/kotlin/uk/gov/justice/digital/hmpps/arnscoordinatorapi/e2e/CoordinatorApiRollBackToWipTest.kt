@@ -6,12 +6,13 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.createGoal
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.CreateOasysHelper
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.lock
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.rollback
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityHelper.getEntitySentencePlan
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.lock.CreateLockHelper.createLock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.rollback.CreateRollbackHelper.createRollback
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
@@ -27,6 +28,7 @@ import kotlin.random.Random
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
   private lateinit var sentencePlanId: UUID
+  private lateinit var assessmentId: UUID
   private var sentencePlanVersion by Delegates.notNull<Long>()
   private var assessmentVersion by Delegates.notNull<Long>()
 
@@ -40,9 +42,8 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
   fun `create oasys and lock plan`() {
     val createOasysResponse = CreateOasysHelper.createOasys(webTestClient, crn, oasysPk)
 
-    assertThat(createOasysResponse?.sentencePlanId).isNotNull
-
     sentencePlanId = createOasysResponse?.sentencePlanId!!
+    assessmentId = createOasysResponse.sanAssessmentId
 
     createGoal(aapTestClient, sentencePlanId, crn)!!
 
@@ -51,11 +52,19 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
     assertThat(getEntityResponse?.planType).isEqualTo(PlanType.INITIAL)
     assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
 
-    createLock(webTestClient, oasysPk, oasysGenericRequest)
+    UpdateCommandHelper.postUpdateCommand(aapTestClient, assessmentId)
 
-    val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
+    var getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
+    assessmentVersion = getEntityVersionsResponse?.allVersions[today]?.assessmentVersion?.version!!
+
+    assertThat(getEntityVersionsResponse.allVersions[today]?.assessmentVersion?.status).isEqualTo("LOCKED_INCOMPLETE")
+
+    lock(webTestClient, oasysPk, oasysGenericRequest)
+
+    getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     sentencePlanVersion = getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.version!!
     assessmentVersion = getEntityVersionsResponse.allVersions[today]?.assessmentVersion?.version!!
+
     assertThat(getEntityVersionsResponse.allVersions[today]?.planVersion?.status).isEqualTo("LOCKED")
   }
 
@@ -66,9 +75,10 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
       sentencePlanVersionNumber = sentencePlanVersion,
       userDetails = oasysUserDetails,
     )
-    createRollback(webTestClient, oasysPk, oasysRollbackRequest)
+    rollback(webTestClient, oasysPk, oasysRollbackRequest)
 
-    val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
-    assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("ROLLED_BACK")
+    val getEntityResponse = getEntitySentencePlan(webTestClient, sentencePlanId)
+    assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
   }
 }
+

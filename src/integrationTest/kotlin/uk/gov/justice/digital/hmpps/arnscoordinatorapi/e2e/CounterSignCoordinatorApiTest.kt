@@ -14,7 +14,7 @@ import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.associations.GetAssociationsHelper.getAssociations
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.rollback.CreateRollbackHelper.createRollback
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.rollback
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
@@ -78,7 +78,7 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
       sentencePlanVersionNumber = sentencePlanVersion,
       userDetails = OasysUserDetails(name = "Burley Zieme", id = oasysPk),
     )
-    createRollback(webTestClient, oasysPk, oasysRollbackRequest)
+    rollback(webTestClient, oasysPk, oasysRollbackRequest)
 
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("ROLLED_BACK")

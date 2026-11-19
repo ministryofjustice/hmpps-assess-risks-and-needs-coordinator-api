@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys
 
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient

@@ -6,10 +6,10 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.CreateOasysHelper.createOasys
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.lock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityHelper.getEntitySentencePlan
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.lock.CreateLockHelper.createLock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.query.QueryApiHelper.getQueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
@@ -48,7 +48,7 @@ class CoordinatorApiSentencePlanReviewTest : IntegrationTestBase() {
     assertThat(getEntityResponse?.planType).isEqualTo(PlanType.INITIAL)
     assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
 
-    createLock(webTestClient, oasysPk, oasysGenericRequest)
+    lock(webTestClient, oasysPk, oasysGenericRequest)
 
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("LOCKED")
