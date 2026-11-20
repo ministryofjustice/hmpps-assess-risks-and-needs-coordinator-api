@@ -2,9 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.assessment.
 
 import jakarta.annotation.PostConstruct
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.annotation.Configuration
 
-@Configuration
 @ConfigurationProperties(prefix = "app.services.strengths-and-needs-api")
 data class StrengthsAndNeedsApiProperties(
   var baseUrl: String = "",

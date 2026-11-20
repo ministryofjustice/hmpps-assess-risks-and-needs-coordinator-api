@@ -2,9 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api
 
 import jakarta.annotation.PostConstruct
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.annotation.Configuration
 
-@Configuration
 @ConfigurationProperties(prefix = "app.services.sentence-plan-api")
 data class SentencePlanApiProperties(
   var baseUrl: String = "",
