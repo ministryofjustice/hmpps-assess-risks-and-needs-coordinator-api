@@ -2,6 +2,13 @@ info.app:
   name: HMPPS ARNS Coordinator API
   version: 1.0
 
+# springdoc bundles its own swagger-ui version (see build.gradle.kts), but we override the
+# webjar to a newer release to fix CVE-2026-116802 in the bundled DOMPurify. Tell springdoc
+# the actual version so it resolves static resources from the right webjar path.
+springdoc:
+  swagger-ui:
+    version: 5.35.1
+
 spring:
   application:
     name: hmpps-assess-risks-and-needs-coordinator-api
