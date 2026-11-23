@@ -7,6 +7,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.web.reactive.function.BodyInserters
+import org.springframework.web.reactive.function.client.ExchangeStrategies
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.dto.TokenDto
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.helpers.FailedTestLogger
 
@@ -16,13 +17,14 @@ abstract class IntegrationTestBase {
 
   protected lateinit var webTestClient: WebTestClient
   protected lateinit var authTestClient: WebTestClient
+  protected lateinit var aapTestClient: WebTestClient
 
   @BeforeAll
   fun setup() {
     val authBaseUrl = System.getenv("AUTH_BASE_URL")
       ?: "https://sign-in-dev.hmpps.service.justice.gov.uk"
     val apiBaseUrl = System.getenv("ARNS_COORDINATOR_BASE_URL")
-      ?: "https://arns-coordinator-api-dev.hmpps.service.justice.gov.uk"
+    val aapBaseUrl = System.getenv("AAP_TEST_BASE_URL")
 
     authTestClient = WebTestClient.bindToServer()
       .baseUrl(authBaseUrl)
@@ -35,6 +37,15 @@ abstract class IntegrationTestBase {
 
     webTestClient = WebTestClient.bindToServer()
       .baseUrl(apiBaseUrl)
+      .exchangeStrategies(ExchangeStrategies.builder().codecs { it.defaultCodecs().maxInMemorySize(16 * 1024 * 1024) }.build())
+      .defaultHeader("Authorization", "Bearer $token")
+      .entityExchangeResultConsumer { result ->
+        FailedTestLogger.record(result)
+      }
+      .build()
+
+    aapTestClient = WebTestClient.bindToServer()
+      .baseUrl(aapBaseUrl)
       .defaultHeader("Authorization", "Bearer $token")
       .entityExchangeResultConsumer { result ->
         FailedTestLogger.record(result)

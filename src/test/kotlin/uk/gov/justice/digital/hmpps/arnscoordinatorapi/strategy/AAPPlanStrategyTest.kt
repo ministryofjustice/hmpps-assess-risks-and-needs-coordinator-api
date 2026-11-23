@@ -89,7 +89,7 @@ class AAPPlanStrategyTest {
       )
       val versionedEntity = VersionedEntity(UUID.randomUUID(), 1, entityType)
 
-      whenever(aapApi.createAssessment(any())).thenReturn(
+      whenever(aapApi.createAssessment(any(), any())).thenReturn(
         AAPApi.ApiOperationResult.Success(versionedEntity),
       )
 
@@ -106,7 +106,7 @@ class AAPPlanStrategyTest {
 
       assertTrue(result is OperationResult.Success)
       assertEquals(versionedEntity, (result as OperationResult.Success).data)
-      verify(aapApi).createAssessment(any())
+      verify(aapApi).createAssessment(any(), any())
     }
 
     @Test
@@ -115,7 +115,7 @@ class AAPPlanStrategyTest {
         plan = CreatePlanData(PlanType.INITIAL, UserDetails("id", "name")),
       )
 
-      whenever(aapApi.createAssessment(any())).thenReturn(
+      whenever(aapApi.createAssessment(any(), any())).thenReturn(
         AAPApi.ApiOperationResult.Failure("Error occurred"),
       )
 
@@ -123,7 +123,7 @@ class AAPPlanStrategyTest {
 
       assertTrue(result is OperationResult.Failure)
       assertEquals("Error occurred", (result as OperationResult.Failure).errorMessage)
-      verify(aapApi).createAssessment(any())
+      verify(aapApi).createAssessment(any(), any())
     }
   }
 
@@ -748,7 +748,7 @@ class AAPPlanStrategyTest {
       )
 
       val result = planStrategy.sign(
-        signData = SignData(
+        request = SignData(
           signType = SignType.SELF,
           userDetails = UserDetails("id", "name"),
         ),
@@ -779,7 +779,7 @@ class AAPPlanStrategyTest {
       )
 
       val result = planStrategy.sign(
-        signData = SignData(
+        request = SignData(
           signType = SignType.COUNTERSIGN,
           userDetails = UserDetails("id", "name"),
         ),
@@ -808,7 +808,7 @@ class AAPPlanStrategyTest {
       ).thenThrow(RuntimeException("Error occurred"))
 
       val result = planStrategy.sign(
-        signData = SignData(
+        request = SignData(
           signType = SignType.COUNTERSIGN,
           userDetails = UserDetails("id", "name"),
         ),
@@ -911,7 +911,7 @@ class AAPPlanStrategyTest {
 
   @Nested
   inner class Reset {
-    val entityUuid = UUID.randomUUID()
+    val entityUuid: UUID = UUID.randomUUID()
     val resetData = ResetData(
       userDetails = UserDetails("id", "name"),
     )
@@ -976,7 +976,7 @@ class AAPPlanStrategyTest {
         versionFrom = 1,
       )
 
-      val expectedPointInTime = LocalDateTime.ofInstant(
+      val expectedPointInTime: LocalDateTime = LocalDateTime.ofInstant(
         java.time.Instant.ofEpochMilli(softDeleteData.versionFrom),
         ZoneOffset.UTC,
       )

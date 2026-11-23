@@ -4,6 +4,7 @@ import java.util.UUID
 
 data class OasysAssociationsResponse(
   var sanAssessmentId: UUID = UUID(0, 0),
+  var sanAssessmentVersion: Long? = null,
   var sentencePlanId: UUID = UUID(0, 0),
   var sentencePlanVersion: Long? = null,
 )

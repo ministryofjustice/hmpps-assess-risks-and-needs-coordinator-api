@@ -93,7 +93,7 @@ class OasysCoordinatorService(
       baseVersion = when (entityType) {
         EntityType.ASSESSMENT -> existingAssociation.baseVersion
         EntityType.PLAN -> existingAssociation.baseVersion
-        EntityType.AAP_PLAN ->
+        EntityType.AAP_PLAN, EntityType.AAP_SAN ->
           oasysVersionService
             .createVersionFor(OasysEvent.CLONED, existingAssociation.entityUuid)
             .version
@@ -201,9 +201,8 @@ class OasysCoordinatorService(
 
     val result = runBlocking {
       val results = strategyFactory.getStrategiesFor(requestData.assessmentType).map { strategy ->
-        async(Dispatchers.IO) { handleEntity(requestData, strategy) }
-      }.awaitAll()
-
+        handleEntity(requestData, strategy)
+      }
       processCreateResults(requestData, results)
     }
 
@@ -467,7 +466,7 @@ class OasysCoordinatorService(
     return GetOperationResult.Success(versionsResponseFactory.getVersionsResponse())
   }
 
-  fun getAssociations(oasysAssessmentPk: String, planVersion: Long? = null): GetOperationResult<OasysAssociationsResponse> {
+  fun getAssociations(oasysAssessmentPk: String, planVersion: Long? = null, assessmentVersion: Long? = null): GetOperationResult<OasysAssociationsResponse> {
     val associations = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
 
     if (associations.isEmpty()) {
@@ -477,8 +476,14 @@ class OasysCoordinatorService(
     val oasysAssociationsResponse = OasysAssociationsResponse()
     associations.forEach { association ->
       when (association.entityType) {
-        EntityType.ASSESSMENT -> oasysAssociationsResponse.apply {
+        EntityType.ASSESSMENT, EntityType.AAP_SAN -> oasysAssociationsResponse.apply {
           sanAssessmentId = association.entityUuid
+          if (association.entityType == EntityType.AAP_SAN) {
+            assessmentVersion?.let { version ->
+              sanAssessmentVersion = oasysVersionService.fetchVersion(association.entityUuid, version)?.getEpochVersion()
+                ?: throw IllegalStateException("OASys SAN version not found for the provided entityUuid")
+            }
+          }
         }
 
         EntityType.PLAN, EntityType.AAP_PLAN -> oasysAssociationsResponse.apply {

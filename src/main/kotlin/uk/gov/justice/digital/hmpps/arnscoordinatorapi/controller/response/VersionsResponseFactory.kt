@@ -8,13 +8,15 @@ import java.time.LocalDate
 
 class VersionsResponseFactory {
   val versions: MutableMap<LocalDate, VersionsOnDate> = mutableMapOf()
+  val unaggregatedVersions: MutableList<VersionDetails> = mutableListOf()
 
   fun addVersions(versionsToAdd: VersionDetailsList) = versionsToAdd.forEach { versionToAdd ->
+    unaggregatedVersions.add(versionToAdd)
     versions.getOrPut(versionToAdd.updatedAt.toLocalDate()) { VersionsOnDate() }
       .let {
         when (versionToAdd.entityType) {
           EntityType.PLAN, EntityType.AAP_PLAN -> it.planVersions
-          EntityType.ASSESSMENT -> it.assessmentVersions
+          EntityType.ASSESSMENT, EntityType.AAP_SAN -> it.assessmentVersions
         }
       }.add(versionToAdd)
   }
@@ -105,5 +107,6 @@ class VersionsResponseFactory {
   fun getVersionsResponse() = VersionsResponse(
     allVersions = getVersionsTable(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),
     countersignedVersions = getVersionsTableForStatuses(setOf("COUNTERSIGNED", "DOUBLE_COUNTERSIGNED")),
+    unaggregatedVersions = unaggregatedVersions,
   )
 }
