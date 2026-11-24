@@ -29,9 +29,10 @@ generic-service:
     ASSESSMENT_TYPE: AAP_SAN
 
   allowlist:
-#    mod-platform-live-eu-west-2a-nat: 13.41.38.176/32
-#    mod-platform-live-eu-west-2c-nat: 3.11.197.133/32
-#    mod-platform-live-eu-west-2b-nat: 3.8.81.175/32
+    groups:
+      - internal
+      - prisons
+      - mod-platform-live
 
 customPrometheusAlerts:
   enabled: true
