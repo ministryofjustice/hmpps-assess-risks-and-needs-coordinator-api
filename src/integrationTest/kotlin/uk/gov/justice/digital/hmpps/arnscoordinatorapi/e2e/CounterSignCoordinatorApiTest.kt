@@ -25,7 +25,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
 import java.time.LocalDate
 import java.util.UUID
-import kotlin.properties.Delegates
 
 @Tag("test")
 @DisplayName("Coordinator counter-sign API Tests")
@@ -34,8 +33,8 @@ import kotlin.properties.Delegates
 class CounterSignCoordinatorApiTest : IntegrationTestBase() {
   private lateinit var sentencePlanId: UUID
   private lateinit var assessmentId: UUID
-  private var sentencePlanVersion by Delegates.notNull<Long>()
-  private var assessmentVersion by Delegates.notNull<Long>()
+  private var sentencePlanVersion: Long? = null
+  private var assessmentVersion: Long? = null
   val oasysPk = "3173002"
   val today: LocalDate? = LocalDate.now()
 
@@ -67,8 +66,8 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
       EntityType.AAP_SAN,
     )
 
-    sentencePlanVersion = entityVersion?.allVersions?.get(planLastUpdatedDate)?.planVersion?.version!!
-    assessmentVersion = entityVersion.allVersions[assessmentUpdatedDate]?.assessmentVersion?.version!!
+    sentencePlanVersion = entityVersion?.allVersions?.get(planLastUpdatedDate)?.planVersion?.version
+    assessmentVersion = entityVersion?.allVersions?.get(assessmentUpdatedDate)?.assessmentVersion?.version
   }
 
   @Test
@@ -93,8 +92,8 @@ class CounterSignCoordinatorApiTest : IntegrationTestBase() {
     val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     assertThat(getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.status).isEqualTo("ROLLED_BACK")
 
-    assessmentVersion = getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.version!!
-    sentencePlanVersion = getEntityVersionsResponse.allVersions[today]?.planVersion?.version!!
+    assessmentVersion = getEntityVersionsResponse?.allVersions?.get(today)?.assessmentVersion?.version
+    sentencePlanVersion = getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.version
   }
 
   @Test
