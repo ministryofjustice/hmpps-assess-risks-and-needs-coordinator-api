@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentTypeConfig
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentTypeConfig
 
 class StrategyFactoryTest {
   private val assessmentStrategy: AssessmentStrategy = mock()

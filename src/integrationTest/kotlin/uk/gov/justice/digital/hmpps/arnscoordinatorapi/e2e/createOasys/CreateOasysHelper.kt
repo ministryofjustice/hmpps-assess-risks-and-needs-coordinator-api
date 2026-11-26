@@ -3,12 +3,12 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.SubjectDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.SubjectDetails
 
 object CreateOasysHelper {
   fun createOasys(

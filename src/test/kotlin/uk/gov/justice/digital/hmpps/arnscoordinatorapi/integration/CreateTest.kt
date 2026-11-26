@@ -10,13 +10,13 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.sqs.SqsClient
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.net.URI
 import java.util.UUID
@@ -91,7 +91,7 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isCreated
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     val aapPlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
     val sanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
     assertThat(aapPlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
@@ -148,7 +148,7 @@ class CreateTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().isEqualTo(500)
 
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     assertThat(associations).isEmpty()
   }
 
@@ -204,12 +204,12 @@ class CreateTest : IntegrationTestBase() {
 
     val (planAssociation, sanAssociation) = oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = previousOasysPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = previousOasysPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = sanUuid,
@@ -231,7 +231,7 @@ class CreateTest : IntegrationTestBase() {
       )
       .exchange()
       .expectStatus().isCreated
-    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
+    val associations = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())
     val persistedSentencePlanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
     val persistedSanAssociation = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
     assertThat(persistedSentencePlanAssociation?.oasysAssessmentPk).isEqualTo(oasysAssessmentPk)
@@ -248,7 +248,7 @@ class CreateTest : IntegrationTestBase() {
     val sentencePlanUuid = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6")
 
     oasysAssociationRepository.save(
-      OasysAssociation(
+      OasysAssociationEntity(
         oasysAssessmentPk = previousOasysPk,
         entityType = EntityType.AAP_PLAN,
         entityUuid = sentencePlanUuid,
@@ -277,7 +277,7 @@ class CreateTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
 
     oasysAssociationRepository.save(
-      OasysAssociation(
+      OasysAssociationEntity(
         oasysAssessmentPk = oasysAssessmentPk,
         entityUuid = UUID.randomUUID(),
         entityType = EntityType.AAP_SAN,

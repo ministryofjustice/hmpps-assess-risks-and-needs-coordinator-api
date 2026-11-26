@@ -7,13 +7,13 @@ import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.LastVersionsOnDate
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -43,12 +43,12 @@ class GetVersionsTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planEntityUuid,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = sanEntityUuid,

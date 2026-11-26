@@ -20,9 +20,10 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysVersionService
 import java.time.LocalDateTime
 import java.util.UUID
 

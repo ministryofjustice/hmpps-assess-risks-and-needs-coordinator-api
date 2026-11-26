@@ -7,13 +7,14 @@ import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import tools.jackson.databind.json.JsonMapper
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.OasysController
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.OasysController
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysCoordinatorService
 import java.util.UUID
 
 class OasysControllerTest {
