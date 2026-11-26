@@ -1,6 +1,5 @@
 SHELL = '/bin/bash'
 DEV_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml -f docker/docker-compose.dev.yml
-TEST_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml -f docker/docker-compose.test.yml
 LOCAL_COMPOSE_FILES = -f docker/docker-compose.yml -f docker/docker-compose.local.yml
 INTEGRATION_TEST_COMPOSE_FILES = -f docker/docker-compose.integration.yml
 PROJECT_NAME = hmpps-assess-risks-and-needs
@@ -18,7 +17,6 @@ up: ## Starts/restarts the API in a production container.
 
 down: ## Stops and removes all containers in the project.
 	docker compose ${DEV_COMPOSE_FILES} down
-	docker compose ${TEST_COMPOSE_FILES} down
 	docker compose ${LOCAL_COMPOSE_FILES} down
 
 build-api: ## Builds a production image of the API.
@@ -43,16 +41,6 @@ dev-api-token: ## Generates a JWT for authenticating with the local API.
   	| jq -r '.access_token' \
   	| xargs printf "\nToken:\n%s\n"
 
-test-up: ## Starts/restarts the API in a development container. A remote debugger can be attached on port 5005.
-	docker compose ${TEST_COMPOSE_FILES} down coordinator-api
-	docker compose ${TEST_COMPOSE_FILES} up --wait --no-recreate coordinator-api
-
-test-build: ## Builds a development image of the API.
-	docker compose ${TEST_COMPOSE_FILES} build coordinator-api
-
-test-down: ## Stops and removes the API container.
-	docker compose ${TEST_COMPOSE_FILES} down
-
 rebuild: ## Re-builds and reloads the API.
 	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle compileKotlin --parallel --build-cache --configuration-cache
 
@@ -60,14 +48,14 @@ watch: ## Watches for file changes and live-reloads the API. To be used in conju
 	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle compileKotlin --continuous --parallel --build-cache --configuration-cache
 
 test: ## Runs all the test suites.
-	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --parallel
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle test --parallel
 
 test-debug: ## Runs all the test suites with debug logging.
-	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --parallel --debug
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle test --parallel --debug
 
 TESTS=
 test-specific: ## Runs specific tests
-	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle test --tests "${TESTS}" --parallel
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle test --tests "${TESTS}" --parallel
 
 int-test-dev: ## Runs all integration tests
 	docker compose ${INTEGRATION_TEST_COMPOSE_FILES} run --rm --env ARNS_COORDINATOR_BASE_URL="https://arns-coordinator-api-dev.hmpps.service.justice.gov.uk" --env AAP_TEST_BASE_URL="https://arns-assessment-platform-api-dev.hmpps.service.justice.gov.uk" int gradle integrationTest -Djunit.platform.execution.tag.include=dev
@@ -76,10 +64,10 @@ int-test-test: ## Runs on test environment
 	docker compose ${INTEGRATION_TEST_COMPOSE_FILES} run --rm --env ARNS_COORDINATOR_BASE_URL="https://arns-coordinator-api-test.hmpps.service.justice.gov.uk" --env AAP_TEST_BASE_URL="https://arns-assessment-platform-api-test.hmpps.service.justice.gov.uk" int gradle integrationTest -Djunit.platform.execution.tag.include=test
 
 lint: ## Runs the Kotlin linter.
-	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle ktlintCheck --parallel
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle ktlintCheck --parallel
 
 lint-fix: ## Runs the Kotlin linter and auto-fixes.
-	docker compose ${TEST_COMPOSE_FILES} exec coordinator-api gradle ktlintFormat --parallel
+	docker compose ${DEV_COMPOSE_FILES} exec coordinator-api gradle ktlintFormat --parallel
 
 clean: down ## Stops and removes all project containers. Deletes local build/cache directories.
 	docker volume ls -qf "dangling=true" | xargs -r docker volume rm
