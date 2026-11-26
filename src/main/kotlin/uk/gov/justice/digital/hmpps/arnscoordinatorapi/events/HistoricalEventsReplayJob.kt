@@ -6,11 +6,11 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
 import java.util.UUID
 import javax.sql.DataSource
 import kotlin.concurrent.thread

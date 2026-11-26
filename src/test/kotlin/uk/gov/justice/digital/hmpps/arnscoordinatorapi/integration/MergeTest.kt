@@ -10,13 +10,13 @@ import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysMergeRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysTransferAssociation
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysMergeRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysMessageResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysTransferAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @ExtendWith(OutputCaptureExtension::class)

@@ -22,9 +22,8 @@ class OasysJsonConfiguration {
     return object : JacksonJsonHttpMessageConverter(oasysMapper) {
       override fun canRead(type: ResolvableType, mediaType: MediaType?) = false
 
-      override fun canWrite(targetType: ResolvableType, valueClass: Class<*>, mediaType: MediaType?) =
-        OasysGetResponse::class.java.isAssignableFrom(valueClass) &&
-          super.canWrite(targetType, valueClass, mediaType)
+      override fun canWrite(targetType: ResolvableType, valueClass: Class<*>, mediaType: MediaType?) = OasysGetResponse::class.java.isAssignableFrom(valueClass) &&
+        super.canWrite(targetType, valueClass, mediaType)
     }
   }
 }
