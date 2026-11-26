@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.EnumSource
 import org.junit.jupiter.params.provider.ValueSource
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
@@ -56,7 +55,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = "TEST",
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
     )
 
     val factory = VersionsResponseFactory()
@@ -87,7 +86,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = "TEST",
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
     )
 
     val factory = VersionsResponseFactory()
@@ -129,7 +128,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = "TEST",
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
     )
 
     val factory = VersionsResponseFactory()
@@ -173,7 +172,7 @@ class VersionsResponseFactoryTest {
       createdAt = date.atTime(10, 0),
       updatedAt = date.atTime(11, 0),
       planAgreementStatus = "TEST",
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
     )
 
     val factory = VersionsResponseFactory()
@@ -225,7 +224,7 @@ class VersionsResponseFactoryTest {
       createdAt = planDate.atTime(10, 0),
       updatedAt = planDate.atTime(11, 0),
       planAgreementStatus = "TEST",
-      entityType = EntityType.PLAN,
+      entityType = EntityType.AAP_PLAN,
     )
 
     val factory = VersionsResponseFactory()
@@ -297,7 +296,7 @@ class VersionsResponseFactoryTest {
         createdAt = planDate.atTime(10, 0),
         updatedAt = planDate.atTime(11, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -306,7 +305,7 @@ class VersionsResponseFactoryTest {
         createdAt = planDate.atTime(8, 0),
         updatedAt = planDate.atTime(9, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -315,7 +314,7 @@ class VersionsResponseFactoryTest {
         createdAt = assessmentDate.atTime(8, 0),
         updatedAt = assessmentDate.atTime(9, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
     )
 
@@ -343,7 +342,7 @@ class VersionsResponseFactoryTest {
             createdAt = planDate.atTime(10, 0),
             updatedAt = planDate.atTime(11, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         planDate to LastVersionsOnDate(
@@ -364,7 +363,7 @@ class VersionsResponseFactoryTest {
             createdAt = planDate.atTime(10, 0),
             updatedAt = planDate.atTime(11, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         assessmentDate to LastVersionsOnDate(
@@ -385,7 +384,7 @@ class VersionsResponseFactoryTest {
             createdAt = assessmentDate.atTime(8, 0),
             updatedAt = assessmentDate.atTime(9, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
       ),
@@ -509,7 +508,7 @@ class VersionsResponseFactoryTest {
         createdAt = november.atTime(9, 0),
         updatedAt = november.atTime(10, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -518,7 +517,7 @@ class VersionsResponseFactoryTest {
         createdAt = september.atTime(9, 0),
         updatedAt = september.atTime(10, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -527,7 +526,7 @@ class VersionsResponseFactoryTest {
         createdAt = september.atTime(5, 0),
         updatedAt = september.atTime(6, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -536,7 +535,7 @@ class VersionsResponseFactoryTest {
         createdAt = august.atTime(9, 0),
         updatedAt = august.atTime(10, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -545,7 +544,7 @@ class VersionsResponseFactoryTest {
         createdAt = july.atTime(10, 30),
         updatedAt = july.atTime(11, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -554,7 +553,7 @@ class VersionsResponseFactoryTest {
         createdAt = july.atTime(9, 0),
         updatedAt = july.atTime(10, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -563,7 +562,7 @@ class VersionsResponseFactoryTest {
         createdAt = may.atTime(11, 30),
         updatedAt = may.atTime(12, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -572,7 +571,7 @@ class VersionsResponseFactoryTest {
         createdAt = may.atTime(10, 0),
         updatedAt = may.atTime(11, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
       VersionDetails(
         uuid = planUuid,
@@ -581,7 +580,7 @@ class VersionsResponseFactoryTest {
         createdAt = may.atTime(8, 0),
         updatedAt = may.atTime(9, 0),
         planAgreementStatus = "TEST",
-        entityType = EntityType.PLAN,
+        entityType = EntityType.AAP_PLAN,
       ),
     )
 
@@ -611,7 +610,7 @@ class VersionsResponseFactoryTest {
             createdAt = may.atTime(11, 30),
             updatedAt = may.atTime(12, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         june to LastVersionsOnDate(
@@ -634,7 +633,7 @@ class VersionsResponseFactoryTest {
             createdAt = may.atTime(11, 30),
             updatedAt = may.atTime(12, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         july to LastVersionsOnDate(
@@ -657,7 +656,7 @@ class VersionsResponseFactoryTest {
             createdAt = july.atTime(10, 30),
             updatedAt = july.atTime(11, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         august to LastVersionsOnDate(
@@ -680,7 +679,7 @@ class VersionsResponseFactoryTest {
             createdAt = august.atTime(9, 0),
             updatedAt = august.atTime(10, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         october to LastVersionsOnDate(
@@ -703,7 +702,7 @@ class VersionsResponseFactoryTest {
             createdAt = september.atTime(9, 0),
             updatedAt = september.atTime(10, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
       ),
@@ -728,7 +727,7 @@ class VersionsResponseFactoryTest {
             createdAt = may.atTime(8, 0),
             updatedAt = may.atTime(9, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         june to LastVersionsOnDate(
@@ -756,7 +755,7 @@ class VersionsResponseFactoryTest {
             createdAt = july.atTime(9, 0),
             updatedAt = july.atTime(10, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         august to LastVersionsOnDate(
@@ -792,7 +791,7 @@ class VersionsResponseFactoryTest {
             createdAt = september.atTime(9, 0),
             updatedAt = september.atTime(10, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
         november to LastVersionsOnDate(
@@ -815,7 +814,7 @@ class VersionsResponseFactoryTest {
             createdAt = november.atTime(9, 0),
             updatedAt = november.atTime(10, 0),
             planAgreementStatus = "TEST",
-            entityType = EntityType.PLAN,
+            entityType = EntityType.AAP_PLAN,
           ),
         ),
       ),
@@ -955,16 +954,15 @@ class VersionsResponseFactoryTest {
     assertEquals(expectedResponse.allVersions.entries.toList(), actualResponse.allVersions.entries.toList())
   }
 
-  @ParameterizedTest
-  @EnumSource(EntityType::class, names = ["PLAN", "AAP_PLAN"])
-  fun `first date should only say assessment updated when the plan was not changed that day`(planType: EntityType) {
+  @Test
+  fun `first date should only say assessment updated when the plan was not changed that day`() {
     val day1 = LocalDate.of(2025, 6, 24)
     val day2 = LocalDate.of(2025, 6, 25)
 
     val factory = VersionsResponseFactory()
-    val assessment = version(EntityType.ASSESSMENT, day1)
-    val plan = untouched(planType, day1)
-    val laterAssessment = version(EntityType.ASSESSMENT, day2).copy(version = 2)
+    val assessment = version(EntityType.AAP_SAN, day1)
+    val plan = untouched(EntityType.AAP_PLAN, day1)
+    val laterAssessment = version(EntityType.AAP_SAN, day2).copy(version = 2)
     factory.addVersions(listOf(assessment, plan, laterAssessment))
 
     assertEquals(
@@ -979,16 +977,15 @@ class VersionsResponseFactoryTest {
     )
   }
 
-  @ParameterizedTest
-  @EnumSource(EntityType::class, names = ["PLAN", "AAP_PLAN"])
-  fun `first date should only say plan updated when the assessment was not changed that day`(planType: EntityType) {
+  @Test
+  fun `first date should only say plan updated when the assessment was not changed that day`() {
     val day1 = LocalDate.of(2025, 6, 24)
     val day2 = LocalDate.of(2025, 6, 25)
 
     val factory = VersionsResponseFactory()
-    val assessment = untouched(EntityType.ASSESSMENT, day1)
-    val plan = version(planType, day1)
-    val laterPlan = version(planType, day2).copy(version = 2)
+    val assessment = untouched(EntityType.AAP_SAN, day1)
+    val plan = version(EntityType.AAP_PLAN, day1)
+    val laterPlan = version(EntityType.AAP_PLAN, day2).copy(version = 2)
     factory.addVersions(listOf(assessment, plan, laterPlan))
 
     assertEquals(
@@ -1008,7 +1005,7 @@ class VersionsResponseFactoryTest {
     val day = LocalDate.of(2026, 9, 22)
 
     val factory = VersionsResponseFactory()
-    val assessment = untouched(EntityType.ASSESSMENT, day).copy(
+    val assessment = untouched(EntityType.AAP_SAN, day).copy(
       createdAt = LocalDateTime.parse("2026-09-22T08:17:13.152576"),
       updatedAt = LocalDateTime.parse("2026-09-22T08:17:13.15258"),
     )
@@ -1033,9 +1030,9 @@ class VersionsResponseFactoryTest {
     val factory = VersionsResponseFactory()
     factory.addVersions(
       listOf(
-        untouched(EntityType.ASSESSMENT, day1),
+        untouched(EntityType.AAP_SAN, day1),
         version(EntityType.AAP_PLAN, day1),
-        version(EntityType.ASSESSMENT, day2).copy(version = 2),
+        version(EntityType.AAP_SAN, day2).copy(version = 2),
       ),
     )
 
@@ -1047,7 +1044,7 @@ class VersionsResponseFactoryTest {
     val day = LocalDate.of(2025, 6, 24)
 
     val factory = VersionsResponseFactory()
-    factory.addVersions(listOf(version(EntityType.ASSESSMENT, day), version(EntityType.AAP_PLAN, day)))
+    factory.addVersions(listOf(version(EntityType.AAP_SAN, day), version(EntityType.AAP_PLAN, day)))
 
     assertEquals("Assessment and plan updated", factory.getVersionsResponse().allVersions[day]?.description)
   }
@@ -1059,7 +1056,7 @@ class VersionsResponseFactoryTest {
     val factory = VersionsResponseFactory()
     factory.addVersions(
       listOf(
-        untouched(EntityType.ASSESSMENT, day),
+        untouched(EntityType.AAP_SAN, day),
         untouched(EntityType.AAP_PLAN, day, status = "CREATED"),
         untouched(EntityType.AAP_PLAN, day),
       ),
@@ -1084,7 +1081,7 @@ class VersionsResponseFactoryTest {
     val day = LocalDate.of(2025, 6, 24)
 
     val factory = VersionsResponseFactory()
-    factory.addVersions(listOf(untouched(EntityType.ASSESSMENT, day, status = status), untouched(EntityType.AAP_PLAN, day)))
+    factory.addVersions(listOf(untouched(EntityType.AAP_SAN, day, status = status), untouched(EntityType.AAP_PLAN, day)))
 
     assertEquals("Assessment updated", factory.getVersionsResponse().allVersions[day]?.description)
   }
@@ -1096,7 +1093,7 @@ class VersionsResponseFactoryTest {
     val factory = VersionsResponseFactory()
     factory.addVersions(
       listOf(
-        untouched(EntityType.ASSESSMENT, day),
+        untouched(EntityType.AAP_SAN, day),
         untouched(EntityType.AAP_PLAN, day).copy(planAgreementStatus = "AGREED"),
       ),
     )

@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.service
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.service
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -20,10 +20,10 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.CoordinatorException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysVersionService
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -107,7 +107,7 @@ class OasysVersionServiceTest {
 
       whenever(repository.findByEntityUuidAndVersion(uuid, 1767960000000L)).thenReturn(null)
 
-      val ex = assertThrows<Error> {
+      val ex = assertThrows<CoordinatorException> {
         service.updateVersion(event, uuid, 1767960000000L)
       }
 
@@ -149,7 +149,7 @@ class OasysVersionServiceTest {
 
       whenever(repository.findAllByEntityUuidAndVersionGreaterThanEqualAndVersionLessThan(uuid, 1767956400000L, 1767960000000L)).thenReturn(emptyList())
 
-      val ex = assertThrows<Error> {
+      val ex = assertThrows<CoordinatorException> {
         service.softDeleteVersions(uuid, from = 1767956400000L, to = 1767960000000L)
       }
 
@@ -205,7 +205,7 @@ class OasysVersionServiceTest {
       val uuid = UUID.randomUUID()
       whenever(repository.findAllDeletedByEntityUuidAndVersionBetween(uuid, 1767952800000, 1767956400000L)).thenReturn(emptyList())
 
-      assertThrows<Error> {
+      assertThrows<CoordinatorException> {
         service.undeleteVersions(uuid, 1767952800000, 1767956400000L)
       }
 

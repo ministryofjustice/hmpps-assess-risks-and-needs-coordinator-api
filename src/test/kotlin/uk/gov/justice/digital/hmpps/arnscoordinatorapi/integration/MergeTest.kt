@@ -67,10 +67,10 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.message).isEqualTo("Successfully processed all 2 merge elements")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingOasysPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingOasysPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk1, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk2, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingOasysPk1)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingOasysPk2)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk1).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk2).size).isEqualTo(2)
   }
 
   @Test
@@ -103,8 +103,8 @@ class MergeTest : IntegrationTestBase() {
       .responseBody
 
     assertThat(response?.message).isEqualTo("Successfully processed all 1 merge elements")
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(oldOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(newOasysPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(oldOasysPk)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(newOasysPk).size).isEqualTo(2)
   }
 
   @Test
@@ -139,8 +139,8 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.message).isEqualTo("Successfully processed all 1 merge elements")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oldOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(oldOasysPk)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk).size).isEqualTo(2)
   }
 
   @Test
@@ -171,8 +171,8 @@ class MergeTest : IntegrationTestBase() {
       .exchange()
       .expectStatus().is5xxServerError
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(existingOasysPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(existingOasysPk).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysPk)).isEmpty()
   }
 
   @Test
@@ -217,10 +217,10 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.userMessage).isEqualTo("Existing association(s) for $existingAssociationPk2, $existingAssociationPk4")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk1, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk2, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk3, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk4, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk1).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk2).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk3).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(existingAssociationPk4).size).isEqualTo(1)
   }
 
   @Test
@@ -270,12 +270,12 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.userMessage).isEqualTo("The following association(s) could not be located: $missingOasysAssessmentPk1, $missingOasysAssessmentPk2 and the operation has not been actioned.")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(missingOasysAssessmentPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newMissingOasysAssessmentPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(missingOasysAssessmentPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newMissingOasysAssessmentPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newOasysAssessmentPk)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(missingOasysAssessmentPk1)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newMissingOasysAssessmentPk1)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(missingOasysAssessmentPk2)).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPk(newMissingOasysAssessmentPk2)).isEmpty()
   }
 
   @Test

@@ -130,7 +130,7 @@ class RollbackTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to roll back AAP_PLAN entity, Unable to update version '2' for entity $planUuid")
+    assertThat(response?.userMessage).isEqualTo("Unable to update version, no previous version found for $planUuid")
   }
 
   @Test
