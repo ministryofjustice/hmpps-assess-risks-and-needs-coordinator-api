@@ -24,7 +24,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
 
   @Query(
     """
-      -- Convert enum collection to names to avoid Hibernate/H2 native query enum binding issues.
       SELECT * FROM coordinator.oasys_associations WHERE entity_uuid = :entityUuid
       """,
     nativeQuery = true,
@@ -33,18 +32,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
 
   @Query(
     """
-    -- Convert enum collection to names to avoid Hibernate/H2 native query enum binding issues.
-    SELECT * FROM coordinator.oasys_associations WHERE entity_uuid = :entityUuid
-    """,
-    nativeQuery = true,
-  )
-  fun findAllOfAnyKindByEntityUuidIncludingDeleted(
-    entityUuid: UUID,
-  ): List<OasysAssociationEntity>
-
-  @Query(
-    """
-      -- Convert enum collection to names to avoid Hibernate/H2 native query enum binding issues.
       SELECT * FROM coordinator.oasys_associations WHERE oasys_assessment_pk = :oasysAssessmentPk
       """,
     nativeQuery = true,
@@ -55,7 +42,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
 
   @Query(
     """
-      -- Convert enum collection to names to avoid Hibernate/H2 native query enum binding issues.
       SELECT * FROM coordinator.oasys_associations WHERE oasys_assessment_pk = :oasysAssessmentPk AND deleted IS TRUE
       """,
     nativeQuery = true,

@@ -41,7 +41,7 @@ class WebClientConfiguration(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,
     @Value("\${app.services.aap-api.base-url}") aapApiBaseUri: String,
-  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "aap-api", url = aapApiBaseUri, timeout)
+  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "coordinator-api", url = aapApiBaseUri, timeout)
 
   internal fun retryingExchangeFilterFunction(): ExchangeFilterFunction = ExchangeFilterFunction { request, next ->
     next.exchange(request)
