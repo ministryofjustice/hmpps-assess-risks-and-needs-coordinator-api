@@ -19,7 +19,7 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
   fun findAllByEntityUuid(entityUuid: UUID): List<OasysAssociationEntity>
 
   fun findAllByEntityUuidIn(
-      entityUuids: Collection<UUID>,
+    entityUuids: Collection<UUID>,
   ): List<OasysAssociationEntity>
 
   @Query(
@@ -39,7 +39,7 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
     nativeQuery = true,
   )
   fun findAllOfAnyKindByEntityUuidIncludingDeleted(
-      entityUuid: UUID,
+    entityUuid: UUID,
   ): List<OasysAssociationEntity>
 
   @Query(
@@ -50,7 +50,7 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
     nativeQuery = true,
   )
   fun findAllByOasysAssessmentPkIncludingDeleted(
-      oasysAssessmentPk: String,
+    oasysAssessmentPk: String,
   ): List<OasysAssociationEntity>
 
   @Query(
@@ -61,6 +61,6 @@ interface OasysAssociationRepository : JpaRepository<OasysAssociationEntity, Lon
     nativeQuery = true,
   )
   fun findAllDeletedByOasysAssessmentPk(
-      oasysAssessmentPk: String,
+    oasysAssessmentPk: String,
   ): List<OasysAssociationEntity>
 }

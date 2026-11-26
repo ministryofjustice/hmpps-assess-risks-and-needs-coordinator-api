@@ -3,12 +3,12 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.events
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.CounterSignOutcome
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 
 @Component

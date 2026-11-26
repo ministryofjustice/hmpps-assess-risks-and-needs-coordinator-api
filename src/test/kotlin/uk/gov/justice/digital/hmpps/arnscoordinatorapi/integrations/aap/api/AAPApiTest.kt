@@ -32,9 +32,9 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.AAPAssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
 import java.time.LocalDateTime
 import java.util.UUID
 

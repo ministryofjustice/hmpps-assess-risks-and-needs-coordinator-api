@@ -39,12 +39,11 @@ class OasysAssociationsService(
 
   fun findAllIncludingDeleted(entityUuid: UUID): List<OasysAssociationEntity> = oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(entityUuid)
 
-  fun getExistingAssociationTypes(oasysAssessmentPk: String): List<EntityType> =
-    oasysAssociationRepository
-      .findAllByOasysAssessmentPk(oasysAssessmentPk)
-      .map { it.entityType }
-      .distinct()
-      .filterNotNull()
+  fun getExistingAssociationTypes(oasysAssessmentPk: String): List<EntityType> = oasysAssociationRepository
+    .findAllByOasysAssessmentPk(oasysAssessmentPk)
+    .map { it.entityType }
+    .distinct()
+    .filterNotNull()
 
   fun save(association: OasysAssociationEntity) = oasysAssociationRepository.save(association)
 }

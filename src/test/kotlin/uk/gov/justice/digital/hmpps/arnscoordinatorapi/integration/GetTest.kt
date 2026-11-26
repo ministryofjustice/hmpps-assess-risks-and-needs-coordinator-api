@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 

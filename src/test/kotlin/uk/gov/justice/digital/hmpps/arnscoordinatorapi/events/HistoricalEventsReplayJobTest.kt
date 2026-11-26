@@ -10,11 +10,11 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet

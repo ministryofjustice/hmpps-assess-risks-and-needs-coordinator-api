@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysCoordinatorService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysCoordinatorService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 

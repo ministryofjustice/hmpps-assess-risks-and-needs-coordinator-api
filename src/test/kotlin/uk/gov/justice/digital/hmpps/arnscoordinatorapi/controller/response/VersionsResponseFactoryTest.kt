@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import org.junit.jupiter.params.provider.ValueSource
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Comparator

@@ -5,52 +5,52 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponseFactory
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.CounterSignOutcome
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCounterSignRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysMergeRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysRollbackRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysAssociationsResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysMessageResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponseFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventFactory
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.events.OasysEventPublisher
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.ConflictException
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.CoordinatorException
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.MissingEntityTypeException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.NoAssociationsException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.NoAssociationsForEntityException
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.NoAssociationsForEntityUuidException
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.NoDeletedAssociationsException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.AAPApi
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AssessmentIdentifier
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Command
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateAssessmentPropertiesCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UpdateFlagsCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.AssessmentVersionQuery
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CreateAssessmentCommandResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.CoordinatorException
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.MissingEntityTypeException
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.NoAssociationsForEntityUuidException
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.NoDeletedAssociationsException
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.SoftDeleteAssessmentCommand
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.UndeleteAssessmentCommand
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.DailyVersionsQuery
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.Query
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.query.TimelineQuery
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.command.CreateAssessmentCommandResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.DailyVersionsQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.TimelineQueryResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 import java.time.Instant
 import java.time.LocalDateTime
@@ -85,11 +85,15 @@ class OasysCoordinatorService(
 
     val createSPCommand = if (requestData.previousOasysSpPk == null && !resetPlan) {
       sentencePlanService.create(requestData).also(commands::add)
-    } else null
+    } else {
+      null
+    }
 
     val createSANCommand = if (requestData.previousOasysSanPk == null && requestData.assessmentType == AssessmentType.SAN_SP) {
       strengthsAndNeedsService.create(requestData).also(commands::add)
-    } else null
+    } else {
+      null
+    }
 
     val response = OasysVersionedEntityResponse()
 
@@ -348,7 +352,7 @@ class OasysCoordinatorService(
               entityType = entityType,
             )
           }
-        }
+        },
       )
 
       if (entityType == EntityType.AAP_PLAN) {
@@ -372,7 +376,7 @@ class OasysCoordinatorService(
                   entityType = entityType,
                 )
               }.plus(aapVersionsByType[entityType].orEmpty())
-          }
+          },
         )
       }
     }
@@ -390,7 +394,7 @@ class OasysCoordinatorService(
               planAgreementStatus = when (entityType) {
                 EntityType.AAP_PLAN -> acc.planAgreementStatus?.takeIf { it.isNotBlank() } ?: next.planAgreementStatus
                 else -> null
-              }
+              },
             )
           }
         }

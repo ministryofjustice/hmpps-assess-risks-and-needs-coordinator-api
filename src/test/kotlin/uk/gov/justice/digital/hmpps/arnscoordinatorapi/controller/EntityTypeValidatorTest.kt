@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentTypeConfig
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 
 class EntityTypeValidatorTest {
   val context: ConstraintValidatorContext = mock()

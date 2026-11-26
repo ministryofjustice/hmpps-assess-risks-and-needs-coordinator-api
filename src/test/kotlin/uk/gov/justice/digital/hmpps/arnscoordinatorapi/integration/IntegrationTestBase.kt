@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.TestBeanConfig
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentTypeConfig
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension.Companion.aapApiMock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension
@@ -19,7 +20,6 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.Sent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension.Companion.sanServer
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.RandomOasysPk
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentTypeConfig
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.util.UUID
 

@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response
 
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
 import java.time.Duration
 import java.time.LocalDate
 
