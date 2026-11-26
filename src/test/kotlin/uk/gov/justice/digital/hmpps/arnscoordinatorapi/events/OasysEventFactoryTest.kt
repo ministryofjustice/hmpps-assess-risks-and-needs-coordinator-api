@@ -16,11 +16,11 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysS
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -52,15 +52,15 @@ class OasysEventFactoryTest {
     createdBy: OasysEvent = OasysEvent.CREATED,
   ): OasysVersionedEntityResponse {
     val response = OasysVersionedEntityResponse(sentencePlanId = planId, sentencePlanVersion = 3L)
-    response.addVersionedEntity(
-      VersionedEntity(
-        id = planId,
+    response.populate(
+      OasysVersionEntity(
+        entityUuid = planId,
         version = 3L,
-        entityType = EntityType.AAP_PLAN,
         deleted = deleted,
         updatedAt = updatedAt,
         createdBy = createdBy,
       ),
+      EntityType.AAP_PLAN,
     )
     return response
   }

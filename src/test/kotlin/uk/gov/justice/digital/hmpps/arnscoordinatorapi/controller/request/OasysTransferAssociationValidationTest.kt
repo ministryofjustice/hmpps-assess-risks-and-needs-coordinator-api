@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request
 
 import jakarta.validation.ConstraintViolation
 import jakarta.validation.Validation
@@ -7,7 +7,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysTransferAssociation
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OasysTransferAssociationValidationTest {

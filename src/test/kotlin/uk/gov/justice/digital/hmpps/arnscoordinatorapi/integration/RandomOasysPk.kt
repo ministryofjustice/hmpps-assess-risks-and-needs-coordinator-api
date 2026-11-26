@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration
 
 import kotlin.random.Random
 

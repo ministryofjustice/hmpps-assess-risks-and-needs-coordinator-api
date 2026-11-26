@@ -10,8 +10,6 @@ import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
@@ -75,19 +73,13 @@ class UndeleteTest : IntegrationTestBase() {
       ),
     )
 
-    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(
-      oasysAssessmentPk,
-      assessmentTypeConfig.enabledEntityTypes(),
-    ).size
+    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size
 
     val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
-        UndeleteData(
-          versionFrom = 0,
-          userDetails = UserDetails(id = "1", name = "Test Name"),
-        ),
+        OasysGenericRequest(userDetails = OasysUserDetails(id = "1", name = "Test Name")),
       )
       .exchange()
       .expectStatus().isOk
@@ -95,10 +87,7 @@ class UndeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(
-      oasysAssessmentPk,
-      assessmentTypeConfig.enabledEntityTypes(),
-    ).size
+    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size
     val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(planUuid, 0)
 
     assertThat(versionsBefore).isEqualTo(0)
@@ -210,8 +199,8 @@ class UndeleteTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).startsWith("Failed to undelete AAP_PLAN versions from 0 to null due to a conflict")
-    assertThat(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).single().deleted).isTrue()
+    assertThat(response?.userMessage).startsWith("Call to Assessment Platform API failed with status 409")
+    assertThat(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).single().deleted).isTrue()
     assertThat(oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 1)).hasSize(1)
   }
 
@@ -250,7 +239,7 @@ class UndeleteTest : IntegrationTestBase() {
 //  }
 
   @Test
-  fun `it returns a 500 when the sentence plan has no deleted versions to undelete`() {
+  fun `it returns a 409 without calling AAP when the sentence plan has no deleted versions to undelete`() {
     val oasysAssessmentPk = getRandomOasysPk()
     val planUuid = UUID.randomUUID()
 
@@ -269,18 +258,15 @@ class UndeleteTest : IntegrationTestBase() {
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
-        UndeleteData(
-          versionFrom = 0,
-          userDetails = UserDetails(id = "1", name = "Test Name"),
-        ),
+        OasysGenericRequest(userDetails = OasysUserDetails(id = "1", name = "Test Name")),
       )
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().is5xxServerError
+      .expectStatus().isEqualTo(409)
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to undelete association for $oasysAssessmentPk, No deleted versions found to undelete for entity $planUuid")
+    assertThat(response?.userMessage).isEqualTo("No deleted versions found to undelete for entity $planUuid")
     verifyAAPUndeleteAssessmentNotCalled()
   }
 
@@ -302,10 +288,7 @@ class UndeleteTest : IntegrationTestBase() {
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
-        UndeleteData(
-          versionFrom = 0,
-          userDetails = UserDetails(id = "1", name = "Test Name"),
-        ),
+        OasysGenericRequest(userDetails = OasysUserDetails(id = "1", name = "Test Name")),
       )
       .accept(MediaType.APPLICATION_JSON)
       .exchange()

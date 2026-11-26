@@ -9,20 +9,11 @@ app:
   services:
     hmpps-auth:
       base-url: http://localhost:8090/auth
-    sentence-plan-api:
-      base-url: http://localhost:8091
-    strengths-and-needs-api:
-      base-url: http://localhost:8092
     aap-api:
       base-url: http://localhost:8093
   client:
     id: test
     secret: test
-  strategies:
-    plan: true
-    assessment: true
-    aap-plan: true
-    aap-san: true
 
 spring:
   datasource:
@@ -41,6 +32,3 @@ hmpps:
       coordinator:
         queue-name: coordinator-queue
         error-visibility-timeout: 30
-
-plan-type: AAP_PLAN
-assessment-type: AAP_SAN

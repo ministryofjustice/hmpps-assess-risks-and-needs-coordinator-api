@@ -135,7 +135,7 @@ class SoftDeleteTest : IntegrationTestBase() {
     assertThat(deletedPlanVersions).hasSize(1)
     assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(2))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -148,7 +148,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       }
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -225,12 +225,12 @@ class SoftDeleteTest : IntegrationTestBase() {
     assertThat(deletedPlanVersions).hasSize(1)
     assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(0))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
@@ -296,7 +296,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to soft-delete association for $oasysAssessmentPk, Something went wrong while deleting versions for entity $planUuid")
+    assertThat(response?.userMessage).startsWith("No versions found for entity $planUuid between 0 to ")
   }
 
   @Test
