@@ -9,15 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
 import java.util.UUID
@@ -44,27 +44,27 @@ class SoftDeleteTest : IntegrationTestBase() {
     val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = unaffectedOasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           baseVersion = 1,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = unaffectedOasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = assessmentUuid,
           baseVersion = 1,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           baseVersion = 2,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = assessmentUuid,
@@ -135,7 +135,7 @@ class SoftDeleteTest : IntegrationTestBase() {
     assertThat(deletedPlanVersions).hasSize(1)
     assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(2))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -148,7 +148,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       }
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
       assertEquals(2, count())
       map {
         assertTrue(
@@ -170,13 +170,13 @@ class SoftDeleteTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           baseVersion = 0,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = assessmentUuid,
@@ -225,12 +225,12 @@ class SoftDeleteTest : IntegrationTestBase() {
     assertThat(deletedPlanVersions).hasSize(1)
     assertThat(deletedPlanVersions.map { it.version }).isEqualTo(listOf<Long>(0))
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(assessmentUuid).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
 
-    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).run {
+    oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).run {
       assertEquals(1, count())
       assertTrue(all { it.deleted })
     }
@@ -274,7 +274,7 @@ class SoftDeleteTest : IntegrationTestBase() {
     val planUuid = UUID.randomUUID()
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
@@ -296,7 +296,7 @@ class SoftDeleteTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to soft-delete association for $oasysAssessmentPk, Something went wrong while deleting versions for entity $planUuid")
+    assertThat(response?.userMessage).startsWith("No versions found for entity $planUuid between 0 to ")
   }
 
   @Test

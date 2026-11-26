@@ -1,6 +1,10 @@
 services:
   postgres:
     image: postgres:18
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "root" ]
+      interval: 2s
+      retries: 30
     networks:
       - hmpps
     environment:
@@ -8,6 +12,17 @@ services:
       POSTGRES_PASSWORD: dev
     tmpfs:
       - /var/lib/postgresql
+
+  redis:
+    image: redis:8.10
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 2s
+      retries: 30
+    networks:
+      - hmpps
+    environment:
+      ALLOW_EMPTY_PASSWORD: yes
 
   hmpps-auth:
     image: ghcr.io/ministryofjustice/hmpps-auth:2026-01-19.282.b6537e8
@@ -28,10 +43,16 @@ services:
     build:
       context: ../
     depends_on:
-      - postgres
-      - hmpps-auth
-      - localstack
-      - sqs-admin
+      postgres:
+        condition: service_healthy
+      hmpps-auth:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      sqs-admin:
+        condition: service_started
+      aap-api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://coordinator-api:8080/health/ping"]
       interval: 5s
@@ -42,14 +63,34 @@ services:
       SERVER_PORT: 8080
       APP_DB_ENDPOINT: postgres:5432
       HMPPS_AUTH_BASE_URL: http://hmpps-auth:9090/auth
-      SAN_API_BASE_URL: http://san-api:8080
-      SP_API_BASE_URL: http://sp-api:8080
       AAP_API_BASE_URL: http://aap-api:8080
-      # TODO: Need to get some proper credentials for below
       CLIENT_ID: hmpps-assess-risks-and-needs-oastub-ui
       CLIENT_SECRET: clientsecret
-      PLAN_TYPE: AAP_PLAN
-      ASSESSMENT_TYPE: AAP_SAN
+
+  aap-api:
+    image: ghcr.io/ministryofjustice/hmpps-arns-assessment-platform-api:latest
+    networks:
+      - hmpps
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: [ 'CMD', 'curl', '-f', 'http://aap-api:8080/health/ping' ]
+      interval: 5s
+      retries: 20
+    environment:
+      - SERVER_PORT=8080
+      - HMPPS_AUTH_URL=http://hmpps-auth:9090/auth
+      - SPRING_PROFILES_ACTIVE=dev,postgres
+      - DATABASE_ENDPOINT=postgres:5432
+      - HMPPS_SQS_PROVIDER=localstack
+      - HMPPS_SQS_LOCALSTACK_URL=http://localstack:4566
+      - HMPPS_SQS_QUEUES_AUDIT_QUEUE_NAME=audit-queue
+      - SPRING_DATA_REDIS_HOST=redis
 
   localstack:
     image: localstack/localstack:4
@@ -86,7 +127,8 @@ services:
       SQS_AWS_ACCESS_KEY_ID: test
       SQS_AWS_SECRET_ACCESS_KEY: test
     depends_on:
-      - localstack
+      localstack:
+        condition: service_healthy
 
 networks:
   hmpps:

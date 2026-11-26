@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.config
 
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.webclient.WebClientCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -38,23 +37,6 @@ class WebClientConfiguration(
   fun hmppsAuthHealthWebClient(builder: WebClient.Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, healthTimeout)
 
   @Bean
-  @ConditionalOnProperty(name = ["app.strategies.assessment"], havingValue = "true")
-  fun sanApiWebClient(
-    authorizedClientManager: OAuth2AuthorizedClientManager,
-    builder: WebClient.Builder,
-    @Value("\${app.services.strengths-and-needs-api.base-url}") sanApiBaseUri: String,
-  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "coordinator-api", url = sanApiBaseUri, timeout)
-
-  @Bean
-  @ConditionalOnProperty(name = ["app.strategies.plan"], havingValue = "true")
-  fun sentencePlanApiWebClient(
-    authorizedClientManager: OAuth2AuthorizedClientManager,
-    builder: WebClient.Builder,
-    @Value("\${app.services.sentence-plan-api.base-url}") sentencePlanApiBaseUri: String,
-  ): WebClient = builder.authorisedWebClient(authorizedClientManager, registrationId = "coordinator-api", url = sentencePlanApiBaseUri, timeout)
-
-  @Bean
-  @ConditionalOnProperty(name = ["app.strategies.aap-plan"], havingValue = "true")
   fun aapApiWebClient(
     authorizedClientManager: OAuth2AuthorizedClientManager,
     builder: WebClient.Builder,

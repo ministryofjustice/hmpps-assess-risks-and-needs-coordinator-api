@@ -10,18 +10,18 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.time.LocalDateTime
 import java.util.UUID
 import javax.sql.DataSource
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent as PersistenceOasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent as PersistenceOasysEvent
 
 class HistoricalEventsReplayJobTest {
 
@@ -62,7 +62,7 @@ class HistoricalEventsReplayJobTest {
     whenever(associationsService.findAllIncludingDeleted(entityUuid))
       .thenReturn(
         listOf(
-          OasysAssociation(
+          OasysAssociationEntity(
             entityUuid = entityUuid,
             entityType = EntityType.AAP_PLAN,
             oasysAssessmentPk = "PK-123",
@@ -106,7 +106,7 @@ class HistoricalEventsReplayJobTest {
     whenever(associationsService.findAllIncludingDeleted(entityUuid))
       .thenReturn(
         listOf(
-          OasysAssociation(
+          OasysAssociationEntity(
             entityUuid = entityUuid,
             entityType = EntityType.AAP_PLAN,
             oasysAssessmentPk = "PK-123",
@@ -136,7 +136,7 @@ class HistoricalEventsReplayJobTest {
     whenever(associationsService.findAllIncludingDeleted(entityUuid))
       .thenReturn(
         listOf(
-          OasysAssociation(
+          OasysAssociationEntity(
             entityUuid = entityUuid,
             entityType = EntityType.AAP_PLAN,
             oasysAssessmentPk = "PK-123",
@@ -161,7 +161,7 @@ class HistoricalEventsReplayJobTest {
       .thenReturn(listOf(row), emptyList())
     whenever(associationsService.findAllIncludingDeleted(entityUuid)).thenReturn(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = createdAt,
           entityUuid = entityUuid,
           oasysAssessmentPk = "PK-DELETED",
@@ -189,7 +189,7 @@ class HistoricalEventsReplayJobTest {
     whenever(associationsService.findAllIncludingDeleted(entityUuid))
       .thenReturn(
         listOf(
-          OasysAssociation(
+          OasysAssociationEntity(
             entityUuid = entityUuid,
             entityType = EntityType.AAP_PLAN,
             oasysAssessmentPk = "PK-123",
@@ -248,7 +248,7 @@ class HistoricalEventsReplayJobTest {
 
   @Test
   fun `replay resolves assessment association separately for each version`() {
-    fun association(pk: String, baseVersion: Long) = OasysAssociation(
+    fun association(pk: String, baseVersion: Long) = OasysAssociationEntity(
       entityUuid = entityUuid,
       entityType = EntityType.AAP_PLAN,
       oasysAssessmentPk = pk,

@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.config
 
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.RandomOasysPk
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.RandomOasysPk
 
 @TestConfiguration
 class TestBeanConfig {

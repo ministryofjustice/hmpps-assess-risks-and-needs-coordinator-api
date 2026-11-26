@@ -10,17 +10,17 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.request.Updat
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.response.CommandSuccessCommandResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.response.CreateCollectionItemResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.response.CreateCollectionResult
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.PropertyValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.MultiValue
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.SingleValue
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import java.util.UUID
 
 object UpdateCommandHelper {
   fun postUpdateCommand(aapTestClient: WebTestClient, assessmentUuid: UUID): CommandSuccessCommandResult? {
     val commandRequest = UpdateAssessmentAnswersCommand(
       assessmentUuid = assessmentUuid,
-      user = UserDetails("test-user", "Test User"),
+      user = AAPUser("test-user", "Test User"),
       added = mapOf(
         "thinking_behaviours_attitudes_risk_sexual_harm" to PropertyValue(type = "Single", value = "YES"),
       ),
@@ -43,7 +43,7 @@ object UpdateCommandHelper {
   fun createGoal(aapTestClient: WebTestClient, assessmentUuid: UUID, crn: String): UUID? {
     val collectionRequest = CreateCollectionCommand(
       assessmentUuid = assessmentUuid,
-      user = UserDetails("test-user", "Test User"),
+      user = AAPUser("test-user", "Test User"),
       name = "GOALS",
       identifiers = mapOf("CRN" to crn),
       flags = listOf("SAN_BETA"),
@@ -63,7 +63,7 @@ object UpdateCommandHelper {
       name = "GOALS",
       assessmentUuid = assessmentUuid,
       collectionUuid = getCollectionResponse?.commands?.firstOrNull()?.result?.collectionUuid!!,
-      user = UserDetails("test-user", "Test User"),
+      user = AAPUser("test-user", "Test User"),
       identifiers = mapOf("CRN" to crn),
       flags = listOf("SAN_BETA"),
       properties = mapOf(

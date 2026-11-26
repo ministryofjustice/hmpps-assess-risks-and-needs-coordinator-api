@@ -10,20 +10,15 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.TestBeanConfig
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.AAPApiMockExtension.Companion.aapApiMock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.SentencePlanApiMockExtension
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.SentencePlanApiMockExtension.Companion.sentencePlanApiMock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integration.wiremock.StrengthsAndNeedsApiExtension.Companion.sanServer
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.RandomOasysPk
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentTypeConfig
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.util.UUID
 
-@ExtendWith(HmppsAuthApiExtension::class, StrengthsAndNeedsApiExtension::class, SentencePlanApiMockExtension::class, AAPApiMockExtension::class)
+@ExtendWith(HmppsAuthApiExtension::class, AAPApiMockExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
@@ -39,7 +34,7 @@ abstract class IntegrationTestBase {
   @Autowired
   lateinit var randomOasysPk: RandomOasysPk
 
-  @Autowired lateinit var assessmentTypeConfig: AssessmentTypeConfig
+  protected val aap: AAPApiMock get() = aapApiMock
 
   fun getRandomOasysPk() = randomOasysPk.get()
 
@@ -55,8 +50,6 @@ abstract class IntegrationTestBase {
 
   protected fun stubPingWithResponse(status: Int) {
     hmppsAuth.stubHealthPing(status)
-    sanServer.stubHealthPing(status)
-    sentencePlanApiMock.stubHealthPing(status)
     aapApiMock.stubHealthPing(status)
   }
 

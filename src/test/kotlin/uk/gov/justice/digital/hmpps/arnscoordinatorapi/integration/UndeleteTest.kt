@@ -7,17 +7,15 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
 import java.util.UUID
@@ -44,13 +42,13 @@ class UndeleteTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           deleted = true,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = sanUuid,
@@ -75,19 +73,13 @@ class UndeleteTest : IntegrationTestBase() {
       ),
     )
 
-    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
-      oasysAssessmentPk,
-      assessmentTypeConfig.enabledEntityTypes(),
-    ).size
+    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size
 
     val response = webTestClient.post().uri("/oasys/$oasysAssessmentPk/undelete")
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
-        UndeleteData(
-          versionFrom = 0,
-          userDetails = UserDetails(id = "1", name = "Test Name"),
-        ),
+        OasysGenericRequest(userDetails = OasysUserDetails(id = "1", name = "Test Name")),
       )
       .exchange()
       .expectStatus().isOk
@@ -95,10 +87,7 @@ class UndeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
-      oasysAssessmentPk,
-      assessmentTypeConfig.enabledEntityTypes(),
-    ).size
+    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPk(oasysAssessmentPk).size
     val planVersion = oasysVersionRepository.findByEntityUuidAndVersion(planUuid, 0)
 
     assertThat(versionsBefore).isEqualTo(0)
@@ -120,7 +109,7 @@ class UndeleteTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = previousAssessmentPk,
           entityType = EntityType.AAP_PLAN,
@@ -128,7 +117,7 @@ class UndeleteTest : IntegrationTestBase() {
           deleted = true,
           baseVersion = previousBaseVersion,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = LocalDateTime.now(),
           oasysAssessmentPk = currentAssessmentPk,
           entityType = EntityType.AAP_PLAN,
@@ -180,7 +169,7 @@ class UndeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     val planUuid = UUID.randomUUID()
     oasysAssociationRepository.save(
-      OasysAssociation(
+      OasysAssociationEntity(
         oasysAssessmentPk = oasysAssessmentPk,
         entityType = EntityType.AAP_PLAN,
         entityUuid = planUuid,
@@ -210,8 +199,8 @@ class UndeleteTest : IntegrationTestBase() {
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).startsWith("Failed to undelete AAP_PLAN versions from 0 to null due to a conflict")
-    assertThat(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid, assessmentTypeConfig.enabledEntityTypes()).single().deleted).isTrue()
+    assertThat(response?.userMessage).startsWith("Call to Assessment Platform API failed with status 409")
+    assertThat(oasysAssociationRepository.findAllByEntityUuidIncludingDeleted(planUuid).single().deleted).isTrue()
     assertThat(oasysVersionRepository.findAllDeletedByEntityUuidAndVersionBetween(planUuid, 0, 1)).hasSize(1)
   }
 
@@ -250,13 +239,13 @@ class UndeleteTest : IntegrationTestBase() {
 //  }
 
   @Test
-  fun `it returns a 500 when the sentence plan has no deleted versions to undelete`() {
+  fun `it returns a 409 without calling AAP when the sentence plan has no deleted versions to undelete`() {
     val oasysAssessmentPk = getRandomOasysPk()
     val planUuid = UUID.randomUUID()
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
@@ -269,18 +258,15 @@ class UndeleteTest : IntegrationTestBase() {
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
-        UndeleteData(
-          versionFrom = 0,
-          userDetails = UserDetails(id = "1", name = "Test Name"),
-        ),
+        OasysGenericRequest(userDetails = OasysUserDetails(id = "1", name = "Test Name")),
       )
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
-      .expectStatus().is5xxServerError
+      .expectStatus().isEqualTo(409)
       .expectBody(ErrorResponse::class.java)
       .returnResult().responseBody
 
-    assertThat(response?.userMessage).isEqualTo("Failed to undelete association for $oasysAssessmentPk, No deleted versions found to undelete for entity $planUuid")
+    assertThat(response?.userMessage).isEqualTo("No deleted versions found to undelete for entity $planUuid")
     verifyAAPUndeleteAssessmentNotCalled()
   }
 
@@ -289,7 +275,7 @@ class UndeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -302,10 +288,7 @@ class UndeleteTest : IntegrationTestBase() {
       .header(HttpHeaders.CONTENT_TYPE, "application/json")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .bodyValue(
-        UndeleteData(
-          versionFrom = 0,
-          userDetails = UserDetails(id = "1", name = "Test Name"),
-        ),
+        OasysGenericRequest(userDetails = OasysUserDetails(id = "1", name = "Test Name")),
       )
       .accept(MediaType.APPLICATION_JSON)
       .exchange()

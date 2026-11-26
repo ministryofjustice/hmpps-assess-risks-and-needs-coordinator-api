@@ -4,10 +4,10 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
 import java.util.UUID
 
 class EntityGetTest : IntegrationTestBase() {
@@ -23,16 +23,16 @@ class EntityGetTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `it successfully gets an ASSESSMENT or SAN or for an oasys PK linked to a given sp id`() {
+  fun `it only gets the requested entity type for the oasys PK linked to a given entity id`() {
     val oasysAssessmentPk = getRandomOasysPk()
     val (planAssociation, sanAssociation) = oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = UUID.fromString("2fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -57,18 +57,18 @@ class EntityGetTest : IntegrationTestBase() {
       .responseBody
 
     assertThat(assessmentResponse?.sentencePlanId).isEqualTo(UUID(0, 0))
-    assertThat(assessmentResponse?.sanAssessmentId).isNotNull()
-// TODO: Add support for putting these in to the mock response
-//    assertThat(assessmentResponse?.sanAssessmentVersion).isEqualTo(1)
-//    assertThat(assessmentResponse?.sanAssessmentData?.get("q2")).hasFieldOrPropertyWithValue("value", "Question answer &, ', <, >, /, \\, `, \"")
-//    assertThat(assessmentResponse?.sanOasysEquivalent).isEqualTo(mapOf("q2" to "Question answer &, ', <, >, /, \\, `, \""))
+    assertThat(assessmentResponse?.sanAssessmentId).isEqualTo(sanAssociation.entityUuid)
 
     assertThat(sentencePlanResponse?.sanAssessmentId).isEqualTo(UUID(0, 0))
-    assertThat(sentencePlanResponse?.sentencePlanId).isNotNull()
+    assertThat(sentencePlanResponse?.sentencePlanId).isEqualTo(planAssociation.entityUuid)
+
+    // Each request only queries AAP for the requested entity
+    assertThat(aap.queriesSent().map { it.path("assessmentIdentifier").path("uuid").asText() })
+      .containsExactly(planAssociation.entityUuid.toString(), sanAssociation.entityUuid.toString())
   }
 
   @Test
-  fun `get by entity id returns bad request found`() {
+  fun `get by entity id returns bad request for an unsupported entity type`() {
     webTestClient.get().uri("/entity/5dc85f64-5717-4562-b3fc-2c963f66afa7/INVALID")
       .headers(setAuthorisation(roles = listOf("ROLE_STRENGTHS_AND_NEEDS_OASYS")))
       .exchange()

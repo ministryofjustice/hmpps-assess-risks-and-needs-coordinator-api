@@ -1,8 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response
 
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetailsList
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
 import java.time.Duration
 import java.time.LocalDate
 
@@ -10,13 +9,13 @@ class VersionsResponseFactory {
   val versions: MutableMap<LocalDate, VersionsOnDate> = mutableMapOf()
   val unaggregatedVersions: MutableList<VersionDetails> = mutableListOf()
 
-  fun addVersions(versionsToAdd: VersionDetailsList) = versionsToAdd.forEach { versionToAdd ->
+  fun addVersions(versionsToAdd: List<VersionDetails>) = versionsToAdd.forEach { versionToAdd ->
     unaggregatedVersions.add(versionToAdd)
     versions.getOrPut(versionToAdd.updatedAt.toLocalDate()) { VersionsOnDate() }
       .let {
         when (versionToAdd.entityType) {
-          EntityType.PLAN, EntityType.AAP_PLAN -> it.planVersions
-          EntityType.ASSESSMENT, EntityType.AAP_SAN -> it.assessmentVersions
+          EntityType.AAP_PLAN -> it.planVersions
+          EntityType.AAP_SAN -> it.assessmentVersions
         }
       }.add(versionToAdd)
   }
