@@ -6,11 +6,11 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
 import java.util.UUID
 import javax.sql.DataSource
 import kotlin.concurrent.thread
@@ -70,7 +70,7 @@ class HistoricalEventsReplayJob(
     log.info("Historical events replay starting")
 
     // Cache association resolution across pages so we don't re-query associated details across page boundaries
-    val associationCache = HashMap<UUID, List<OasysAssociation>>()
+    val associationCache = HashMap<UUID, List<OasysAssociationEntity>>()
 
     var lastEntityUuid = ZERO_UUID
     var lastVersion = Long.MIN_VALUE
@@ -116,7 +116,7 @@ class HistoricalEventsReplayJob(
 
   private fun resolveAssociationsForPage(
     page: List<OasysVersionEntity>,
-    cache: HashMap<UUID, List<OasysAssociation>>,
+    cache: HashMap<UUID, List<OasysAssociationEntity>>,
   ) {
     val unresolved = page
       .map { it.entityUuid }
@@ -132,7 +132,7 @@ class HistoricalEventsReplayJob(
 
   private fun resolveAssociation(
     row: OasysVersionEntity,
-    associations: List<OasysAssociation>,
+    associations: List<OasysAssociationEntity>,
   ): EntityAssociationDetails? {
     val eligible = associations.filter {
       it.baseVersion <= row.version

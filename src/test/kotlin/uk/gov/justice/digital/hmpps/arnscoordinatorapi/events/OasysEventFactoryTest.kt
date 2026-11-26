@@ -8,19 +8,19 @@ import org.junit.jupiter.params.provider.EnumSource
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.CounterSignOutcome
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionedEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.AssessmentType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.AssessmentType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCounterSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -33,7 +33,7 @@ class OasysEventFactoryTest {
 
   private val planId = UUID.randomUUID()
 
-  private val association = OasysAssociation(
+  private val association = OasysAssociationEntity(
     oasysAssessmentPk = "12345",
     entityType = EntityType.AAP_PLAN,
     entityUuid = planId,

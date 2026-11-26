@@ -10,13 +10,13 @@ import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysMergeRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysMessageResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysTransferAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysMergeRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysMessageResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysTransferAssociation
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @ExtendWith(OutputCaptureExtension::class)
@@ -40,10 +40,10 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_SAN),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_SAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_SAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_SAN),
       ),
     )
 
@@ -67,10 +67,10 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.message).isEqualTo("Successfully processed all 2 merge elements")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(existingOasysPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(existingOasysPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newOasysPk1, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newOasysPk2, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingOasysPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingOasysPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk1, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk2, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
   }
 
   @Test
@@ -80,8 +80,8 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_PLAN, deleted = true),
-        OasysAssociation(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_SAN, deleted = true),
+        OasysAssociationEntity(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_PLAN, deleted = true),
+        OasysAssociationEntity(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_SAN, deleted = true),
       ),
     )
 
@@ -115,8 +115,8 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_SAN),
+        OasysAssociationEntity(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = oldOasysPk, entityType = EntityType.AAP_SAN),
       ),
     )
 
@@ -139,8 +139,8 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.message).isEqualTo("Successfully processed all 1 merge elements")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oldOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newOasysPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oldOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(2)
   }
 
   @Test
@@ -152,7 +152,7 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -172,7 +172,7 @@ class MergeTest : IntegrationTestBase() {
       .expectStatus().is5xxServerError
 
     assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkIncludingDeleted(existingOasysPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
   }
 
   @Test
@@ -184,10 +184,10 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingAssociationPk1, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingAssociationPk2, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingAssociationPk3, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingAssociationPk4, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -217,10 +217,10 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.userMessage).isEqualTo("Existing association(s) for $existingAssociationPk2, $existingAssociationPk4")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(existingAssociationPk1, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(existingAssociationPk2, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(existingAssociationPk3, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(existingAssociationPk4, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk1, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk2, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk3, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(existingAssociationPk4, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
   }
 
   @Test
@@ -236,7 +236,7 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = oasysAssessmentPk, entityType = EntityType.AAP_PLAN),
       ),
     )
 
@@ -270,12 +270,12 @@ class MergeTest : IntegrationTestBase() {
 
     assertThat(response?.userMessage).isEqualTo("The following association(s) could not be located: $missingOasysAssessmentPk1, $missingOasysAssessmentPk2 and the operation has not been actioned.")
 
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newOasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(missingOasysAssessmentPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newMissingOasysAssessmentPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(missingOasysAssessmentPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
-    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(newMissingOasysAssessmentPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(oasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes()).size).isEqualTo(1)
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newOasysAssessmentPk, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(missingOasysAssessmentPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newMissingOasysAssessmentPk1, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(missingOasysAssessmentPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
+    assertThat(oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(newMissingOasysAssessmentPk2, assessmentTypeConfig.enabledEntityTypes())).isEmpty()
   }
 
   @Test
@@ -338,10 +338,10 @@ class MergeTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_SAN),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
-        OasysAssociation(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_SAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk1, entityType = EntityType.AAP_SAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_PLAN),
+        OasysAssociationEntity(oasysAssessmentPk = existingOasysPk2, entityType = EntityType.AAP_SAN),
       ),
     )
 

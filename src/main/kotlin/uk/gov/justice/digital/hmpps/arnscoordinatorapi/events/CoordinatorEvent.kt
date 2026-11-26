@@ -3,7 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.events
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 import java.time.LocalDateTime
 import java.util.UUID
 

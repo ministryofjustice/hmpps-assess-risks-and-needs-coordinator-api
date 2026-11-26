@@ -2,14 +2,14 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.events
 
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.CounterSignOutcome
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.SignType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCounterSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysCreateRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysSignRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.CounterSignOutcome
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.SignType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCounterSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCreateRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysSignRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 
 @Component
 class OasysEventFactory(
@@ -17,15 +17,15 @@ class OasysEventFactory(
 ) {
 
   fun createVersionEvent(request: OasysCreateRequest, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
-    oasysEvent = result.aapPlanVersionedEntity?.createdBy ?: OasysEvent.CREATED,
+    oasysEvent = result.aapPlanVersion?.createdBy ?: OasysEvent.CREATED,
     oasysAssessmentPk = request.oasysAssessmentPk,
     regionPrisonCode = request.regionPrisonCode,
-    baseVersion = result.aapPlanVersionedEntity?.version ?: 0L,
+    baseVersion = result.aapPlanVersion?.version ?: 0L,
     result = result,
   )
 
   fun signVersionEvent(
-    association: OasysAssociation,
+    association: OasysAssociationEntity,
     request: OasysSignRequest,
     result: OasysVersionedEntityResponse,
   ): CoordinatorEvent = versionEvent(
@@ -39,7 +39,7 @@ class OasysEventFactory(
     result = result,
   )
 
-  fun lockVersionEvent(association: OasysAssociation, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
+  fun lockVersionEvent(association: OasysAssociationEntity, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
     oasysEvent = OasysEvent.LOCKED,
     oasysAssessmentPk = association.oasysAssessmentPk!!,
     regionPrisonCode = association.regionPrisonCode,
@@ -47,7 +47,7 @@ class OasysEventFactory(
     result = result,
   )
 
-  fun rollbackVersionEvent(association: OasysAssociation, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
+  fun rollbackVersionEvent(association: OasysAssociationEntity, result: OasysVersionedEntityResponse): CoordinatorEvent = versionEvent(
     oasysEvent = OasysEvent.ROLLED_BACK,
     oasysAssessmentPk = association.oasysAssessmentPk!!,
     regionPrisonCode = association.regionPrisonCode,
@@ -56,7 +56,7 @@ class OasysEventFactory(
   )
 
   fun counterSignVersionEvent(
-    association: OasysAssociation,
+    association: OasysAssociationEntity,
     request: OasysCounterSignRequest,
     result: OasysVersionedEntityResponse,
   ): CoordinatorEvent {
@@ -76,9 +76,9 @@ class OasysEventFactory(
     )
   }
 
-  fun softDeleteEvent(association: OasysAssociation, versionTo: Long?): CoordinatorEvent = deleteFlagEvent(association = association, deleted = true, versionTo = versionTo)
+  fun softDeleteEvent(association: OasysAssociationEntity, versionTo: Long?): CoordinatorEvent = deleteFlagEvent(association = association, deleted = true, versionTo = versionTo)
 
-  fun undeleteEvent(association: OasysAssociation, versionTo: Long?): CoordinatorEvent = deleteFlagEvent(association = association, deleted = false, versionTo = versionTo)
+  fun undeleteEvent(association: OasysAssociationEntity, versionTo: Long?): CoordinatorEvent = deleteFlagEvent(association = association, deleted = false, versionTo = versionTo)
 
   private fun versionEvent(
     oasysEvent: OasysEvent,
@@ -88,7 +88,7 @@ class OasysEventFactory(
     result: OasysVersionedEntityResponse,
   ): CoordinatorEvent {
     val now = clock.now()
-    val aapVersion = result.aapPlanVersionedEntity
+    val aapVersion = result.aapPlanVersion
     return CoordinatorEvent(
       eventType = EventType.OASYS_VERSION_EVENT,
       entityType = "AAP_PLAN",
@@ -108,7 +108,7 @@ class OasysEventFactory(
     )
   }
 
-  private fun deleteFlagEvent(association: OasysAssociation, deleted: Boolean, versionTo: Long?): CoordinatorEvent = CoordinatorEvent(
+  private fun deleteFlagEvent(association: OasysAssociationEntity, deleted: Boolean, versionTo: Long?): CoordinatorEvent = CoordinatorEvent(
     eventType = EventType.OASYS_DELETE_FLAG_UPDATE_EVENT,
     entityType = "AAP_PLAN",
     entityUuid = association.entityUuid,

@@ -1,0 +1,19 @@
+package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request
+
+import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.Valid
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+
+data class OasysSignRequest(
+  @Schema(description = "Indicates the signing type")
+  val signType: SignType,
+
+  @Schema(description = "OASys User")
+  @field:Valid
+  val userDetails: OasysUserDetails,
+)
+
+enum class SignType {
+  SELF,
+  COUNTERSIGN,
+}

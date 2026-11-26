@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OasysUserDetailsValidationTest {

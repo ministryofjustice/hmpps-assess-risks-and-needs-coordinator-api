@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response
 
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.VersionDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.VersionDetails
 import java.time.LocalDate
 import java.util.Collections.emptySortedMap
 import java.util.SortedMap

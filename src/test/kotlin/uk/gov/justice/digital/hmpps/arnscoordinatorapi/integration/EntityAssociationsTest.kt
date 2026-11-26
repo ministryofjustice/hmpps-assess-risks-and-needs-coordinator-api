@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
 import java.util.UUID
 
 class EntityAssociationsTest : IntegrationTestBase() {
@@ -79,12 +79,12 @@ class EntityAssociationsTest : IntegrationTestBase() {
       // entityUuid1 has two associations; the second (PK 101) is the latest
       oasysAssociationRepository.saveAll(
         listOf(
-          OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100", regionPrisonCode = "LDN", baseVersion = 1),
-          OasysAssociation(entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200", regionPrisonCode = "MAN", baseVersion = 5),
+          OasysAssociationEntity(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "100", regionPrisonCode = "LDN", baseVersion = 1),
+          OasysAssociationEntity(entityUuid = entityUuid2, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "200", regionPrisonCode = "MAN", baseVersion = 5),
         ),
       )
       oasysAssociationRepository.save(
-        OasysAssociation(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101", regionPrisonCode = "LDN", baseVersion = 2),
+        OasysAssociationEntity(entityUuid = entityUuid1, entityType = EntityType.AAP_PLAN, oasysAssessmentPk = "101", regionPrisonCode = "LDN", baseVersion = 2),
       )
 
       webTestClient.post()

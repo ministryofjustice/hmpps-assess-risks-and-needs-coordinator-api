@@ -9,15 +9,15 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UndeleteData
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociation
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.OasysAssociationRepository
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysEvent
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionEntity
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.versioning.persistence.OasysVersionRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysAssociationEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysAssociationRepository
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysGenericRequest
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysVersionedEntityResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.dto.OasysUserDetails
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDateTime
 import java.util.UUID
@@ -44,13 +44,13 @@ class UndeleteTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
           deleted = true,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_SAN,
           entityUuid = sanUuid,
@@ -75,7 +75,7 @@ class UndeleteTest : IntegrationTestBase() {
       ),
     )
 
-    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
+    val versionsBefore = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(
       oasysAssessmentPk,
       assessmentTypeConfig.enabledEntityTypes(),
     ).size
@@ -95,7 +95,7 @@ class UndeleteTest : IntegrationTestBase() {
       .returnResult()
       .responseBody
 
-    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityTypeIn(
+    val versionsAfter = oasysAssociationRepository.findAllByOasysAssessmentPkAndEntityType(
       oasysAssessmentPk,
       assessmentTypeConfig.enabledEntityTypes(),
     ).size
@@ -120,7 +120,7 @@ class UndeleteTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = LocalDateTime.now().minusDays(1),
           oasysAssessmentPk = previousAssessmentPk,
           entityType = EntityType.AAP_PLAN,
@@ -128,7 +128,7 @@ class UndeleteTest : IntegrationTestBase() {
           deleted = true,
           baseVersion = previousBaseVersion,
         ),
-        OasysAssociation(
+        OasysAssociationEntity(
           createdAt = LocalDateTime.now(),
           oasysAssessmentPk = currentAssessmentPk,
           entityType = EntityType.AAP_PLAN,
@@ -180,7 +180,7 @@ class UndeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     val planUuid = UUID.randomUUID()
     oasysAssociationRepository.save(
-      OasysAssociation(
+      OasysAssociationEntity(
         oasysAssessmentPk = oasysAssessmentPk,
         entityType = EntityType.AAP_PLAN,
         entityUuid = planUuid,
@@ -256,7 +256,7 @@ class UndeleteTest : IntegrationTestBase() {
 
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = planUuid,
@@ -289,7 +289,7 @@ class UndeleteTest : IntegrationTestBase() {
     val oasysAssessmentPk = getRandomOasysPk()
     oasysAssociationRepository.saveAll(
       listOf(
-        OasysAssociation(
+        OasysAssociationEntity(
           oasysAssessmentPk = oasysAssessmentPk,
           entityType = EntityType.AAP_PLAN,
           entityUuid = UUID.fromString("5fa85f64-5717-4562-b3fc-2c963f66afa6"),

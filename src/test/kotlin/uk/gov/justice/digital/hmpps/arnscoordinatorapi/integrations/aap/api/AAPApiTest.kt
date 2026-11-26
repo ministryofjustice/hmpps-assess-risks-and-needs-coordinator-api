@@ -32,8 +32,9 @@ import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.resp
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.QueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.api.request.CreatePlanData
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.plan.PlanType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.AAPAssessmentType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -78,7 +79,7 @@ class AAPApiTest {
       `when`(responseSpec.bodyToMono(CommandsResponse::class.java)).thenReturn(Mono.just(response))
 
       val result = aapApi.createAssessment(
-        AssessmentType.SENTENCE_PLAN,
+        AAPAssessmentType.SENTENCE_PLAN,
         CreateAssessmentData(
           userDetails = createPlanData.userDetails,
           subjectDetails = createPlanData.subjectDetails,
@@ -109,7 +110,7 @@ class AAPApiTest {
         .thenReturn(Mono.error(WebClientResponseException.create(HttpStatus.BAD_REQUEST.value(), "Bad Request", HttpHeaders.EMPTY, "Error body".toByteArray(), null)))
 
       val result = aapApi.createAssessment(
-        AssessmentType.SENTENCE_PLAN,
+        AAPAssessmentType.SENTENCE_PLAN,
         CreateAssessmentData(
           userDetails = createPlanData.userDetails,
           subjectDetails = createPlanData.subjectDetails,
@@ -138,7 +139,7 @@ class AAPApiTest {
         .thenReturn(Mono.error(RuntimeException("Unexpected error")))
 
       val result = aapApi.createAssessment(
-        AssessmentType.SENTENCE_PLAN,
+        AAPAssessmentType.SENTENCE_PLAN,
         CreateAssessmentData(
           userDetails = createPlanData.userDetails,
           subjectDetails = createPlanData.subjectDetails,

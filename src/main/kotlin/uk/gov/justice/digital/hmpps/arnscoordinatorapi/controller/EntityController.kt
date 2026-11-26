@@ -8,8 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PathVariable
@@ -19,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.EntityAssociationDetails
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.VersionsResponse
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.OasysCoordinatorService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.OasysAssociationsService
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.associations.repository.EntityType
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysCoordinatorService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.service.OasysAssociationsService
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.model.EntityType
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.response.OasysGetResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
@@ -82,16 +80,7 @@ class EntityController(
     @Parameter(description = "Entity UUID. SAN or SP entity ID", required = true, example = "90a71d16-fecd-4e1a-85b9-98178bf0f8d0")
     @PathVariable
     @Valid entityUuid: UUID,
-  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getVersionsByEntityId(entityUuid)) {
-    is OasysCoordinatorService.GetOperationResult.Success ->
-      ResponseEntity.status(HttpStatus.OK).body(result.data)
-
-    is OasysCoordinatorService.GetOperationResult.Failure ->
-      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
-
-    is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-      ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
-  }
+  ): VersionsResponse = oasysCoordinatorService.getVersionsByEntityId(entityUuid)
 
   @RequestMapping(path = ["/{entityUuid}/{entityType}"], method = [RequestMethod.GET])
   @Operation(description = "Get the latest version of the provided entity type associated with the OASys Assessment PK linked to the provided entity id")
@@ -121,16 +110,6 @@ class EntityController(
     @Valid entityUuid: UUID,
     @Parameter(description = "Entity Type. AAP_SAN or AAP_PLAN", required = true, example = "AAP_SAN")
     @PathVariable
-    @EnabledEntityType
     @Valid entityType: String,
-  ): ResponseEntity<*> = when (val result = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))) {
-    is OasysCoordinatorService.GetOperationResult.Success ->
-      ResponseEntity.status(HttpStatus.OK).body(result.data)
-
-    is OasysCoordinatorService.GetOperationResult.Failure ->
-      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result.errorMessage)
-
-    is OasysCoordinatorService.GetOperationResult.NoAssociations ->
-      ResponseEntity.status(HttpStatus.NOT_FOUND).body(result.errorMessage)
-  }
+  ): OasysGetResponse = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))
 }

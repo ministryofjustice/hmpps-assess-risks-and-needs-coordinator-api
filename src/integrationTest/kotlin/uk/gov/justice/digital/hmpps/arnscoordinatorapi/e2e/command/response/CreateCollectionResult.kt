@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.response
 
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.AAPUser
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.request.command.Timeline
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.common.entity.UserDetails
 import java.util.UUID
 
 data class CreateCollectionResult(
@@ -17,7 +17,7 @@ data class CreateCollectionRequest(
   val type: String,
   val formVersion: String? = null,
   val timeline: Timeline? = null,
-  val user: UserDetails,
+  val user: AAPUser,
 )
 
 data class CreateCollectionCommandResult(
