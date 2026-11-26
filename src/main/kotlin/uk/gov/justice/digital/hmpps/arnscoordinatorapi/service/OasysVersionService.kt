@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.arnscoordinatorapi.service
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Clock
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.exception.CoordinatorException
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysEvent
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.entity.OasysVersionEntity
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.persistence.repository.OasysVersionRepository
@@ -26,7 +27,7 @@ class OasysVersionService(
       updatedAt = clock.now()
     }
     ?.run(repository::save)
-    ?: throw Error("Unable to update version, no previous version found for $entityUuid")
+    ?: throw CoordinatorException("Unable to update version, no previous version found for $entityUuid")
 
   fun softDeleteVersions(entityUuid: UUID, from: Long, to: Long?): OasysVersionEntity {
     val toVersion = to ?: getLatestVersionNumber()
@@ -35,7 +36,7 @@ class OasysVersionService(
     if (versions.isEmpty()) {
       val errorMessage = "No versions found for entity $entityUuid between $from to $toVersion"
       log.warn(errorMessage)
-      throw Error(errorMessage)
+      throw CoordinatorException(errorMessage)
     }
 
     return versions
@@ -52,7 +53,7 @@ class OasysVersionService(
     if (versions.isEmpty()) {
       val errorMessage = "No deleted versions found for entity $entityUuid between $from to ${to ?: getLatestVersionNumber()}"
       log.warn(errorMessage)
-      throw Error(errorMessage)
+      throw CoordinatorException(errorMessage)
     }
 
     return versions
@@ -66,8 +67,6 @@ class OasysVersionService(
   fun fetchAllForEntityUuid(entityUuid: UUID) = repository.findAllByEntityUuid(entityUuid)
 
   fun getLatestVersionNumber() = clock.now().toInstant(ZoneOffset.UTC).toEpochMilli()
-
-  fun saveAll(versions: List<OasysVersionEntity>) = repository.saveAll(versions)
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

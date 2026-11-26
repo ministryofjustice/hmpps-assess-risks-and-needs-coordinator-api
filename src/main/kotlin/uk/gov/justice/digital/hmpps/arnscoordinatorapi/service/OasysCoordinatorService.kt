@@ -82,14 +82,15 @@ class OasysCoordinatorService(
     val commands = mutableListOf<Command>()
 
     val resetPlan = requestData.newPeriodOfSupervision == "Y"
+    val includeSAN = requestData.assessmentType == AssessmentType.SAN_SP
 
-    val createSPCommand = if (requestData.previousOasysSpPk == null && !resetPlan) {
+    val createSPCommand = if (requestData.previousOasysSpPk == null) {
       sentencePlanService.create(requestData).also(commands::add)
     } else {
       null
     }
 
-    val createSANCommand = if (requestData.previousOasysSanPk == null && requestData.assessmentType == AssessmentType.SAN_SP) {
+    val createSANCommand = if (includeSAN && requestData.previousOasysSanPk == null) {
       strengthsAndNeedsService.create(requestData).also(commands::add)
     } else {
       null
@@ -101,8 +102,8 @@ class OasysCoordinatorService(
 
     // Process associations/versions for existing AAP assessment(s)
     listOfNotNull(
-      (createSPCommand ?: EntityType.AAP_PLAN).takeIf { it is EntityType } as EntityType?,
-      (createSANCommand ?: EntityType.AAP_SAN).takeIf { it is EntityType } as EntityType?,
+      EntityType.AAP_PLAN.takeIf { createSPCommand == null },
+      EntityType.AAP_SAN.takeIf { includeSAN && createSANCommand == null },
     ).forEach { entityType ->
       val existingAssociation = oasysAssociationsService
         .findAssociationsByPkAndType(requestData.previousPkFor(entityType), entityType)
@@ -146,20 +147,20 @@ class OasysCoordinatorService(
 
     val commandsResponse = aapApi.dispatchCommands(commands)
 
-    // Process associations/versions for new AAP assessment(s)
-    listOfNotNull(
-      createSPCommand?.let { Pair(createSPCommand, commandsResponse.extractNthInstance<CreateAssessmentCommandResult>(0)) },
-      createSANCommand?.let { Pair(createSANCommand, commandsResponse.extractNthInstance<CreateAssessmentCommandResult>(1)) },
-    ).forEach { (command, result) ->
+    // Process associations/versions for new AAP assessment(s). Create results come back in dispatch order.
+    listOfNotNull(createSPCommand, createSANCommand).forEachIndexed { index, command ->
+      val result = commandsResponse.extractNthInstance<CreateAssessmentCommandResult>(index)
+      val entityType = EntityType.fromAAPAssessmentType(command.assessmentType)
+
       OasysAssociationEntity(
         oasysAssessmentPk = requestData.oasysAssessmentPk,
-        entityType = EntityType.fromAAPAssessmentType(command.assessmentType),
+        entityType = entityType,
         entityUuid = result.assessmentUuid,
         regionPrisonCode = requestData.regionPrisonCode,
       ).also(oasysAssociationsService::save)
 
       oasysVersionService.createVersionFor(OasysEvent.CREATED, result.assessmentUuid)
-        .also { response.populate(it, EntityType.fromAAPAssessmentType(command.assessmentType)) }
+        .also { response.populate(it, entityType) }
     }
 
     onAfter.forEach { closure -> closure.invoke() }
@@ -177,31 +178,29 @@ class OasysCoordinatorService(
       throw NoAssociationsException(oasysAssessmentPk)
     }
 
-    fun assessmentVersionQuery(entityUuid: UUID) = AssessmentVersionQuery(
-      user = coordinatorUser,
-      assessmentIdentifier = AssessmentIdentifier(entityUuid),
-      timestamp = clock.now(),
-    )
+    return fetchLatest(associations)
+  }
 
-    val spQuery = associations.firstOrNull { it.entityType == EntityType.AAP_PLAN }
-      ?.let { assessmentVersionQuery(it.entityUuid) }
-
-    val sanQuery = associations.firstOrNull { it.entityType == EntityType.AAP_SAN }
-      ?.let { assessmentVersionQuery(it.entityUuid) }
-
-    val queriesResponse = aapApi.dispatchQueries(listOfNotNull(spQuery, sanQuery))
-
+  private fun fetchLatest(associations: List<OasysAssociationEntity>): OasysGetResponse {
     val response = OasysGetResponse()
 
-    listOfNotNull(
-      spQuery?.let { Pair(EntityType.AAP_PLAN, queriesResponse.extractNthInstance<AssessmentVersionQueryResult>(0)) },
-      sanQuery?.let { Pair(EntityType.AAP_SAN, queriesResponse.extractNthInstance<AssessmentVersionQueryResult>(1)) },
-    ).forEach { (entityType, data) ->
-      when (entityType) {
-        EntityType.AAP_PLAN -> sentencePlanService.fetch(data, response)
-        EntityType.AAP_SAN -> strengthsAndNeedsService.fetch(data, response)
+    val queries: List<Pair<Query, (QueryResult) -> Unit>> = EntityType.entries
+      .mapNotNull { entityType -> associations.firstOrNull { it.entityType == entityType } }
+      .map { association ->
+        AssessmentVersionQuery(
+          user = coordinatorUser,
+          assessmentIdentifier = AssessmentIdentifier(association.entityUuid),
+          timestamp = clock.now(),
+        ) to { result: QueryResult ->
+          when (association.entityType) {
+            EntityType.AAP_PLAN -> sentencePlanService.fetch(result as AssessmentVersionQueryResult, response)
+            EntityType.AAP_SAN -> strengthsAndNeedsService.fetch(result as AssessmentVersionQueryResult, response)
+            null -> throw MissingEntityTypeException(association)
+          }
+        }
       }
-    }
+
+    aapApi.dispatchQueries(queries)
 
     return response
   }
@@ -300,11 +299,11 @@ class OasysCoordinatorService(
     val oasysAssessmentPk = oasysAssociationsService.findOasysPkByEntityId(entityUuid)
       ?: throw NoAssociationsForEntityUuidException(entityUuid)
 
-    oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
+    val association = oasysAssociationsService.findAssociationsByPk(oasysAssessmentPk)
       .firstOrNull { it.entityType == entityType }
       ?: throw NoAssociationsForEntityException(entityType, oasysAssessmentPk)
 
-    return get(oasysAssessmentPk)
+    return fetchLatest(listOf(association))
   }
 
   @Transactional
@@ -324,7 +323,7 @@ class OasysCoordinatorService(
     associations.forEach { association ->
       val entityType = association.entityType ?: throw MissingEntityTypeException(association)
 
-      oasysVersionsByType[entityType] = oasysVersionService.fetchAllForEntityUuid(entityUuid).map {
+      oasysVersionsByType[entityType] = oasysVersionService.fetchAllForEntityUuid(association.entityUuid).map {
         VersionDetails(
           uuid = it.uuid,
           version = if (it.version > 1000L) it.version else it.updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
@@ -339,7 +338,7 @@ class OasysCoordinatorService(
       queries.add(
         DailyVersionsQuery(
           user = coordinatorUser,
-          assessmentIdentifier = AssessmentIdentifier(entityUuid),
+          assessmentIdentifier = AssessmentIdentifier(association.entityUuid),
         ) to { result: QueryResult ->
           aapVersionsByType[entityType] = (result as DailyVersionsQueryResult).versions.map {
             VersionDetails(
@@ -359,7 +358,7 @@ class OasysCoordinatorService(
         queries.add(
           TimelineQuery(
             user = coordinatorUser,
-            assessmentIdentifier = AssessmentIdentifier(entityUuid),
+            assessmentIdentifier = AssessmentIdentifier(association.entityUuid),
             pageSize = 99999,
             includeCustomTypes = setOf("PLAN_AGREEMENT_STATUS_CHANGED"),
           ) to { result: QueryResult ->

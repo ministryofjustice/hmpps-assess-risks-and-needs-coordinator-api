@@ -10,12 +10,14 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
+import org.springframework.http.HttpStatus
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.config.Constraints
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.controller.request.OasysCounterSignRequest
@@ -94,6 +96,7 @@ class OasysController(
       ),
     ],
   )
+  @ResponseStatus(HttpStatus.CREATED)
   fun create(
     @RequestBody @Valid request: OasysCreateRequest,
   ): OasysVersionedEntityResponse = oasysCoordinatorService.create(request)

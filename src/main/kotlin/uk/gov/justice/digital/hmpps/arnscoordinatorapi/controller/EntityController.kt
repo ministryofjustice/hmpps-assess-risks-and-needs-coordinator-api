@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Pattern
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PathVariable
@@ -110,6 +111,7 @@ class EntityController(
     @Valid entityUuid: UUID,
     @Parameter(description = "Entity Type. AAP_SAN or AAP_PLAN", required = true, example = "AAP_SAN")
     @PathVariable
+    @Pattern(regexp = "AAP_PLAN|AAP_SAN", message = "Entity type is not supported")
     @Valid entityType: String,
   ): OasysGetResponse = oasysCoordinatorService.getByEntityId(entityUuid, EntityType.valueOf(entityType))
 }
