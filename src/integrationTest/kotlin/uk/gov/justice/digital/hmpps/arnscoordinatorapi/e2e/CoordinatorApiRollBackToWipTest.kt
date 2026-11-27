@@ -7,11 +7,11 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.createGoal
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityHelper.getEntitySentencePlan
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.CreateOasysHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.lock
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.rollback
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityHelper.getEntitySentencePlan
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanState
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.plan.entity.PlanType
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
@@ -71,4 +71,3 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
     assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
   }
 }
-
