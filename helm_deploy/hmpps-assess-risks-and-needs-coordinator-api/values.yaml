@@ -44,11 +44,6 @@ generic-service:
     sqs-arns-coordinator-queue:
       HMPPS_SQS_QUEUES_COORDINATOR_QUEUE_NAME: "sqs_queue_name"
 
-  allowlist:
-    groups:
-      - internal
-      - prisons
-
 global:
   environment: ""
 
