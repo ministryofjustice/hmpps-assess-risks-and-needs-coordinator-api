@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.createGoal
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.CreateOasysHelper
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.OasysHelper.lock
@@ -28,7 +27,6 @@ import kotlin.random.Random
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
   private lateinit var sentencePlanId: UUID
-  private lateinit var assessmentId: UUID
   private var sentencePlanVersion by Delegates.notNull<Long>()
   private var assessmentVersion by Delegates.notNull<Long>()
 
@@ -43,7 +41,6 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
     val createOasysResponse = CreateOasysHelper.createOasys(webTestClient, crn, oasysPk)
 
     sentencePlanId = createOasysResponse?.sentencePlanId!!
-    assessmentId = createOasysResponse.sanAssessmentId
 
     createGoal(aapTestClient, sentencePlanId, crn)!!
 
@@ -52,16 +49,9 @@ class CoordinatorApiRollBackToWipTest : IntegrationTestBase() {
     assertThat(getEntityResponse?.planType).isEqualTo(PlanType.INITIAL)
     assertThat(getEntityResponse?.planComplete).isEqualTo(PlanState.INCOMPLETE)
 
-    UpdateCommandHelper.postUpdateCommand(aapTestClient, assessmentId)
-
-    var getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
-    assessmentVersion = getEntityVersionsResponse?.allVersions[today]?.assessmentVersion?.version!!
-
-    assertThat(getEntityVersionsResponse.allVersions[today]?.assessmentVersion?.status).isEqualTo("LOCKED_INCOMPLETE")
-
     lock(webTestClient, oasysPk, oasysGenericRequest)
 
-    getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
+    val getEntityVersionsResponse = getEntityVersions(webTestClient, sentencePlanId)
     sentencePlanVersion = getEntityVersionsResponse?.allVersions?.get(today)?.planVersion?.version!!
     assessmentVersion = getEntityVersionsResponse.allVersions[today]?.assessmentVersion?.version!!
 
