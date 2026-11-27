@@ -12,17 +12,15 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.command.UpdateCommandHelper.postUpdateCommand
-import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.createOasys.CreateOasysHelper.createOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersions
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.entity.GetEntityVersionsHelper.getEntityVersionsNotFound
+import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.oasys.CreateOasysHelper.createOasys
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.e2e.query.QueryApiHelper.getQueryResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.integrations.aap.api.response.query.AssessmentVersionQueryResult
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.request.OasysGenericRequest
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysGetResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.controller.response.OasysVersionedEntityResponse
 import uk.gov.justice.digital.hmpps.arnscoordinatorapi.oasys.entity.OasysUserDetails
-import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 import kotlin.random.Random
 
@@ -39,7 +37,6 @@ class CoordinatorApiSanTest : IntegrationTestBase() {
   val oasysGenericRequest = OasysGenericRequest(
     userDetails = OasysUserDetails(name = "Test"),
   )
-  val today = LocalDate.now(ZoneId.of("UTC"))
 
   @BeforeAll
   fun `create oasys and get entity`() {
